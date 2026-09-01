@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,10 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Modal Pop-Up Berhasil & Konfirmasi Email
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const handleRegister = async () => {
     setErrorMessage('');
@@ -51,16 +56,8 @@ export default function RegisterScreen() {
     if (error) {
       setErrorMessage(error);
     } else {
-      if (Platform.OS === 'web') {
-        window.alert('Pendaftaran Berhasil! 🎉\nAkun Anda telah aktif. Masuk ke dashboard pribadi Anda.');
-        router.replace('/(tabs)');
-        return;
-      }
-      Alert.alert(
-        'Pendaftaran Berhasil! 🎉',
-        'Akun Anda telah dibuat. Anda sekarang sudah masuk ke dashboard pribadi Anda.',
-        [{ text: 'Buka Dashboard', onPress: () => router.replace('/(tabs)') }]
-      );
+      setRegisteredEmail(email.trim());
+      setShowSuccessModal(true);
     }
   };
 
@@ -239,6 +236,63 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Pop-up Modal Pendaftaran Berhasil & Info Cek Email */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.successIconCircle}>
+              <Ionicons name="checkmark-circle" size={48} color={Palette.greenOnline} />
+            </View>
+
+            <Text style={[styles.modalSuccessTitle, { color: theme.text }]}>
+              Pendaftaran Berhasil! 🎉
+            </Text>
+            
+            <Text style={[styles.modalSuccessSubtitle, { color: theme.textSecondary }]}>
+              Akun Anda telah berhasil didaftarkan di sistem.
+            </Text>
+
+            {/* Email Confirmation Notice Box */}
+            <View style={styles.emailNoticeBox}>
+              <View style={styles.emailNoticeHeader}>
+                <Ionicons name="mail-unread-outline" size={20} color={Palette.primary} />
+                <Text style={styles.emailNoticeTitle}>Cek & Konfirmasi Email Anda</Text>
+              </View>
+              <Text style={styles.emailNoticeText}>
+                Tautan konfirmasi telah dikirim ke:
+              </Text>
+              <Text style={styles.emailHighlightText}>{registeredEmail}</Text>
+              <Text style={[styles.emailNoticeText, { marginTop: 6, fontSize: 11 }]}>
+                Silakan buka kotak masuk (*inbox* atau *spam*) email Anda dan klik tautan konfirmasi untuk mengaktifkan akun sebelum login.
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => {
+                setShowSuccessModal(false);
+                router.replace('/auth/login');
+              }}
+            >
+              <Text style={styles.primaryButtonText}>Menuju Halaman Masuk (Login) ➔</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.secondaryModalBtn, { backgroundColor: theme.cardHover, borderColor: theme.border }]}
+              onPress={() => {
+                setShowSuccessModal(false);
+                router.replace('/(tabs)');
+              }}
+            >
+              <Text style={[styles.secondaryModalBtnText, { color: theme.text }]}>
+                Buka Dashboard Sekarang ↗
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -370,5 +424,85 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: Palette.primaryLight,
+  },
+  // Modal Pop-Up Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    maxWidth: 440,
+    width: '100%',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  successIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(35, 165, 90, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalSuccessTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  modalSuccessSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  emailNoticeBox: {
+    width: '100%',
+    backgroundColor: 'rgba(88, 101, 242, 0.08)',
+    borderColor: 'rgba(88, 101, 242, 0.3)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+  },
+  emailNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  emailNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.primaryLight,
+  },
+  emailNoticeText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    lineHeight: 17,
+  },
+  emailHighlightText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Palette.primary,
+    marginTop: 3,
+  },
+  secondaryModalBtn: {
+    width: '100%',
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  secondaryModalBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
