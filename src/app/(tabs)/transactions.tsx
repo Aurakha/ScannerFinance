@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,37 +66,56 @@ export default function TransactionsScreen() {
       setIsExportingSheet(true);
       const csv = generateCompanyExpenseReportCSV(filteredTransactions);
       const fileName = `Rekapitulasi_Klaim_Biaya_${new Date().toISOString().slice(0, 10)}`;
+
+      // 1. Selalu unduh file CSV otomatis
+      downloadCSV(csv, `${fileName}.csv`);
+
+      // 2. Buat atau buka Google Spreadsheet
       const result = await exportToGoogleSpreadsheet(csv, fileName);
       setIsExportingSheet(false);
 
-      Alert.alert(
-        'Google Spreadsheet Berhasil Dibuat! 📊',
-        'Tabel rekapitulasi klaim biaya telah dibuat di Google Drive Anda. Buka sekarang?',
-        [
-          { text: 'Nanti', style: 'cancel' },
-          {
-            text: 'Buka Spreadsheet ↗',
-            onPress: () => Linking.openURL(result.spreadsheetUrl),
-          },
-        ]
-      );
+      if (result.isDirectCloud) {
+        Alert.alert(
+          'Google Spreadsheet Berhasil Dibuat! 📊',
+          'File Google Sheets baru telah otomatis dibuat di Google Drive Anda.',
+          [
+            { text: 'Tutup', style: 'cancel' },
+            {
+              text: 'Buka Spreadsheet ↗',
+              onPress: () => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  window.open(result.spreadsheetUrl, '_blank');
+                } else {
+                  Linking.openURL(result.spreadsheetUrl);
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'File Rekap Berhasil Diunduh! 📊',
+          'Berkas CSV rekapitulasi telah diunduh ke komputer Anda. Buka Google Sheets untuk mengimpor atau melihatnya sekarang?',
+          [
+            { text: 'Selesai', style: 'cancel' },
+            {
+              text: 'Buka Google Sheets ↗',
+              onPress: () => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  window.open('https://sheets.new', '_blank');
+                } else {
+                  Linking.openURL('https://sheets.new');
+                }
+              },
+            },
+          ]
+        );
+      }
     } catch (err: any) {
       setIsExportingSheet(false);
-      // Jika token Google Drive expired atau gagal, tawarkan unduh CSV
-      Alert.alert(
-        'Google Drive Butuh Token / Unduh CSV',
-        `${err.message || 'Gagal tersambung ke Google Drive.'}\n\nIngin mengunduh file CSV langsung?`,
-        [
-          { text: 'Batal', style: 'cancel' },
-          {
-            text: 'Unduh CSV',
-            onPress: () => {
-              const csv = generateCompanyExpenseReportCSV(filteredTransactions);
-              downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
-            },
-          },
-        ]
-      );
+      const csv = generateCompanyExpenseReportCSV(filteredTransactions);
+      downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
+      Alert.alert('Unduhan Berhasil', 'Berkas CSV rekapitulasi telah berhasil diunduh ke perangkat Anda.');
     }
   };
 

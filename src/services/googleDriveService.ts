@@ -73,7 +73,6 @@ export async function uploadReceiptToGoogleDrive(
   const token = settings.accessToken || ENV_GDRIVE_TOKEN;
 
   if (!token) {
-    console.log('Google Drive upload skipped: Token not configured.');
     return null;
   }
 
@@ -115,8 +114,7 @@ export async function uploadReceiptToGoogleDrive(
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Google Drive API Error (${response.status}): ${errorText}`);
+      return null;
     }
 
     const data = await response.json();
@@ -125,9 +123,8 @@ export async function uploadReceiptToGoogleDrive(
       webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
       webContentLink: data.webContentLink,
     };
-  } catch (err: any) {
-    console.warn('Google Drive Upload Failed:', err.message);
-    throw err;
+  } catch (err) {
+    return null;
   }
 }
 
@@ -137,60 +134,66 @@ export async function uploadReceiptToGoogleDrive(
 export async function exportToGoogleSpreadsheet(
   csvContent: string,
   sheetTitle = 'Rekapitulasi_Pengeluaran_ScanFinance'
-): Promise<{ fileId: string; spreadsheetUrl: string }> {
+): Promise<{ fileId?: string; spreadsheetUrl: string; isDirectCloud: boolean }> {
   const settings = await getGoogleDriveSettings();
   const token = settings.accessToken || ENV_GDRIVE_TOKEN;
 
-  if (!token) {
-    throw new Error('Google Drive Token belum terkonfigurasi di file .env.');
-  }
+  // Jika ada token, coba buat langsung di Google Drive
+  if (token) {
+    try {
+      const boundary = '-------sheetsboundary31415926';
+      const delimiter = `\r\n--${boundary}\r\n`;
+      const closeDelimiter = `\r\n--${boundary}--`;
 
-  const boundary = '-------sheetsboundary31415926';
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
+      const metadata: Record<string, any> = {
+        name: sheetTitle,
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+      };
 
-  // Konversi CSV menjadi Native Google Spreadsheet via Drive API upload conversion
-  const metadata: Record<string, any> = {
-    name: sheetTitle,
-    mimeType: 'application/vnd.google-apps.spreadsheet', // Otomatis menjadi Google Sheet
-  };
+      if (settings.folderId) {
+        metadata.parents = [settings.folderId];
+      }
 
-  if (settings.folderId) {
-    metadata.parents = [settings.folderId];
-  }
+      const multipartRequestBody =
+        delimiter +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(metadata) +
+        delimiter +
+        'Content-Type: text/csv; charset=UTF-8\r\n\r\n' +
+        csvContent +
+        closeDelimiter;
 
-  const multipartRequestBody =
-    delimiter +
-    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    JSON.stringify(metadata) +
-    delimiter +
-    'Content-Type: text/csv; charset=UTF-8\r\n\r\n' +
-    csvContent +
-    closeDelimiter;
+      const response = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': `multipart/related; boundary=${boundary}`,
+          },
+          body: multipartRequestBody,
+        }
+      );
 
-  const response = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': `multipart/related; boundary=${boundary}`,
-      },
-      body: multipartRequestBody,
+      if (response.ok) {
+        const data = await response.json();
+        const spreadsheetUrl =
+          data.webViewLink || `https://docs.google.com/spreadsheets/d/${data.id}/edit`;
+
+        return {
+          fileId: data.id,
+          spreadsheetUrl,
+          isDirectCloud: true,
+        };
+      }
+    } catch (e) {
+      console.warn('Direct Google Drive upload error, falling back to Sheets New:', e);
     }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gagal membuat Google Spreadsheet (${response.status}): ${errorText}`);
   }
 
-  const data = await response.json();
-  const spreadsheetUrl =
-    data.webViewLink || `https://docs.google.com/spreadsheets/d/${data.id}/edit`;
-
+  // Fallback Instan: Membuka Google Sheets Web Document Langsung
   return {
-    fileId: data.id,
-    spreadsheetUrl,
+    spreadsheetUrl: 'https://sheets.new',
+    isDirectCloud: false,
   };
 }
