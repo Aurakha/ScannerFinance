@@ -79,6 +79,8 @@ export interface UserProfile {
   currency: string;
   monthly_income_budget: number;
   monthly_expense_budget: number;
+  role?: 'admin' | 'user';
+  created_at?: string;
 }
 
 export interface MonthlyStats {

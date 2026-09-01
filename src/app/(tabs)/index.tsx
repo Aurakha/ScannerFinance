@@ -21,13 +21,18 @@ import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, impersonatingUser, exitImpersonation } = useAuthStore();
   const { transactions, stats, loadData } = useTransactionStore();
   const { theme, mode, toggleTheme } = useThemeStore();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
+
+  const handleReturnToAdmin = () => {
+    exitImpersonation();
+    router.push('/admin' as any);
+  };
 
   const recentTransactions = transactions.slice(0, 5);
 
@@ -38,6 +43,24 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* Admin Impersonation Notice Banner */}
+        {impersonatingUser && (
+          <View style={styles.impersonationBanner}>
+            <View style={styles.impersonationLeft}>
+              <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+              <Text style={styles.impersonationText}>
+                Mode Admin: Sedang menginspeksi akun {user?.full_name}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.impersonationExitBtn}
+              onPress={handleReturnToAdmin}
+            >
+              <Text style={styles.impersonationExitBtnText}>Kembali ke Admin ↗</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Header */}
         <Header
           title={`Halo, ${user?.full_name?.split(' ')[0] || 'Pengguna'} 👋`}
@@ -230,6 +253,38 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  impersonationBanner: {
+    backgroundColor: Palette.amberIdle,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  impersonationLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  impersonationText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+  },
+  impersonationExitBtn: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  impersonationExitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   heroCard: {
     marginHorizontal: 16,

@@ -146,6 +146,19 @@ export default function ProfileScreen() {
                 <Text style={styles.logoutBtnText}>Keluar Akun</Text>
               </TouchableOpacity>
             )}
+
+            <TouchableOpacity
+              style={[
+                styles.adminPanelBtn,
+                { backgroundColor: theme.cardHover, borderColor: theme.border },
+              ]}
+              onPress={() => router.push('/admin' as any)}
+            >
+              <Ionicons name="shield-checkmark-outline" size={16} color={Palette.primary} />
+              <Text style={[styles.adminPanelBtnText, { color: theme.text }]}>
+                Akses Panel Admin (Kelola User) 🛡️
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -441,6 +454,20 @@ const styles = StyleSheet.create({
   },
   logoutBtnText: {
     color: Palette.coral,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  adminPanelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    gap: 8,
+  },
+  adminPanelBtnText: {
     fontWeight: '700',
     fontSize: 13,
   },

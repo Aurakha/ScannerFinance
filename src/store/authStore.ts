@@ -10,6 +10,7 @@ interface AuthState {
   isLoading: boolean;
   geminiApiKey: string;
   isDemoMode: boolean;
+  impersonatingUser: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
   setGeminiApiKey: (key: string) => Promise<void>;
   initializeAuth: () => Promise<void>;
@@ -18,9 +19,24 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  // Admin Features
+  getAllUsers: () => Promise<UserProfile[]>;
+  createUserByAdmin: (data: {
+    full_name: string;
+    email: string;
+    password?: string;
+    company_name?: string;
+    department?: string;
+    project_name?: string;
+    city?: string;
+    cash_advance_amount?: number;
+  }) => Promise<{ success: boolean; error?: string }>;
+  impersonateUser: (targetUser: UserProfile) => void;
+  exitImpersonation: () => void;
 }
 
 const PROFILE_STORAGE_KEY = '@scanfinance_user_profile';
+const REGISTERED_USERS_KEY = '@scanfinance_registered_users_list';
 const GEMINI_API_KEY_STORAGE = '@scanfinance_gemini_key';
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
@@ -38,7 +54,45 @@ const DEFAULT_PROFILE: UserProfile = {
   currency: 'IDR',
   monthly_income_budget: 10000000,
   monthly_expense_budget: 5000000,
+  role: 'user',
 };
+
+const SEED_USERS: UserProfile[] = [
+  {
+    id: 'user-default-1',
+    email: 'user1@company.com',
+    full_name: 'User 1',
+    company_name: 'PT. Nama Perusahaan',
+    department: 'Divisi Operasional',
+    project_name: 'Head Office / Proyek 1',
+    city: 'Jakarta',
+    verifier_name: 'Pemeriksa 1',
+    approver_name: 'Pimpinan 1',
+    cash_advance_amount: 5000000,
+    currency: 'IDR',
+    monthly_income_budget: 10000000,
+    monthly_expense_budget: 5000000,
+    role: 'user',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'user-raka-2',
+    email: 'haharakha@gmail.com',
+    full_name: 'Raka Renata',
+    company_name: 'PT. San Kawan Abadi',
+    department: 'Operation & Field',
+    project_name: 'Tangerang Project',
+    city: 'Tangerang',
+    verifier_name: 'Yunitha',
+    approver_name: 'Dwi Hartanto',
+    cash_advance_amount: 7117500,
+    currency: 'IDR',
+    monthly_income_budget: 12000000,
+    monthly_expense_budget: 7000000,
+    role: 'user',
+    created_at: new Date().toISOString(),
+  },
+];
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: DEFAULT_PROFILE,
@@ -46,6 +100,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   geminiApiKey: '',
   isDemoMode: true,
+  impersonatingUser: null,
 
   setUser: (user) => set({ user }),
 
@@ -117,8 +172,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginAsDemo: () => {
     set({
       user: DEFAULT_PROFILE,
-      session: null,
-      isDemoMode: true,
+      session: { user: { id: 'user-default-1', email: 'demo@scanfinance.com' } },
+      isDemoMode: false,
     });
   },
 
@@ -148,6 +203,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
         set({ user: newProf, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProf));
+
+        // Simpan ke local list user
+        const users = await get().getAllUsers();
+        const updatedUsers = [newProf, ...users.filter((u) => u.id !== newProf.id)];
+        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers));
       }
       return {};
     } catch (err: any) {
@@ -193,7 +253,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await supabase.auth.signOut();
     } catch {}
-    set({ session: null, isDemoMode: true });
+    set({ session: null, isDemoMode: true, impersonatingUser: null });
   },
 
   updateProfile: async (data: Partial<UserProfile>) => {
@@ -226,6 +286,94 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } catch (err) {
         console.warn('Could not sync profile update to cloud:', err);
       }
+    }
+  },
+
+  getAllUsers: async () => {
+    if (isSSR) return SEED_USERS;
+
+    // 1. Coba ambil dari database Supabase profiles
+    try {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (!error && data && data.length > 0) {
+        const formatted: UserProfile[] = data.map((d: any) => ({
+          ...DEFAULT_PROFILE,
+          ...d,
+        }));
+        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(formatted));
+        return formatted;
+      }
+    } catch (err) {
+      console.warn('Supabase fetch profiles notice:', err);
+    }
+
+    // 2. Ambil dari local storage
+    try {
+      const raw = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(SEED_USERS));
+      return SEED_USERS;
+    } catch {
+      return SEED_USERS;
+    }
+  },
+
+  createUserByAdmin: async (userData) => {
+    const newId = `user-adm-${Date.now()}`;
+    const newUser: UserProfile = {
+      ...DEFAULT_PROFILE,
+      id: newId,
+      email: userData.email,
+      full_name: userData.full_name,
+      company_name: userData.company_name || 'PT. Nama Perusahaan',
+      department: userData.department || 'Divisi Operasional',
+      project_name: userData.project_name || 'Head Office / Proyek 1',
+      city: userData.city || 'Jakarta',
+      cash_advance_amount: userData.cash_advance_amount ?? 5000000,
+      created_at: new Date().toISOString(),
+    };
+
+    // 1. Jika ada Supabase Auth, coba daftarkan
+    if (userData.password) {
+      try {
+        await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: { full_name: userData.full_name },
+          },
+        });
+      } catch {}
+    }
+
+    // 2. Simpan ke local list
+    try {
+      const existing = await get().getAllUsers();
+      const updated = [newUser, ...existing.filter((u) => u.email !== newUser.email)];
+      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updated));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menambahkan user.' };
+    }
+  },
+
+  impersonateUser: (targetUser: UserProfile) => {
+    const originalUser = get().user;
+    set({
+      impersonatingUser: originalUser,
+      user: targetUser,
+    });
+  },
+
+  exitImpersonation: () => {
+    const orig = get().impersonatingUser;
+    if (orig) {
+      set({
+        user: orig,
+        impersonatingUser: null,
+      });
     }
   },
 }));

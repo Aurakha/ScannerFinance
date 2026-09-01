@@ -159,6 +159,20 @@ export default function LoginScreen() {
                 Masuk Cepat Mode Tamu / Demo
               </Text>
             </TouchableOpacity>
+
+            {/* Admin Panel Access Button */}
+            <TouchableOpacity
+              style={[
+                styles.adminAccessBtn,
+                { backgroundColor: 'rgba(88, 101, 242, 0.12)', borderColor: 'rgba(88, 101, 242, 0.3)' },
+              ]}
+              onPress={() => router.push('/admin' as any)}
+            >
+              <Ionicons name="shield-checkmark-outline" size={16} color={Palette.primary} />
+              <Text style={styles.adminAccessBtnText}>
+                Masuk ke Panel Admin (Master) 🛡️
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Footer Register Link */}
@@ -299,6 +313,21 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  adminAccessBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 42,
+    marginTop: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  adminAccessBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.primaryLight,
   },
   footerLinkRow: {
     flexDirection: 'row',

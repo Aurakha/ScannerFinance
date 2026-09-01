@@ -6,7 +6,7 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useThemeStore } from '@/store/themeStore';
 
 export default function RootLayout() {
-  const { initializeAuth, session, isLoading, isDemoMode } = useAuthStore();
+  const { initializeAuth, session, isLoading } = useAuthStore();
   const { loadData } = useTransactionStore();
   const { mode, theme, loadTheme } = useThemeStore();
   const router = useRouter();
@@ -21,11 +21,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === 'auth';
+    const inAllowedGroup = segments[0] === 'auth' || segments[0] === 'admin';
     const isUserLoggedIn = !!session;
 
-    // Setiap kali user membuka aplikasi dan belum login, langsung diarahkan ke halaman login
-    if (!isUserLoggedIn && !inAuthGroup) {
+    // Setiap kali user membuka aplikasi dan belum login serta bukan di halaman auth/admin, arahkan ke login
+    if (!isUserLoggedIn && !inAllowedGroup) {
       router.replace('/auth/login');
     }
   }, [session, isLoading, segments]);
@@ -42,6 +42,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="admin/index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="transaction/[id]"
