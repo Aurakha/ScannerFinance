@@ -76,7 +76,7 @@ export default function TransactionsScreen() {
     try {
       setIsExportingSheet(true);
       const csv = generateCompanyExpenseReportCSV(filteredTransactions, user || undefined);
-      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'SanKawanAbadi').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
       // 1. Selalu unduh file CSV otomatis ke perangkat
       downloadCSV(csv, `${fileName}.csv`);
@@ -168,7 +168,7 @@ export default function TransactionsScreen() {
                 Ekspor ke Google Spreadsheet 📊
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
-                Format tabel reimbursement resmi {user?.company_name || 'PT. San Kawan Abadi'}
+                Format tabel reimbursement resmi {user?.company_name || 'PT. Nama Perusahaan'}
               </Text>
             </View>
           </View>

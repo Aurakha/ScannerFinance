@@ -114,7 +114,7 @@ export default function RegisterScreen() {
                     style={[styles.input, { color: theme.text }]}
                     value={fullName}
                     onChangeText={setFullName}
-                    placeholder="Contoh: Gabriel Rudra Renata"
+                    placeholder="Contoh: User 1"
                     placeholderTextColor={theme.textMuted}
                   />
                 </View>

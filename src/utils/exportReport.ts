@@ -14,15 +14,15 @@ export function generateCompanyExpenseReportCSV(
   transactions: Transaction[],
   profile?: UserProfile
 ): string {
-  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
-  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
-  const department = profile?.department || 'Operation';
+  const companyName = profile?.company_name || 'PT. Nama Perusahaan';
+  const employeeName = profile?.full_name || 'User 1';
+  const department = profile?.department || 'Divisi Operasional';
   const reportDate = profile?.submission_date || formatDateOnly(new Date());
-  const projectName = profile?.project_name || 'Head Office';
-  const city = profile?.city || 'Tangerang';
-  const verifierName = profile?.verifier_name || 'Yunitha';
-  const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = profile?.cash_advance_amount ?? 7117500;
+  const projectName = profile?.project_name || 'Head Office / Proyek 1';
+  const city = profile?.city || 'Jakarta';
+  const verifierName = profile?.verifier_name || 'Pemeriksa 1';
+  const approverName = profile?.approver_name || 'Pimpinan 1';
+  const cashAdvance = profile?.cash_advance_amount ?? 5000000;
 
   // Sort transaksi berdasarkan tanggal
   const sortedTx = [...transactions].sort(
@@ -153,7 +153,7 @@ export function generateCompanyExpenseReportCSV(
 /**
  * Memicu download berkas CSV di browser atau perangkat
  */
-export function downloadCSV(csvContent: string, fileName = 'Rekapitulasi_Pengeluaran_SanKawanAbadi.csv') {
+export function downloadCSV(csvContent: string, fileName = 'Rekapitulasi_Pengeluaran_Klaim.csv') {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

@@ -26,17 +26,17 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const DEFAULT_PROFILE: UserProfile = {
   id: 'user-default-1',
-  email: 'gabriel.rudra@sankawanabadi.com',
-  full_name: 'Gabriel Rudra Renata',
-  company_name: 'PT. San Kawan Abadi',
-  department: 'Operation',
-  project_name: 'Head Office',
-  city: 'Tangerang',
-  verifier_name: 'Yunitha',
-  approver_name: 'Dwi Hartanto',
-  cash_advance_amount: 7117500,
+  email: 'user1@company.com',
+  full_name: 'User 1',
+  company_name: 'PT. Nama Perusahaan',
+  department: 'Divisi Operasional',
+  project_name: 'Head Office / Proyek 1',
+  city: 'Jakarta',
+  verifier_name: 'Pemeriksa 1',
+  approver_name: 'Pimpinan 1',
+  cash_advance_amount: 5000000,
   currency: 'IDR',
-  monthly_income_budget: 15000000,
+  monthly_income_budget: 10000000,
   monthly_expense_budget: 5000000,
 };
 

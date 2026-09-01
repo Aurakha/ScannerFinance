@@ -22,14 +22,14 @@ export default function ProfileScreen() {
   const { user, session, isDemoMode, updateProfile, signOut } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
 
-  const [fullName, setFullName] = useState(user?.full_name || 'Gabriel Rudra Renata');
-  const [companyName, setCompanyName] = useState(user?.company_name || 'PT. San Kawan Abadi');
-  const [department, setDepartment] = useState(user?.department || 'Operation');
-  const [projectName, setProjectName] = useState(user?.project_name || 'Head Office');
-  const [city, setCity] = useState(user?.city || 'Tangerang');
-  const [verifierName, setVerifierName] = useState(user?.verifier_name || 'Yunitha');
-  const [approverName, setApproverName] = useState(user?.approver_name || 'Dwi Hartanto');
-  const [cashAdvance, setCashAdvance] = useState(String(user?.cash_advance_amount ?? 7117500));
+  const [fullName, setFullName] = useState(user?.full_name || 'User 1');
+  const [companyName, setCompanyName] = useState(user?.company_name || 'PT. Nama Perusahaan');
+  const [department, setDepartment] = useState(user?.department || 'Divisi Operasional');
+  const [projectName, setProjectName] = useState(user?.project_name || 'Head Office / Proyek 1');
+  const [city, setCity] = useState(user?.city || 'Jakarta');
+  const [verifierName, setVerifierName] = useState(user?.verifier_name || 'Pemeriksa 1');
+  const [approverName, setApproverName] = useState(user?.approver_name || 'Pimpinan 1');
+  const [cashAdvance, setCashAdvance] = useState(String(user?.cash_advance_amount ?? 5000000));
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -228,7 +228,7 @@ export default function ProfileScreen() {
                 style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 value={companyName}
                 onChangeText={setCompanyName}
-                placeholder="Misal: PT. San Kawan Abadi"
+                placeholder="Misal: PT. Nama Perusahaan"
                 placeholderTextColor={theme.textMuted}
               />
             </View>
@@ -239,7 +239,7 @@ export default function ProfileScreen() {
                 style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Misal: Gabriel Rudra Renata"
+                placeholder="Misal: User 1"
                 placeholderTextColor={theme.textMuted}
               />
             </View>
@@ -251,7 +251,7 @@ export default function ProfileScreen() {
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={department}
                   onChangeText={setDepartment}
-                  placeholder="Misal: Operation"
+                  placeholder="Misal: Divisi Operasional"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -262,7 +262,7 @@ export default function ProfileScreen() {
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={projectName}
                   onChangeText={setProjectName}
-                  placeholder="Misal: Head Office"
+                  placeholder="Misal: Head Office / Proyek 1"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -275,7 +275,7 @@ export default function ProfileScreen() {
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={city}
                   onChangeText={setCity}
-                  placeholder="Misal: Tangerang"
+                  placeholder="Misal: Jakarta"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -287,7 +287,7 @@ export default function ProfileScreen() {
                   value={cashAdvance}
                   onChangeText={setCashAdvance}
                   keyboardType="numeric"
-                  placeholder="7117500"
+                  placeholder="5000000"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -301,7 +301,7 @@ export default function ProfileScreen() {
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={verifierName}
                   onChangeText={setVerifierName}
-                  placeholder="Misal: Yunitha"
+                  placeholder="Misal: Pemeriksa 1"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -312,7 +312,7 @@ export default function ProfileScreen() {
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={approverName}
                   onChangeText={setApproverName}
-                  placeholder="Misal: Dwi Hartanto"
+                  placeholder="Misal: Pimpinan 1"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
