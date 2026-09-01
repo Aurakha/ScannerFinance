@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,12 +19,14 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { formatRupiah } from '@/utils/formatters';
 import { downloadCSV, generateCompanyExpenseReportCSV } from '@/utils/exportReport';
+import { exportToGoogleSpreadsheet } from '@/services/googleDriveService';
 
 export default function TransactionsScreen() {
   const router = useRouter();
   const { transactions, categories, removeTransaction } = useTransactionStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isExportingSheet, setIsExportingSheet] = useState(false);
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchSearch =
@@ -56,13 +60,42 @@ export default function TransactionsScreen() {
     );
   };
 
-  const handleExportCSV = () => {
+  const handleExportGoogleSheet = async () => {
     try {
+      setIsExportingSheet(true);
       const csv = generateCompanyExpenseReportCSV(filteredTransactions);
-      downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
-      Alert.alert('Sukses', 'Laporan rekap pengeluaran format spreadsheet (CSV) berhasil diunduh!');
+      const fileName = `Rekapitulasi_Klaim_Biaya_${new Date().toISOString().slice(0, 10)}`;
+      const result = await exportToGoogleSpreadsheet(csv, fileName);
+      setIsExportingSheet(false);
+
+      Alert.alert(
+        'Google Spreadsheet Berhasil Dibuat! 📊',
+        'Tabel rekapitulasi klaim biaya telah dibuat di Google Drive Anda. Buka sekarang?',
+        [
+          { text: 'Nanti', style: 'cancel' },
+          {
+            text: 'Buka Spreadsheet ↗',
+            onPress: () => Linking.openURL(result.spreadsheetUrl),
+          },
+        ]
+      );
     } catch (err: any) {
-      Alert.alert('Gagal Mengunduh', err.message || 'Terjadi kesalahan saat mengekspor laporan.');
+      setIsExportingSheet(false);
+      // Jika token Google Drive expired atau gagal, tawarkan unduh CSV
+      Alert.alert(
+        'Google Drive Butuh Token / Unduh CSV',
+        `${err.message || 'Gagal tersambung ke Google Drive.'}\n\nIngin mengunduh file CSV langsung?`,
+        [
+          { text: 'Batal', style: 'cancel' },
+          {
+            text: 'Unduh CSV',
+            onPress: () => {
+              const csv = generateCompanyExpenseReportCSV(filteredTransactions);
+              downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
+            },
+          },
+        ]
+      );
     }
   };
 
@@ -74,30 +107,37 @@ export default function TransactionsScreen() {
           title="Riwayat Transaksi"
           subtitle={`${filteredTransactions.length} transaksi tercatat`}
           rightAction={{
-            icon: 'download-outline',
-            onPress: handleExportCSV,
+            icon: 'share-outline',
+            onPress: handleExportGoogleSheet,
           }}
         />
 
-        {/* Company Export Banner */}
+        {/* Google Spreadsheet Export Banner */}
         <TouchableOpacity
           style={styles.exportBanner}
-          onPress={handleExportCSV}
+          onPress={handleExportGoogleSheet}
+          disabled={isExportingSheet}
           activeOpacity={0.8}
         >
           <View style={styles.exportBannerLeft}>
             <View style={styles.exportIconBox}>
-              <Ionicons name="document-text" size={20} color="#10B981" />
+              <Ionicons name="grid-outline" size={20} color="#23A55A" />
             </View>
-            <View>
-              <Text style={styles.exportBannerTitle}>Ekspor Format Rekap Perusahaan</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.exportBannerTitle}>Ekspor ke Google Spreadsheet 📊</Text>
               <Text style={styles.exportBannerSub}>
-                1 baris per item belanjaan (Kompatibel Excel / Google Sheets)
+                Otomatis buat & buka tabel rekapitulasi klaim di Google Sheets Anda
               </Text>
             </View>
           </View>
 
-          <Ionicons name="download-outline" size={20} color="#10B981" />
+          {isExportingSheet ? (
+            <ActivityIndicator size="small" color={Palette.primary} />
+          ) : (
+            <View style={styles.openPill}>
+              <Text style={styles.openPillText}>Buka ↗</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Search Input */}
@@ -218,9 +258,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(35, 165, 90, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(35, 165, 90, 0.3)',
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 14,
@@ -234,10 +274,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exportIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(35, 165, 90, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -250,6 +290,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Palette.darkTextSecondary,
     marginTop: 1,
+  },
+  openPill: {
+    backgroundColor: '#23A55A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  openPillText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
   },
   searchBox: {
     flexDirection: 'row',
