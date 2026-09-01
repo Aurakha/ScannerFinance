@@ -1,18 +1,38 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
+import { useAuthStore } from '@/store/authStore';
+import { useTransactionStore } from '@/store/transactionStore';
+import { Palette } from '@/constants/theme';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+export default function RootLayout() {
+  const { initializeAuth } = useAuthStore();
+  const { loadData } = useTransactionStore();
 
-SplashScreen.preventAutoHideAsync();
+  useEffect(() => {
+    initializeAuth();
+    loadData();
+  }, []);
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Palette.darkBg },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="transaction/[id]"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+      </Stack>
+    </>
   );
 }

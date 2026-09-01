@@ -1,65 +1,86 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+// Design System & Theme Tokens for ScanFinance
 
-import '@/global.css';
+export const Palette = {
+  // Emerald / Mint primary brand colors
+  primary: '#10B981',
+  primaryLight: '#34D399',
+  primaryDark: '#059669',
+  primaryMuted: 'rgba(16, 185, 129, 0.12)',
 
-import { Platform } from 'react-native';
+  // Secondary accents
+  indigo: '#6366F1',
+  indigoLight: '#818CF8',
+  indigoMuted: 'rgba(99, 102, 241, 0.12)',
+
+  coral: '#F43F5E',
+  coralLight: '#FB7185',
+  coralMuted: 'rgba(244, 63, 94, 0.12)',
+
+  amber: '#F59E0B',
+  amberLight: '#FBBF24',
+  amberMuted: 'rgba(245, 158, 11, 0.12)',
+
+  cyan: '#06B6D4',
+  purple: '#8B5CF6',
+
+  // Dark Theme Neutral Shades
+  darkBg: '#090D16',
+  darkCard: '#111827',
+  darkCardHover: '#1F2937',
+  darkBorder: 'rgba(255, 255, 255, 0.08)',
+  darkBorderHighlight: 'rgba(16, 185, 129, 0.3)',
+  darkText: '#F9FAFB',
+  darkTextSecondary: '#9CA3AF',
+  darkTextMuted: '#6B7280',
+
+  // Light Theme Neutral Shades
+  lightBg: '#F8FAFC',
+  lightCard: '#FFFFFF',
+  lightCardHover: '#F1F5F9',
+  lightBorder: 'rgba(0, 0, 0, 0.06)',
+  lightBorderHighlight: 'rgba(16, 185, 129, 0.4)',
+  lightText: '#0F172A',
+  lightTextSecondary: '#475569',
+  lightTextMuted: '#94A3B8',
+};
 
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: Palette.darkBg,
+    card: Palette.darkCard,
+    cardHover: Palette.darkCardHover,
+    border: Palette.darkBorder,
+    borderHighlight: Palette.darkBorderHighlight,
+    text: Palette.darkText,
+    textSecondary: Palette.darkTextSecondary,
+    textMuted: Palette.darkTextMuted,
+    primary: Palette.primary,
+    primaryLight: Palette.primaryLight,
+    primaryMuted: Palette.primaryMuted,
+    secondary: Palette.indigo,
+    danger: Palette.coral,
+    warning: Palette.amber,
+    success: Palette.primary,
+    tabBar: '#0D1322',
+    tabBarBorder: 'rgba(255, 255, 255, 0.06)',
   },
-} as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+  light: {
+    background: Palette.lightBg,
+    card: Palette.lightCard,
+    cardHover: Palette.lightCardHover,
+    border: Palette.lightBorder,
+    borderHighlight: Palette.lightBorderHighlight,
+    text: Palette.lightText,
+    textSecondary: Palette.lightTextSecondary,
+    textMuted: Palette.lightTextMuted,
+    primary: Palette.primary,
+    primaryLight: Palette.primaryDark,
+    primaryMuted: Palette.primaryMuted,
+    secondary: Palette.indigo,
+    danger: Palette.coral,
+    warning: Palette.amber,
+    success: Palette.primary,
+    tabBar: '#FFFFFF',
+    tabBarBorder: 'rgba(0, 0, 0, 0.06)',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
-
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
-} as const;
-
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+};

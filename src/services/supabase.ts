@@ -1,0 +1,48 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient } from '@supabase/supabase-js';
+
+// Default Supabase configuration (bisa diisi via env atau diubah lewat menu Profil/Pengaturan)
+export const DEFAULT_SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://xyzcompany.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-placeholder';
+export const DEFAULT_GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+
+const isSSR = typeof window === 'undefined';
+
+const ssrSafeStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (isSSR) return null;
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (isSSR) return;
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch {}
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (isSSR) return;
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch {}
+  },
+};
+
+export const supabase = createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY, {
+  auth: {
+    storage: ssrSafeStorage,
+    autoRefreshToken: !isSSR,
+    persistSession: !isSSR,
+    detectSessionInUrl: false,
+  },
+});
+
+export const isSupabaseConfigured = (): boolean => {
+  return (
+    Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL) &&
+    process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://xyzcompany.supabase.co'
+  );
+};
