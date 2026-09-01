@@ -16,15 +16,16 @@ export default function TabLayout() {
           backgroundColor: theme.tabBar,
           borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 90 : 74,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 88 : 78,
+          paddingBottom: Platform.OS === 'ios' ? 26 : 14,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: Palette.primary,
         tabBarInactiveTintColor: theme.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
+          marginBottom: 2,
         },
       }}
     >
@@ -63,15 +64,15 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.floatingContainer}>
               <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar }]}>
-                <Ionicons name="cloud-upload" size={22} color="#FFFFFF" />
+                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
               </View>
             </View>
           ),
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: '700',
             color: Palette.primaryLight,
-            marginTop: 10,
+            marginBottom: 2,
           },
         }}
       />
@@ -110,14 +111,14 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    top: -18,
+    top: -14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanButtonCenter: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
