@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
-import { Category, MonthlyStats, ReceiptScanResult, Transaction } from '@/types';
+import { Category, MonthlyStats, Transaction } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 
 const LOCAL_TRANSACTIONS_KEY = '@scanfinance_local_transactions';
@@ -9,11 +9,10 @@ const LOCAL_CATEGORIES_KEY = '@scanfinance_local_categories';
 
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
-// In-memory fallback untuk SSR
 let inMemoryTransactions: Transaction[] | null = null;
 let inMemoryCategories: Category[] | null = null;
 
-// Dummy seed data awal agar tampilan dashboard langsung cantik saat pertama dibuka
+// Dummy seed data awal untuk tampilan awal
 const SEED_TRANSACTIONS: Transaction[] = [
   {
     id: 'tx-seed-1',
@@ -73,22 +72,6 @@ const SEED_TRANSACTIONS: Transaction[] = [
     ],
     created_at: new Date(Date.now() - 86400000).toISOString(),
   },
-  {
-    id: 'tx-seed-4',
-    user_id: 'local-user',
-    category_id: 'cat-tagihan',
-    category: DEFAULT_CATEGORIES.find((c) => c.id === 'cat-tagihan'),
-    merchant_name: 'PLN Pascabayar',
-    transaction_date: new Date(Date.now() - 86400000 * 3).toISOString(),
-    total_amount: 450000,
-    subtotal: 450000,
-    tax_amount: 0,
-    discount_amount: 0,
-    payment_method: 'transfer',
-    notes: 'Tagihan listrik bulanan',
-    items: [],
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
 ];
 
 export async function getTransactions(): Promise<Transaction[]> {
@@ -96,25 +79,28 @@ export async function getTransactions(): Promise<Transaction[]> {
     return inMemoryTransactions || SEED_TRANSACTIONS;
   }
 
+  // 1. Coba ambil langsung dari Supabase Database
   try {
-    // 1. Coba ambil dari Supabase jika user terautentikasi
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.user) {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          category:categories(*),
-          items:transaction_items(*)
-        `)
-        .order('transaction_date', { ascending: false });
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        category:categories(*),
+        items:transaction_items(*)
+      `)
+      .order('transaction_date', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data as Transaction[];
-      }
+    if (!error && data && data.length > 0) {
+      const formatted = data.map((d: any) => ({
+        ...d,
+        items: d.items || [],
+      }));
+      // Simpan backup ke local storage
+      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(formatted));
+      return formatted as Transaction[];
     }
   } catch (err) {
-    console.warn('Supabase fetch transactions failed, using local storage:', err);
+    console.warn('Supabase fetch transactions notice:', err);
   }
 
   // 2. Fallback ke Local Storage / Seed Data
@@ -144,47 +130,63 @@ export async function saveTransaction(
     return newTx;
   }
 
-  // Simpan ke Supabase jika login
+  // 1. Simpan langsung ke Supabase PostgreSQL
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.user) {
-      const { data: insertedTx, error: txError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: sessionData.session.user.id,
-          category_id: newTx.category_id,
-          merchant_name: newTx.merchant_name,
-          transaction_date: newTx.transaction_date,
-          total_amount: newTx.total_amount,
-          subtotal: newTx.subtotal,
-          tax_amount: newTx.tax_amount,
-          discount_amount: newTx.discount_amount,
-          payment_method: newTx.payment_method,
-          notes: newTx.notes,
-          receipt_image_url: newTx.receipt_image_url,
-        })
-        .select()
+    // Cari UUID category di Supabase jika ada
+    let sbCategoryId: string | null = null;
+    if (newTx.category_id && newTx.category_id.includes('-') && newTx.category_id.length === 36) {
+      sbCategoryId = newTx.category_id;
+    } else if (newTx.category?.name) {
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('id')
+        .ilike('name', newTx.category.name)
+        .limit(1)
         .single();
-
-      if (!txError && insertedTx) {
-        if (newTx.items && newTx.items.length > 0) {
-          const itemsToInsert = newTx.items.map((it) => ({
-            transaction_id: insertedTx.id,
-            item_name: it.item_name,
-            quantity: it.quantity,
-            unit_price: it.unit_price,
-            total_price: it.total_price,
-          }));
-          await supabase.from('transaction_items').insert(itemsToInsert);
-        }
-        newTx.id = insertedTx.id;
+      if (catData?.id) {
+        sbCategoryId = catData.id;
       }
     }
+
+    const { data: insertedTx, error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        category_id: sbCategoryId,
+        merchant_name: newTx.merchant_name,
+        transaction_date: newTx.transaction_date,
+        total_amount: newTx.total_amount,
+        subtotal: newTx.subtotal || newTx.total_amount,
+        tax_amount: newTx.tax_amount || 0,
+        discount_amount: newTx.discount_amount || 0,
+        payment_method: newTx.payment_method || 'cash',
+        notes: newTx.notes || '',
+        receipt_image_url: newTx.receipt_image_url || null,
+      })
+      .select()
+      .single();
+
+    if (!txError && insertedTx) {
+      newTx.id = insertedTx.id;
+
+      // Simpan rincian items ke tabel transaction_items
+      if (newTx.items && newTx.items.length > 0) {
+        const itemsToInsert = newTx.items.map((it) => ({
+          transaction_id: insertedTx.id,
+          item_name: it.item_name,
+          quantity: it.quantity || 1,
+          unit_price: it.unit_price || 0,
+          total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
+        }));
+        await supabase.from('transaction_items').insert(itemsToInsert);
+      }
+    } else if (txError) {
+      console.warn('Supabase insert notice:', txError.message);
+    }
   } catch (err) {
-    console.warn('Could not sync to Supabase, saved locally:', err);
+    console.warn('Supabase sync error, keeping in local storage:', err);
   }
 
-  // Update local storage
+  // 2. Update local storage sebagai offline cache
   const current = await getTransactions();
   const updated = [newTx, ...current.filter((t) => t.id !== newTx.id)];
   try {
@@ -201,12 +203,9 @@ export async function deleteTransaction(id: string): Promise<boolean> {
   }
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData?.session?.user) {
-      await supabase.from('transactions').delete().eq('id', id);
-    }
+    await supabase.from('transactions').delete().eq('id', id);
   } catch (err) {
-    console.warn('Supabase delete failed:', err);
+    console.warn('Supabase delete notice:', err);
   }
 
   const current = await getTransactions();
@@ -221,6 +220,13 @@ export async function getCategories(): Promise<Category[]> {
   if (isSSR) {
     return inMemoryCategories || DEFAULT_CATEGORIES;
   }
+
+  try {
+    const { data, error } = await supabase.from('categories').select('*');
+    if (!error && data && data.length > 0) {
+      return data as Category[];
+    }
+  } catch {}
 
   try {
     const raw = await AsyncStorage.getItem(LOCAL_CATEGORIES_KEY);
