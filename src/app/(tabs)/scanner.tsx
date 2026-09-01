@@ -68,6 +68,8 @@ export default function ScannerScreen() {
   const handleSaveVerifiedTransaction = async (verifiedData: any) => {
     try {
       const cat = categories.find((c) => c.id === verifiedData.category_id);
+      const finalReceiptUrl = scanResult?.receipt_image_uri || capturedImageUri || undefined;
+
       await addTransaction({
         user_id: 'active-user',
         category_id: verifiedData.category_id,
@@ -80,7 +82,7 @@ export default function ScannerScreen() {
         discount_amount: verifiedData.discount_amount,
         payment_method: verifiedData.payment_method,
         notes: verifiedData.notes,
-        receipt_image_url: capturedImageUri || undefined,
+        receipt_image_url: finalReceiptUrl,
         items: verifiedData.items,
       });
 
@@ -88,7 +90,7 @@ export default function ScannerScreen() {
       setScanResult(null);
       setCapturedImageUri(null);
 
-      Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan rincian item belanja telah tersimpan rapi.', [
+      Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan foto struk belanja telah tersimpan rapi.', [
         {
           text: 'Lihat Riwayat & Spreadsheet',
           onPress: () => router.push('/(tabs)/transactions'),

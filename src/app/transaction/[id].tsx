@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   Linking,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,7 +42,8 @@ export default function TransactionDetailScreen() {
   const category = transaction.category;
   const categoryColor = category?.color || Palette.primary;
   const items = transaction.items || [];
-  const isGoogleDriveLink = transaction.receipt_image_url?.includes('drive.google.com');
+  const receiptUrl = transaction.receipt_image_url;
+  const isGoogleDrive = receiptUrl?.includes('drive.google.com');
 
   const handleDelete = () => {
     Alert.alert(
@@ -61,9 +63,16 @@ export default function TransactionDetailScreen() {
     );
   };
 
-  const handleOpenDriveLink = () => {
-    if (transaction.receipt_image_url) {
-      Linking.openURL(transaction.receipt_image_url);
+  const handleOpenReceiptImage = () => {
+    if (!receiptUrl) {
+      Alert.alert('Info', 'Foto struk tidak tersedia untuk transaksi ini.');
+      return;
+    }
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.open(receiptUrl, '_blank');
+    } else {
+      Linking.openURL(receiptUrl);
     }
   };
 
@@ -86,7 +95,7 @@ export default function TransactionDetailScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Main Card */}
+        {/* Main Header Card */}
         <View style={styles.mainCard}>
           <View style={[styles.categoryIconCircle, { backgroundColor: `${categoryColor}20` }]}>
             <Ionicons
@@ -117,40 +126,58 @@ export default function TransactionDetailScreen() {
           </Text>
         </View>
 
-        {/* Receipt Image Preview or Google Drive Link */}
-        {transaction.receipt_image_url ? (
-          <View style={styles.receiptImageCard}>
-            <View style={styles.receiptHeaderRow}>
-              <Text style={styles.sectionHeaderTitle}>
-                {isGoogleDriveLink ? 'Foto Struk (Google Drive)' : 'Foto Struk'}
-              </Text>
-              {isGoogleDriveLink && (
-                <TouchableOpacity style={styles.driveLinkBtn} onPress={handleOpenDriveLink}>
-                  <Ionicons name="logo-google" size={14} color="#3B82F6" />
-                  <Text style={styles.driveLinkText}>Buka di Drive ↗</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {!isGoogleDriveLink ? (
-              <Image
-                source={{ uri: transaction.receipt_image_url }}
-                style={styles.receiptImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <TouchableOpacity
-                style={styles.drivePreviewBox}
-                onPress={handleOpenDriveLink}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="document-attach-outline" size={36} color="#3B82F6" />
-                <Text style={styles.drivePreviewTitle}>Foto Tersimpan di Google Drive</Text>
-                <Text style={styles.drivePreviewSub}>Klik untuk membuka gambar resolusi penuh di Google Drive</Text>
+        {/* Clickable Receipt Image Card (Google Drive / Direct Photo) */}
+        <View style={styles.receiptImageCard}>
+          <View style={styles.receiptHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>Foto Struk Belanja</Text>
+            {receiptUrl && (
+              <TouchableOpacity style={styles.driveLinkBtn} onPress={handleOpenReceiptImage}>
+                <Ionicons
+                  name={isGoogleDrive ? 'logo-google' : 'open-outline'}
+                  size={14}
+                  color="#3B82F6"
+                />
+                <Text style={styles.driveLinkText}>
+                  {isGoogleDrive ? 'Buka di Google Drive ↗' : 'Buka Gambar ↗'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
-        ) : null}
+
+          {receiptUrl ? (
+            <TouchableOpacity
+              style={styles.clickableReceiptBox}
+              onPress={handleOpenReceiptImage}
+              activeOpacity={0.85}
+            >
+              {!isGoogleDrive && receiptUrl.startsWith('http') || receiptUrl.startsWith('data:') || receiptUrl.startsWith('blob:') ? (
+                <Image
+                  source={{ uri: receiptUrl }}
+                  style={styles.receiptImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.drivePlaceholderBox}>
+                  <View style={styles.driveIconCircle}>
+                    <Ionicons name="document-attach" size={32} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.drivePreviewTitle}>Foto Tersimpan di Google Drive</Text>
+                  <Text style={styles.drivePreviewSub}>
+                    Klik di sini untuk melihat foto struk resolusi penuh di Google Drive
+                  </Text>
+                  <View style={styles.openDrivePill}>
+                    <Text style={styles.openDrivePillText}>Buka di Drive ↗</Text>
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.noPhotoBox}>
+              <Ionicons name="image-outline" size={32} color={Palette.darkTextMuted} />
+              <Text style={styles.noPhotoText}>Foto struk tidak terlampir</Text>
+            </View>
+          )}
+        </View>
 
         {/* Breakdown Items List */}
         <View style={styles.itemsCard}>
@@ -319,39 +346,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   driveLinkText: {
     fontSize: 11,
     color: '#3B82F6',
     fontWeight: '700',
   },
+  clickableReceiptBox: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   receiptImage: {
     width: '100%',
     height: 220,
     borderRadius: 12,
   },
-  drivePreviewBox: {
+  drivePlaceholderBox: {
     backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 14,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  driveIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   drivePreviewTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: Palette.darkText,
-    marginTop: 8,
   },
   drivePreviewSub: {
     fontSize: 11,
     color: Palette.darkTextSecondary,
     textAlign: 'center',
     marginTop: 4,
+    marginBottom: 14,
+    maxWidth: 280,
+    lineHeight: 16,
+  },
+  openDrivePill: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  openDrivePillText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  noPhotoBox: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 8,
+  },
+  noPhotoText: {
+    fontSize: 12,
+    color: Palette.darkTextMuted,
   },
   itemsCard: {
     backgroundColor: Palette.darkCard,
