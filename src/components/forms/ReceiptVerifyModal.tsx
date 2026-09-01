@@ -160,16 +160,24 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
         <View style={styles.sheetContainer}>
           {/* Header Bar */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>Konfirmasi Hasil Ekstraksi</Text>
-              <Text style={styles.subtitle}>Verifikasi tanggal, jam, dan item sebelum disimpan</Text>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.title} numberOfLines={1}>
+                Konfirmasi Hasil Ekstraksi
+              </Text>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                Verifikasi tanggal, jam, dan item
+              </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={22} color={Palette.darkTextSecondary} />
+              <Ionicons name="close" size={20} color={Palette.darkTextSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Merchant Name Input */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Nama Toko / Merchant / Penjual</Text>
@@ -184,10 +192,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
 
             {/* Tanggal & Waktu Transaksi Grid */}
             <View style={styles.dateTimeRow}>
-              <View style={[styles.fieldGroup, { flex: 1.2 }]}>
+              <View style={[styles.fieldGroup, { flex: 1.1 }]}>
                 <Text style={styles.fieldLabel}>Tanggal Transaksi</Text>
                 <View style={styles.inputWithIcon}>
-                  <Ionicons name="calendar-outline" size={16} color={Palette.primary} />
+                  <Ionicons name="calendar-outline" size={15} color={Palette.primary} />
                   <TextInput
                     style={styles.innerInput}
                     value={transactionDate}
@@ -198,10 +206,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 </View>
               </View>
 
-              <View style={[styles.fieldGroup, { flex: 0.8 }]}>
+              <View style={[styles.fieldGroup, { flex: 0.9 }]}>
                 <Text style={styles.fieldLabel}>Waktu (Jam:Menit)</Text>
                 <View style={styles.inputWithIcon}>
-                  <Ionicons name="time-outline" size={16} color={Palette.primary} />
+                  <Ionicons name="time-outline" size={15} color={Palette.primary} />
                   <TextInput
                     style={styles.innerInput}
                     value={transactionTime}
@@ -268,7 +276,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                     >
                       <Ionicons
                         name={pm.icon as any}
-                        size={16}
+                        size={15}
                         color={isSelected ? Palette.primary : Palette.darkTextSecondary}
                       />
                       <Text
@@ -292,8 +300,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                   Daftar Menu / Barang ({items.length} Item)
                 </Text>
                 <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
-                  <Ionicons name="add-circle" size={16} color={Palette.primary} />
-                  <Text style={styles.addItemText}>Tambah Menu</Text>
+                  <Ionicons name="add-circle" size={15} color={Palette.primary} />
+                  <Text style={styles.addItemText}>Tambah</Text>
                 </TouchableOpacity>
               </View>
 
@@ -308,7 +316,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                       placeholderTextColor={Palette.darkTextMuted}
                     />
                     <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
-                      <Ionicons name="trash-outline" size={18} color={Palette.coral} />
+                      <Ionicons name="trash-outline" size={17} color={Palette.coral} />
                     </TouchableOpacity>
                   </View>
 
@@ -352,7 +360,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Biaya Layanan & Biaya Lain:</Text>
+                <Text style={styles.summaryLabel}>Biaya Layanan & Lain:</Text>
                 <TextInput
                   style={styles.summaryInput}
                   value={adminFee}
@@ -364,7 +372,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Ongkos Kirim (Delivery):</Text>
+                <Text style={styles.summaryLabel}>Ongkos Kirim:</Text>
                 <TextInput
                   style={styles.summaryInput}
                   value={shippingFee}
@@ -400,9 +408,9 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                <View>
-                  <Text style={styles.summaryTotalLabel}>Total Belanja (Dibayar):</Text>
-                  <Text style={styles.summaryTotalHint}>*Sesuai total struk kasir/pesanan</Text>
+                <View style={{ flex: 1, paddingRight: 6 }}>
+                  <Text style={styles.summaryTotalLabel}>Total Belanja:</Text>
+                  <Text style={styles.summaryTotalHint}>*Sesuai total struk</Text>
                 </View>
                 <View style={styles.totalInputWrapper}>
                   <Text style={styles.rpPrefix}>Rp</Text>
@@ -422,7 +430,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Catatan Tambahan (Opsional)</Text>
               <TextInput
-                style={[styles.input, { height: 60 }]}
+                style={[styles.input, { height: 54 }]}
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Misal: Nomor pesanan, catatan pedas, dll."
@@ -439,8 +447,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Simpan Transaksi</Text>
+              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>Simpan</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -457,82 +465,92 @@ const styles = StyleSheet.create({
   },
   sheetContainer: {
     backgroundColor: Palette.darkCard,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '92%',
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: Palette.darkText,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: Palette.darkTextSecondary,
     marginTop: 2,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollArea: {
-    padding: 20,
+    flexGrow: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 20,
   },
   fieldGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: Palette.darkTextSecondary,
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
     color: Palette.darkText,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   dateTimeRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   innerInput: {
     flex: 1,
     color: Palette.darkText,
-    fontSize: 13,
+    fontSize: 12,
   },
   chipRow: {
     flexDirection: 'row',
@@ -540,49 +558,49 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginRight: 8,
+    marginRight: 6,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 6,
+    marginRight: 5,
   },
   categoryChipText: {
-    fontSize: 12,
+    fontSize: 11,
     color: Palette.darkTextSecondary,
   },
   paymentGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   paymentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   paymentButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     color: Palette.darkTextSecondary,
   },
   itemHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   addItemBtn: {
     flexDirection: 'row',
@@ -590,14 +608,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addItemText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: Palette.primary,
   },
   itemCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 12,
+    padding: 10,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
@@ -606,164 +624,169 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   itemNameInput: {
     flex: 1,
     color: Palette.darkText,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    marginRight: 8,
+    marginRight: 6,
   },
   itemBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 6,
   },
   itemFieldSmall: {
-    width: 60,
+    width: 48,
   },
   itemFieldMed: {
     flex: 1,
+    minWidth: 80,
   },
   itemFieldLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: Palette.darkTextMuted,
     marginBottom: 2,
   },
   itemInputSmall: {
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     color: Palette.darkText,
-    fontSize: 12,
+    fontSize: 11,
   },
   itemTotalCol: {
-    width: 90,
+    minWidth: 70,
     alignItems: 'flex-end',
   },
   itemTotalValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: Palette.darkText,
-    marginTop: 4,
+    marginTop: 2,
   },
   summaryCard: {
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   summaryCardHeader: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: Palette.darkText,
-    marginBottom: 12,
+    marginBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   summaryLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: Palette.darkTextSecondary,
   },
   summaryVal: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: Palette.darkText,
   },
   summaryInput: {
-    width: 100,
+    width: 80,
     textAlign: 'right',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     color: Palette.darkText,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   summaryTotalRow: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 10,
-    marginTop: 6,
+    paddingTop: 8,
+    marginTop: 4,
     marginBottom: 0,
+    gap: 6,
   },
   summaryTotalLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: Palette.darkText,
   },
   summaryTotalHint: {
-    fontSize: 10,
+    fontSize: 9,
     color: Palette.darkTextMuted,
     marginTop: 1,
   },
   totalInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: 'rgba(88, 101, 242, 0.15)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderWidth: 1,
     borderColor: 'rgba(88, 101, 242, 0.4)',
+    maxWidth: '55%',
   },
   rpPrefix: {
     color: Palette.primaryLight,
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 12,
   },
   totalInputField: {
     color: Palette.primaryLight,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
-    minWidth: 90,
+    minWidth: 55,
     textAlign: 'right',
   },
   footer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
   },
   cancelBtnText: {
     color: Palette.darkTextSecondary,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   saveBtn: {
     flex: 2,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
     backgroundColor: Palette.primary,
   },
   saveBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
 });

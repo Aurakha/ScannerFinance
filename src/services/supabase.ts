@@ -1,10 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-// Default Supabase configuration (bisa diisi via env atau diubah lewat menu Profil/Pengaturan)
-export const DEFAULT_SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://xyzcompany.supabase.co';
-export const DEFAULT_SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-placeholder';
-export const DEFAULT_GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+// Default Supabase configuration & Gemini API Key
+export const DEFAULT_SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://pyxffpdxwatrqvywstoi.supabase.co';
+
+export const DEFAULT_SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_dWPrnwPdUesrBOR8ICp5Ng_LiFh3Fd9';
+
+export const DEFAULT_GEMINI_API_KEY =
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY || 'AIzaSyCaeDUdeVYLjE6VnrRN3Qtj_3TZ5qa6rXM';
 
 const isSSR = typeof window === 'undefined';
 
@@ -41,8 +46,5 @@ export const supabase = createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON
 });
 
 export const isSupabaseConfigured = (): boolean => {
-  return (
-    Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL) &&
-    process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://xyzcompany.supabase.co'
-  );
+  return Boolean(DEFAULT_SUPABASE_URL) && !DEFAULT_SUPABASE_URL.includes('xyzcompany');
 };

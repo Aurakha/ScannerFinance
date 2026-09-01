@@ -1,6 +1,6 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Platform } from 'react-native';
-import { supabase } from './supabase';
+import { supabase, DEFAULT_GEMINI_API_KEY } from './supabase';
 import { ReceiptScanResult } from '@/types';
 import { getGoogleDriveSettings, uploadReceiptToGoogleDrive } from './googleDriveService';
 
@@ -106,10 +106,11 @@ export async function processReceiptImage(
   const effectiveApiKey =
     userGeminiApiKey ||
     process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    '';
+    DEFAULT_GEMINI_API_KEY ||
+    'AIzaSyCaeDUdeVYLjE6VnrRN3Qtj_3TZ5qa6rXM';
 
   if (!effectiveApiKey) {
-    throw new Error('Kunci Gemini API Key belum terpasang di file .env.');
+    throw new Error('Kunci Gemini API Key belum terpasang.');
   }
 
   // Model Gemini 3.6 Flash
@@ -139,7 +140,7 @@ Tugas Anda mengekstrak data dari gambar transaksi ini:
    
    - discount_amount: Potongan voucher / diskon promo (contoh: jika tertera "Voucher Diskon -Rp12.000", isi 12000; jika tidak ada, isi 0).
    
-   - tax_amount: Pajak PPN/PB1 jika tertera di luar harga barang (jika sudah termasuk pajak, isi 0 atau nilai PPN informasi).
+   - tax_amount: Pajak PPN/PB1 jika tertera (jika ada nilai PPN seperti 6.875, isi 6875; jika tidak ada, isi 0).
    
    - total_amount: Total nominal yang sesungguhnya dibayarkan pelanggan (contoh: jika Total akhir Rp 70.500, maka total_amount = 70500).
    
