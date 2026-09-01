@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
-import { formatDateOnly, formatFriendlyDate, formatRupiah } from '@/utils/formatters';
+import { formatDateTime, formatFriendlyDate, formatRupiah } from '@/utils/formatters';
 import { Badge } from '@/components/common/Badge';
 
 export default function TransactionDetailScreen() {
@@ -113,8 +113,7 @@ export default function TransactionDetailScreen() {
           </View>
 
           <Text style={styles.dateText}>
-            📅 {formatDateOnly(transaction.transaction_date)} (
-            {formatFriendlyDate(transaction.transaction_date)})
+            🕒 {formatDateTime(transaction.transaction_date)}
           </Text>
         </View>
 
@@ -145,18 +144,18 @@ export default function TransactionDetailScreen() {
                 onPress={handleOpenDriveLink}
                 activeOpacity={0.8}
               >
-                <Ionicons name="document-attach-outline" size={32} color="#3B82F6" />
-                <Text style={styles.driveBoxTitle}>Tersimpan di Google Drive</Text>
-                <Text style={styles.driveBoxSub}>Klik untuk membuka foto struk asli</Text>
+                <Ionicons name="document-attach-outline" size={36} color="#3B82F6" />
+                <Text style={styles.drivePreviewTitle}>Foto Tersimpan di Google Drive</Text>
+                <Text style={styles.drivePreviewSub}>Klik untuk membuka gambar resolusi penuh di Google Drive</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : null}
 
-        {/* Items Breakdown Table */}
-        <View style={styles.sectionCard}>
+        {/* Breakdown Items List */}
+        <View style={styles.itemsCard}>
           <Text style={styles.sectionHeaderTitle}>
-            Daftar Barang Belanja ({items.length})
+            Rincian Barang & Biaya ({items.length} Item)
           </Text>
 
           {items.length === 0 ? (
@@ -164,16 +163,16 @@ export default function TransactionDetailScreen() {
           ) : (
             items.map((it, idx) => (
               <View
-                key={idx}
+                key={it.id || idx}
                 style={[
                   styles.itemRow,
-                  idx !== items.length - 1 && styles.itemRowBorder,
+                  idx === items.length - 1 && { borderBottomWidth: 0 },
                 ]}
               >
                 <View style={styles.itemLeft}>
                   <Text style={styles.itemName}>{it.item_name}</Text>
-                  <Text style={styles.itemDetail}>
-                    {it.quantity} × {formatRupiah(it.unit_price)}
+                  <Text style={styles.itemQtyPrice}>
+                    {it.quantity} x {formatRupiah(it.unit_price)}
                   </Text>
                 </View>
 
@@ -182,45 +181,41 @@ export default function TransactionDetailScreen() {
             ))
           )}
 
-          {/* Pricing Breakdown Summary */}
-          <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal:</Text>
-              <Text style={styles.summaryValue}>
-                {formatRupiah(transaction.subtotal || transaction.total_amount)}
-              </Text>
-            </View>
-
-            {Number(transaction.tax_amount) > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Pajak:</Text>
-                <Text style={styles.summaryValue}>
-                  +{formatRupiah(transaction.tax_amount)}
-                </Text>
+          {/* Subtotal, Tax, Discount Breakdown */}
+          <View style={styles.calcSummaryBox}>
+            {transaction.subtotal && transaction.subtotal !== transaction.total_amount ? (
+              <View style={styles.calcRow}>
+                <Text style={styles.calcLabel}>Subtotal Item:</Text>
+                <Text style={styles.calcVal}>{formatRupiah(transaction.subtotal)}</Text>
               </View>
-            )}
+            ) : null}
 
-            {Number(transaction.discount_amount) > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Diskon:</Text>
-                <Text style={[styles.summaryValue, { color: Palette.coral }]}>
+            {Number(transaction.tax_amount) > 0 ? (
+              <View style={styles.calcRow}>
+                <Text style={styles.calcLabel}>Pajak (PPN/PB1):</Text>
+                <Text style={styles.calcVal}>{formatRupiah(transaction.tax_amount)}</Text>
+              </View>
+            ) : null}
+
+            {Number(transaction.discount_amount) > 0 ? (
+              <View style={styles.calcRow}>
+                <Text style={styles.calcLabel}>Diskon:</Text>
+                <Text style={[styles.calcVal, { color: Palette.coral }]}>
                   -{formatRupiah(transaction.discount_amount)}
                 </Text>
               </View>
-            )}
+            ) : null}
 
-            <View style={[styles.summaryRow, styles.totalSummaryRow]}>
-              <Text style={styles.totalSummaryLabel}>Total Dibayar:</Text>
-              <Text style={styles.totalSummaryValue}>
-                {formatRupiah(transaction.total_amount)}
-              </Text>
+            <View style={[styles.calcRow, styles.calcTotalRow]}>
+              <Text style={styles.calcTotalLabel}>Total:</Text>
+              <Text style={styles.calcTotalVal}>{formatRupiah(transaction.total_amount)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Notes Card */}
+        {/* Notes */}
         {transaction.notes ? (
-          <View style={styles.sectionCard}>
+          <View style={styles.notesCard}>
             <Text style={styles.sectionHeaderTitle}>Catatan</Text>
             <Text style={styles.notesBody}>{transaction.notes}</Text>
           </View>
@@ -240,14 +235,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   circleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Palette.darkCard,
     justifyContent: 'center',
     alignItems: 'center',
@@ -268,7 +263,7 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     backgroundColor: Palette.darkCard,
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
@@ -293,8 +288,8 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 28,
     fontWeight: '800',
-    color: Palette.primary,
-    marginBottom: 12,
+    color: Palette.primaryLight,
+    marginBottom: 14,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -307,7 +302,7 @@ const styles = StyleSheet.create({
   },
   receiptImageCard: {
     backgroundColor: Palette.darkCard,
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -317,52 +312,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   driveLinkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    paddingHorizontal: 10,
+    gap: 4,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   driveLinkText: {
-    color: '#3B82F6',
     fontSize: 11,
+    color: '#3B82F6',
     fontWeight: '700',
   },
   receiptImage: {
     width: '100%',
-    height: 180,
+    height: 220,
     borderRadius: 12,
-    marginTop: 6,
   },
   drivePreviewBox: {
-    backgroundColor: 'rgba(59, 130, 246, 0.06)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
-    marginTop: 6,
   },
-  driveBoxTitle: {
+  drivePreviewTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: Palette.darkText,
     marginTop: 8,
   },
-  driveBoxSub: {
-    fontSize: 12,
+  drivePreviewSub: {
+    fontSize: 11,
     color: Palette.darkTextSecondary,
-    marginTop: 2,
+    textAlign: 'center',
+    marginTop: 4,
   },
-  sectionCard: {
+  itemsCard: {
     backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 16,
@@ -371,6 +365,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: Palette.darkText,
+    marginBottom: 12,
   },
   noItemsText: {
     fontSize: 13,
@@ -382,66 +377,71 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
-  },
-  itemRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   itemLeft: {
     flex: 1,
-    marginRight: 10,
+    paddingRight: 10,
   },
   itemName: {
     fontSize: 13,
     fontWeight: '600',
     color: Palette.darkText,
-    marginBottom: 2,
   },
-  itemDetail: {
+  itemQtyPrice: {
     fontSize: 11,
     color: Palette.darkTextMuted,
+    marginTop: 2,
   },
   itemTotalPrice: {
     fontSize: 13,
     fontWeight: '700',
     color: Palette.darkText,
   },
-  summaryBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 14,
-    padding: 12,
+  calcSummaryBox: {
     marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
-  summaryRow: {
+  calcRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  summaryLabel: {
+  calcLabel: {
     fontSize: 12,
     color: Palette.darkTextSecondary,
   },
-  summaryValue: {
+  calcVal: {
     fontSize: 12,
     fontWeight: '600',
     color: Palette.darkText,
   },
-  totalSummaryRow: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  calcTotalRow: {
+    marginTop: 6,
     paddingTop: 8,
-    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     marginBottom: 0,
   },
-  totalSummaryLabel: {
+  calcTotalLabel: {
     fontSize: 14,
     fontWeight: '800',
     color: Palette.darkText,
   },
-  totalSummaryValue: {
-    fontSize: 16,
+  calcTotalVal: {
+    fontSize: 15,
     fontWeight: '800',
-    color: Palette.primary,
+    color: Palette.primaryLight,
+  },
+  notesCard: {
+    backgroundColor: Palette.darkCard,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   notesBody: {
     fontSize: 13,
@@ -459,16 +459,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Palette.darkText,
     marginTop: 14,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   backBtn: {
     backgroundColor: Palette.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
   backBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 14,
   },
 });

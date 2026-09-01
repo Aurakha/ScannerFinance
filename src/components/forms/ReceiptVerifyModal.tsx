@@ -54,7 +54,17 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
 }) => {
   if (!scanData) return null;
 
+  const initialDate = scanData.transaction_date
+    ? new Date(scanData.transaction_date)
+    : new Date();
+
   const [merchantName, setMerchantName] = useState(scanData.merchant_name || 'Toko Belanja');
+  const [transactionDate, setTransactionDate] = useState(
+    initialDate.toISOString().slice(0, 10)
+  );
+  const [transactionTime, setTransactionTime] = useState(
+    initialDate.toTimeString().slice(0, 5)
+  );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(() => {
     const found = categories.find((c) => c.name === scanData.suggested_category);
     return found ? found.id : categories[0]?.id || 'cat-belanja';
@@ -109,9 +119,16 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       return;
     }
 
+    let finalIso = new Date().toISOString();
+    try {
+      finalIso = new Date(`${transactionDate}T${transactionTime}:00`).toISOString();
+    } catch {
+      finalIso = new Date().toISOString();
+    }
+
     onConfirmSave({
       merchant_name: merchantName,
-      transaction_date: scanData.transaction_date || new Date().toISOString(),
+      transaction_date: finalIso,
       category_id: selectedCategoryId,
       payment_method: paymentMethod,
       subtotal: itemsSubtotal > 0 ? itemsSubtotal : scanData.subtotal || calculatedTotal,
@@ -133,8 +150,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           {/* Header Bar */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Konfirmasi Hasil Scan</Text>
-              <Text style={styles.subtitle}>Verifikasi & sesuaikan data sebelum disimpan</Text>
+              <Text style={styles.title}>Konfirmasi Hasil Ekstraksi</Text>
+              <Text style={styles.subtitle}>Verifikasi tanggal, jam, dan item sebelum disimpan</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
               <Ionicons name="close" size={22} color={Palette.darkTextSecondary} />
@@ -144,14 +161,45 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             {/* Merchant Name Input */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Nama Toko / Merchant</Text>
+              <Text style={styles.fieldLabel}>Nama Toko / Merchant / Penjual</Text>
               <TextInput
                 style={styles.input}
                 value={merchantName}
                 onChangeText={setMerchantName}
-                placeholder="Misal: Indomaret, Kopi Kenangan"
+                placeholder="Misal: Indomaret, Superindo, Gojek"
                 placeholderTextColor={Palette.darkTextMuted}
               />
+            </View>
+
+            {/* Tanggal & Waktu Transaksi Grid */}
+            <View style={styles.dateTimeRow}>
+              <View style={[styles.fieldGroup, { flex: 1.2 }]}>
+                <Text style={styles.fieldLabel}>Tanggal Transaksi</Text>
+                <View style={styles.inputWithIcon}>
+                  <Ionicons name="calendar-outline" size={16} color={Palette.primary} />
+                  <TextInput
+                    style={styles.innerInput}
+                    value={transactionDate}
+                    onChangeText={setTransactionDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.fieldGroup, { flex: 0.8 }]}>
+                <Text style={styles.fieldLabel}>Waktu (Jam:Menit)</Text>
+                <View style={styles.inputWithIcon}>
+                  <Ionicons name="time-outline" size={16} color={Palette.primary} />
+                  <TextInput
+                    style={styles.innerInput}
+                    value={transactionTime}
+                    onChangeText={setTransactionTime}
+                    placeholder="HH:mm"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              </View>
             </View>
 
             {/* Category Selector */}
@@ -202,7 +250,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                         styles.paymentButton,
                         isSelected && {
                           borderColor: Palette.primary,
-                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                          backgroundColor: 'rgba(88, 101, 242, 0.15)',
                         },
                       ]}
                       onPress={() => setPaymentMethod(pm.value)}
@@ -226,140 +274,123 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
             </View>
 
-            {/* Items Breakdown Table */}
+            {/* Item Breakdown List */}
             <View style={styles.fieldGroup}>
-              <View style={styles.itemsHeaderRow}>
-                <Text style={styles.fieldLabel}>Rincian Barang ({items.length})</Text>
+              <View style={styles.itemHeaderRow}>
+                <Text style={styles.fieldLabel}>
+                  Rincian Barang & Biaya Jasa ({items.length} Baris)
+                </Text>
                 <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
-                  <Ionicons name="add-circle-outline" size={16} color={Palette.primary} />
+                  <Ionicons name="add-circle" size={16} color={Palette.primary} />
                   <Text style={styles.addItemText}>Tambah Item</Text>
                 </TouchableOpacity>
               </View>
 
-              {items.map((it, idx) => (
-                <View key={idx} style={styles.itemRow}>
-                  <View style={styles.itemMainInfo}>
+              {items.map((item, idx) => (
+                <View key={idx} style={styles.itemCard}>
+                  <View style={styles.itemTopRow}>
                     <TextInput
                       style={styles.itemNameInput}
-                      value={it.item_name}
+                      value={item.item_name}
                       onChangeText={(val) => handleUpdateItem(idx, 'item_name', val)}
-                      placeholder="Nama Barang"
+                      placeholder="Nama Barang / Ongkir / Admin"
                       placeholderTextColor={Palette.darkTextMuted}
                     />
-                    <View style={styles.itemQtyPriceRow}>
-                      <TextInput
-                        style={styles.itemQtyInput}
-                        value={String(it.quantity)}
-                        keyboardType="numeric"
-                        onChangeText={(val) =>
-                          handleUpdateItem(idx, 'quantity', Number(val) || 1)
-                        }
-                        placeholder="1"
-                        placeholderTextColor={Palette.darkTextMuted}
-                      />
-                      <Text style={styles.itemMultiplyText}>×</Text>
-                      <TextInput
-                        style={styles.itemPriceInput}
-                        value={String(it.unit_price)}
-                        keyboardType="numeric"
-                        onChangeText={(val) =>
-                          handleUpdateItem(idx, 'unit_price', Number(val) || 0)
-                        }
-                        placeholder="Harga"
-                        placeholderTextColor={Palette.darkTextMuted}
-                      />
-                    </View>
+                    <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
+                      <Ionicons name="trash-outline" size={18} color={Palette.coral} />
+                    </TouchableOpacity>
                   </View>
 
-                  <View style={styles.itemRightAction}>
-                    <Text style={styles.itemTotalText}>{formatRupiah(it.total_price)}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveItem(idx)}
-                      style={styles.deleteItemBtn}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={Palette.coral} />
-                    </TouchableOpacity>
+                  <View style={styles.itemBottomRow}>
+                    <View style={styles.itemFieldSmall}>
+                      <Text style={styles.itemFieldLabel}>Qty</Text>
+                      <TextInput
+                        style={styles.itemInputSmall}
+                        value={String(item.quantity)}
+                        onChangeText={(val) => handleUpdateItem(idx, 'quantity', val)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.itemFieldMed}>
+                      <Text style={styles.itemFieldLabel}>Harga Satuan</Text>
+                      <TextInput
+                        style={styles.itemInputSmall}
+                        value={String(item.unit_price)}
+                        onChangeText={(val) => handleUpdateItem(idx, 'unit_price', val)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.itemTotalCol}>
+                      <Text style={styles.itemFieldLabel}>Total</Text>
+                      <Text style={styles.itemTotalValue}>{formatRupiah(item.total_price)}</Text>
+                    </View>
                   </View>
                 </View>
               ))}
             </View>
 
-            {/* Tax & Discount */}
-            <View style={styles.taxDiscountRow}>
-              <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.fieldLabel}>Pajak (PPN/PB1)</Text>
+            {/* Financial Summary Box */}
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal Item:</Text>
+                <Text style={styles.summaryVal}>{formatRupiah(itemsSubtotal)}</Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Pajak (PPN/PB1):</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.summaryInput}
                   value={taxAmount}
-                  keyboardType="numeric"
                   onChangeText={setTaxAmount}
+                  keyboardType="numeric"
                   placeholder="0"
                   placeholderTextColor={Palette.darkTextMuted}
                 />
               </View>
 
-              <View style={[styles.fieldGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={styles.fieldLabel}>Diskon / Hemat</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Diskon / Voucher:</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.summaryInput, { color: Palette.coral }]}
                   value={discountAmount}
-                  keyboardType="numeric"
                   onChangeText={setDiscountAmount}
+                  keyboardType="numeric"
                   placeholder="0"
                   placeholderTextColor={Palette.darkTextMuted}
                 />
+              </View>
+
+              <View style={[styles.summaryRow, styles.summaryTotalRow]}>
+                <Text style={styles.summaryTotalLabel}>Total Akhir:</Text>
+                <Text style={styles.summaryTotalVal}>{formatRupiah(calculatedTotal)}</Text>
               </View>
             </View>
 
-            {/* Notes */}
+            {/* Notes Input */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Catatan (Opsional)</Text>
+              <Text style={styles.fieldLabel}>Catatan Tambahan (Opsional)</Text>
               <TextInput
-                style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
+                style={[styles.input, { height: 60 }]}
                 value={notes}
                 onChangeText={setNotes}
-                multiline
-                placeholder="Catatan belanja, nama kasir, nomor struk..."
+                placeholder="Misal: Nomor kuitansi, nama kasir, atau keperluan kantor"
                 placeholderTextColor={Palette.darkTextMuted}
+                multiline
               />
-            </View>
-
-            {/* Total Calculation Card */}
-            <View style={styles.totalCard}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Subtotal Item:</Text>
-                <Text style={styles.totalValue}>{formatRupiah(itemsSubtotal)}</Text>
-              </View>
-              {numericTax > 0 && (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Pajak:</Text>
-                  <Text style={styles.totalValue}>+{formatRupiah(numericTax)}</Text>
-                </View>
-              )}
-              {numericDiscount > 0 && (
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Potongan Diskon:</Text>
-                  <Text style={[styles.totalValue, { color: Palette.coral }]}>
-                    -{formatRupiah(numericDiscount)}
-                  </Text>
-                </View>
-              )}
-              <View style={[styles.totalRow, styles.finalTotalRow]}>
-                <Text style={styles.finalTotalLabel}>Total Belanja:</Text>
-                <Text style={styles.finalTotalValue}>{formatRupiah(calculatedTotal)}</Text>
-              </View>
             </View>
           </ScrollView>
 
-          {/* Bottom Action Footer */}
+          {/* Action Buttons */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Batal</Text>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>Batal</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.saveText}>Simpan Transaksi</Text>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>Simpan Transaksi</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -371,14 +402,15 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(9, 13, 22, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: Palette.darkBg,
+    backgroundColor: Palette.darkCard,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '92%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -416,21 +448,41 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Palette.darkTextSecondary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: Palette.darkCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     fontSize: 14,
     color: Palette.darkText,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  innerInput: {
+    flex: 1,
+    color: Palette.darkText,
+    fontSize: 13,
   },
   chipRow: {
     flexDirection: 'row',
@@ -441,21 +493,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Palette.darkCard,
-    marginRight: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginRight: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
   categoryChipText: {
     fontSize: 12,
-    color: Palette.darkText,
-    fontWeight: '500',
+    color: Palette.darkTextSecondary,
   },
   paymentGrid: {
     flexDirection: 'row',
@@ -469,16 +520,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: Palette.darkCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   paymentButtonText: {
     fontSize: 12,
-    color: Palette.darkText,
-    fontWeight: '500',
+    color: Palette.darkTextSecondary,
   },
-  itemsHeaderRow: {
+  itemHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -494,110 +544,111 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Palette.primary,
   },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Palette.darkCard,
+  itemCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     padding: 12,
-    borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  itemMainInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  itemNameInput: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Palette.darkText,
-    marginBottom: 4,
-    padding: 0,
-  },
-  itemQtyPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemQtyInput: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    minWidth: 28,
-    textAlign: 'center',
-  },
-  itemMultiplyText: {
-    marginHorizontal: 6,
-    color: Palette.darkTextMuted,
-    fontSize: 12,
-  },
-  itemPriceInput: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    minWidth: 70,
-  },
-  itemRightAction: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  itemTotalText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Palette.darkText,
-  },
-  deleteItemBtn: {
-    padding: 4,
-  },
-  taxDiscountRow: {
-    flexDirection: 'row',
-  },
-  totalCard: {
-    backgroundColor: Palette.darkCard,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  totalRow: {
+  itemTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  totalLabel: {
+  itemNameInput: {
+    flex: 1,
+    color: Palette.darkText,
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  itemBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemFieldSmall: {
+    width: 60,
+  },
+  itemFieldMed: {
+    flex: 1,
+  },
+  itemFieldLabel: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginBottom: 2,
+  },
+  itemInputSmall: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: Palette.darkText,
+    fontSize: 12,
+  },
+  itemTotalCol: {
+    width: 90,
+    alignItems: 'flex-end',
+  },
+  itemTotalValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+    marginTop: 4,
+  },
+  summaryCard: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryLabel: {
     fontSize: 13,
     color: Palette.darkTextSecondary,
   },
-  totalValue: {
+  summaryVal: {
     fontSize: 13,
     fontWeight: '600',
     color: Palette.darkText,
   },
-  finalTotalRow: {
+  summaryInput: {
+    width: 100,
+    textAlign: 'right',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: Palette.darkText,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  summaryTotalRow: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
     paddingTop: 10,
-    marginTop: 6,
+    marginTop: 4,
     marginBottom: 0,
   },
-  finalTotalLabel: {
+  summaryTotalLabel: {
     fontSize: 15,
     fontWeight: '800',
     color: Palette.darkText,
   },
-  finalTotalValue: {
-    fontSize: 18,
+  summaryTotalVal: {
+    fontSize: 17,
     fontWeight: '800',
-    color: Palette.primary,
+    color: Palette.primaryLight,
   },
   footer: {
     flexDirection: 'row',
@@ -605,39 +656,32 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: Palette.darkBg,
   },
-  cancelButton: {
+  cancelBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  cancelText: {
-    fontSize: 14,
-    fontWeight: '600',
+  cancelBtnText: {
     color: Palette.darkTextSecondary,
+    fontWeight: '700',
+    fontSize: 14,
   },
-  saveButton: {
+  saveBtn: {
     flex: 2,
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: Palette.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Palette.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  saveText: {
-    fontSize: 14,
-    fontWeight: '700',
+  saveBtnText: {
     color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
