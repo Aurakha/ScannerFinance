@@ -137,7 +137,7 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
   }
 }
 
-export async function getTransactions(): Promise<Transaction[]> {
+export async function getTransactions(targetUserId?: string): Promise<Transaction[]> {
   if (isSSR) {
     return inMemoryTransactions || SEED_TRANSACTIONS;
   }
@@ -145,10 +145,13 @@ export async function getTransactions(): Promise<Transaction[]> {
   // 1. Coba sinkronkan data lokal ke cloud Supabase
   await syncLocalTransactionsToSupabase();
 
-  // 2. Ambil seluruh transaksi live dari Supabase Cloud berdasarkan user_id (jika login)
+  // 2. Ambil seluruh transaksi live dari Supabase Cloud berdasarkan user_id
+  let currentUserId: string | null = targetUserId || null;
   try {
-    const { data: sessionRes } = await supabase.auth.getSession();
-    const currentUserId = sessionRes?.session?.user?.id;
+    if (!currentUserId) {
+      const { data: sessionRes } = await supabase.auth.getSession();
+      currentUserId = sessionRes?.session?.user?.id || null;
+    }
 
     let query = supabase
       .from('transactions')
@@ -177,13 +180,17 @@ export async function getTransactions(): Promise<Transaction[]> {
     console.warn('Supabase fetch transactions notice:', err);
   }
 
-  // 3. Fallback ke Local Storage
+  // 3. Fallback ke Local Storage (Filter per user jika ada user_id)
   try {
     const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const allTx: Transaction[] = JSON.parse(raw);
+      if (currentUserId) {
+        const userTx = allTx.filter((t) => t.user_id === currentUserId);
+        return userTx.length > 0 ? userTx : allTx;
+      }
+      return allTx;
     }
-    await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(SEED_TRANSACTIONS));
     return SEED_TRANSACTIONS;
   } catch {
     return SEED_TRANSACTIONS;

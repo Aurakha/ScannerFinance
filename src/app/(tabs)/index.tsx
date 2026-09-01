@@ -26,7 +26,7 @@ export default function DashboardScreen() {
   const { theme, mode, toggleTheme } = useThemeStore();
 
   useEffect(() => {
-    loadData();
+    loadData(user?.id);
   }, [user]);
 
   const handleReturnToAdmin = () => {

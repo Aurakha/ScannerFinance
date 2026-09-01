@@ -17,7 +17,7 @@ interface TransactionState {
   isLoading: boolean;
   activeFilter: string; // 'all' | category_id
   searchQuery: string;
-  loadData: () => Promise<void>;
+  loadData: (targetUserId?: string) => Promise<void>;
   addTransaction: (tx: Omit<Transaction, 'id' | 'created_at'>) => Promise<Transaction>;
   removeTransaction: (id: string) => Promise<void>;
   setBudgetLimit: (limit: number) => void;
@@ -34,10 +34,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   activeFilter: 'all',
   searchQuery: '',
 
-  loadData: async () => {
+  loadData: async (targetUserId?: string) => {
     set({ isLoading: true });
     try {
-      const [txList, catList] = await Promise.all([getTransactions(), getCategories()]);
+      const [txList, catList] = await Promise.all([
+        getTransactions(targetUserId),
+        getCategories(),
+      ]);
       const currentBudget = get().budgetLimit;
       const stats = calculateMonthlyStats(txList, currentBudget);
       set({

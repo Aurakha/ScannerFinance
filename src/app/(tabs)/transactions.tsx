@@ -36,9 +36,14 @@ export default function TransactionsScreen() {
     setActiveFilter,
     setSearchQuery,
     removeTransaction,
+    loadData,
   } = useTransactionStore();
 
   const [isExportingSheet, setIsExportingSheet] = useState(false);
+
+  React.useEffect(() => {
+    loadData(user?.id);
+  }, [user]);
 
   // Filter transactions
   const filteredTransactions = transactions.filter((t) => {
