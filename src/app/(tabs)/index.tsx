@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,7 +38,7 @@ export default function DashboardScreen() {
           subtitle="Rekap & analisis pengeluaran cerdas Anda"
         />
 
-        {/* Hero Financial Overview */}
+        {/* Discord Hero Financial Overview */}
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <Text style={styles.heroLabel}>Total Pengeluaran Bulan Ini</Text>
@@ -88,7 +87,7 @@ export default function DashboardScreen() {
               title="Rata-rata Harian"
               amount={stats.dailyAverage}
               icon="calendar-outline"
-              color={Palette.indigo}
+              color={Palette.primary}
               badgeText="Harian"
               badgeType="info"
             />
@@ -114,7 +113,7 @@ export default function DashboardScreen() {
         >
           <View style={styles.quickScanLeft}>
             <View style={styles.quickScanIcon}>
-              <Ionicons name="camera" size={26} color="#FFFFFF" />
+              <Ionicons name="camera" size={24} color="#FFFFFF" />
             </View>
             <View>
               <Text style={styles.quickScanTitle}>Scan Struk Belanja</Text>
@@ -183,14 +182,14 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     marginHorizontal: 20,
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
+    backgroundColor: Palette.darkCard,
+    borderRadius: 20,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(88, 101, 242, 0.25)',
     shadowColor: Palette.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 6,
     marginBottom: 16,
@@ -261,11 +260,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(88, 101, 242, 0.1)',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: 'rgba(88, 101, 242, 0.3)',
     marginBottom: 20,
   },
   quickScanLeft: {

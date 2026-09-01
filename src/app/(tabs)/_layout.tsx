@@ -10,7 +10,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0D1322',
+          backgroundColor: '#111214', // Discord Header & Tab Bar dark
           borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 88 : 68,
@@ -18,7 +18,7 @@ export default function TabLayout() {
           paddingTop: 10,
         },
         tabBarActiveTintColor: Palette.primary,
-        tabBarInactiveTintColor: Palette.darkTextMuted,
+        tabBarInactiveTintColor: '#949BA4',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -112,12 +112,12 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#0D1322',
+    backgroundColor: '#111214',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: Palette.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.45,
     shadowRadius: 10,
     elevation: 6,
   },
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Palette.primary,
+    backgroundColor: Palette.primary, // Discord Blurple
     justifyContent: 'center',
     alignItems: 'center',
   },
