@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -80,21 +80,26 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
     }));
   });
+
+  // Biaya-biaya rincian (Admin, Ongkir, PPN, Diskon)
+  const [adminFee, setAdminFee] = useState<string>('0');
+  const [shippingFee, setShippingFee] = useState<string>('0');
   const [taxAmount, setTaxAmount] = useState<string>(String(scanData.tax_amount || 0));
   const [discountAmount, setDiscountAmount] = useState<string>(String(scanData.discount_amount || 0));
   const [notes, setNotes] = useState<string>(scanData.notes || '');
 
-  // Hitung ulang total otomatis jika items berubah
+  // Total Belanja: Selalu mengunci nilai TOTAL AKHIR yang tertera di struk
+  const [totalAmount, setTotalAmount] = useState<string>(() => {
+    return String(scanData.total_amount || scanData.subtotal || 0);
+  });
+
+  // Hitung subtotal item
   const itemsSubtotal = items.reduce((sum, it) => sum + (Number(it.total_price) || 0), 0);
-  const numericTax = Number(taxAmount) || 0;
-  const numericDiscount = Number(discountAmount) || 0;
-  const calculatedTotal = Math.max(0, itemsSubtotal + numericTax - numericDiscount);
 
   const handleAddItem = () => {
-    setItems([
-      ...items,
-      { item_name: 'Item Baru', quantity: 1, unit_price: 10000, total_price: 10000 },
-    ]);
+    const newItem = { item_name: 'Item Baru', quantity: 1, unit_price: 10000, total_price: 10000 };
+    const updated = [...items, newItem];
+    setItems(updated);
   };
 
   const handleUpdateItem = (index: number, field: keyof TransactionItem, value: any) => {
@@ -113,6 +118,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const handleRecalculateFromItems = () => {
+    setTotalAmount(String(itemsSubtotal));
+  };
+
   const handleSave = () => {
     if (!merchantName.trim()) {
       Alert.alert('Perhatian', 'Nama toko/merchant tidak boleh kosong.');
@@ -126,15 +135,17 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       finalIso = new Date().toISOString();
     }
 
+    const finalTotal = Number(totalAmount) || Number(scanData.total_amount) || itemsSubtotal || 0;
+
     onConfirmSave({
       merchant_name: merchantName,
       transaction_date: finalIso,
       category_id: selectedCategoryId,
       payment_method: paymentMethod,
-      subtotal: itemsSubtotal > 0 ? itemsSubtotal : scanData.subtotal || calculatedTotal,
-      tax_amount: numericTax,
-      discount_amount: numericDiscount,
-      total_amount: calculatedTotal > 0 ? calculatedTotal : scanData.total_amount || 0,
+      subtotal: itemsSubtotal > 0 ? itemsSubtotal : finalTotal,
+      tax_amount: Number(taxAmount) || 0,
+      discount_amount: Number(discountAmount) || 0,
+      total_amount: finalTotal,
       notes: notes,
       items: items,
     });
@@ -278,11 +289,11 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             <View style={styles.fieldGroup}>
               <View style={styles.itemHeaderRow}>
                 <Text style={styles.fieldLabel}>
-                  Rincian Barang & Biaya Jasa ({items.length} Baris)
+                  Daftar Barang Belanja ({items.length} Baris)
                 </Text>
                 <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
                   <Ionicons name="add-circle" size={16} color={Palette.primary} />
-                  <Text style={styles.addItemText}>Tambah Item</Text>
+                  <Text style={styles.addItemText}>Tambah Barang</Text>
                 </TouchableOpacity>
               </View>
 
@@ -293,7 +304,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                       style={styles.itemNameInput}
                       value={item.item_name}
                       onChangeText={(val) => handleUpdateItem(idx, 'item_name', val)}
-                      placeholder="Nama Barang / Ongkir / Admin"
+                      placeholder="Nama Barang / Menu"
                       placeholderTextColor={Palette.darkTextMuted}
                     />
                     <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
@@ -331,18 +342,41 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               ))}
             </View>
 
-            {/* Financial Summary Box */}
+            {/* Financial Summary & Breakdown Box */}
             <View style={styles.summaryCard}>
+              <Text style={styles.summaryCardHeader}>Ringkasan Nominal Transaksi</Text>
+
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal Item:</Text>
                 <Text style={styles.summaryVal}>{formatRupiah(itemsSubtotal)}</Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <View>
-                  <Text style={styles.summaryLabel}>Pajak Tambahan (di luar harga):</Text>
-                  <Text style={styles.taxHintText}>*Harga Indomaret/retail sudah include PPN (biarkan 0)</Text>
-                </View>
+                <Text style={styles.summaryLabel}>Biaya Admin / Layanan:</Text>
+                <TextInput
+                  style={styles.summaryInput}
+                  value={adminFee}
+                  onChangeText={setAdminFee}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Palette.darkTextMuted}
+                />
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Ongkos Kirim (Delivery):</Text>
+                <TextInput
+                  style={styles.summaryInput}
+                  value={shippingFee}
+                  onChangeText={setShippingFee}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Palette.darkTextMuted}
+                />
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Pajak / PPN:</Text>
                 <TextInput
                   style={styles.summaryInput}
                   value={taxAmount}
@@ -366,8 +400,21 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                <Text style={styles.summaryTotalLabel}>Total Belanja:</Text>
-                <Text style={styles.summaryTotalVal}>{formatRupiah(calculatedTotal)}</Text>
+                <View>
+                  <Text style={styles.summaryTotalLabel}>Total Belanja (Dibayar):</Text>
+                  <Text style={styles.summaryTotalHint}>*Sesuai total struk kasir</Text>
+                </View>
+                <View style={styles.totalInputWrapper}>
+                  <Text style={styles.rpPrefix}>Rp</Text>
+                  <TextInput
+                    style={styles.totalInputField}
+                    value={totalAmount}
+                    onChangeText={setTotalAmount}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
               </View>
             </View>
 
@@ -610,6 +657,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
+  summaryCardHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.darkText,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    paddingBottom: 6,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -619,11 +675,6 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 13,
     color: Palette.darkTextSecondary,
-  },
-  taxHintText: {
-    fontSize: 10,
-    color: Palette.darkTextMuted,
-    marginTop: 2,
   },
   summaryVal: {
     fontSize: 13,
@@ -645,18 +696,41 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
     paddingTop: 10,
-    marginTop: 4,
+    marginTop: 6,
     marginBottom: 0,
   },
   summaryTotalLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: Palette.darkText,
   },
-  summaryTotalVal: {
-    fontSize: 17,
-    fontWeight: '800',
+  summaryTotalHint: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginTop: 1,
+  },
+  totalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(88, 101, 242, 0.4)',
+  },
+  rpPrefix: {
     color: Palette.primaryLight,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  totalInputField: {
+    color: Palette.primaryLight,
+    fontSize: 16,
+    fontWeight: '800',
+    minWidth: 90,
+    textAlign: 'right',
   },
   footer: {
     flexDirection: 'row',
