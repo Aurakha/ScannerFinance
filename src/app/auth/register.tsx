@@ -49,6 +49,11 @@ export default function RegisterScreen() {
     if (error) {
       Alert.alert('Pendaftaran Gagal', error);
     } else {
+      if (Platform.OS === 'web') {
+        window.alert('Pendaftaran Berhasil! 🎉\nAkun Anda telah aktif. Masuk ke dashboard pribadi Anda.');
+        router.replace('/(tabs)');
+        return;
+      }
       Alert.alert(
         'Pendaftaran Berhasil! 🎉',
         'Akun Anda telah dibuat. Anda sekarang sudah masuk ke dashboard pribadi Anda.',
