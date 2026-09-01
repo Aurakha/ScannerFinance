@@ -16,6 +16,7 @@ import { TransactionCard } from '@/components/transactions/TransactionCard';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { formatRupiah } from '@/utils/formatters';
+import { downloadCSV, generateCompanyExpenseReportCSV } from '@/utils/exportReport';
 
 export default function TransactionsScreen() {
   const router = useRouter();
@@ -24,14 +25,12 @@ export default function TransactionsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const filteredTransactions = transactions.filter((tx) => {
-    // Search matching (merchant name, notes, or item name)
     const matchSearch =
       !search ||
       tx.merchant_name.toLowerCase().includes(search.toLowerCase()) ||
       (tx.notes && tx.notes.toLowerCase().includes(search.toLowerCase())) ||
       (tx.items && tx.items.some((it) => it.item_name.toLowerCase().includes(search.toLowerCase())));
 
-    // Category matching
     const matchCat =
       selectedCategory === 'all' || tx.category_id === selectedCategory;
 
@@ -57,6 +56,16 @@ export default function TransactionsScreen() {
     );
   };
 
+  const handleExportCSV = () => {
+    try {
+      const csv = generateCompanyExpenseReportCSV(filteredTransactions);
+      downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
+      Alert.alert('Sukses', 'Laporan rekap pengeluaran format spreadsheet (CSV) berhasil diunduh!');
+    } catch (err: any) {
+      Alert.alert('Gagal Mengunduh', err.message || 'Terjadi kesalahan saat mengekspor laporan.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -65,10 +74,31 @@ export default function TransactionsScreen() {
           title="Riwayat Transaksi"
           subtitle={`${filteredTransactions.length} transaksi tercatat`}
           rightAction={{
-            icon: 'add-circle-outline',
-            onPress: () => router.push('/(tabs)/scanner'),
+            icon: 'download-outline',
+            onPress: handleExportCSV,
           }}
         />
+
+        {/* Company Export Banner */}
+        <TouchableOpacity
+          style={styles.exportBanner}
+          onPress={handleExportCSV}
+          activeOpacity={0.8}
+        >
+          <View style={styles.exportBannerLeft}>
+            <View style={styles.exportIconBox}>
+              <Ionicons name="document-text" size={20} color="#10B981" />
+            </View>
+            <View>
+              <Text style={styles.exportBannerTitle}>Ekspor Format Rekap Perusahaan</Text>
+              <Text style={styles.exportBannerSub}>
+                1 baris per item belanjaan (Kompatibel Excel / Google Sheets)
+              </Text>
+            </View>
+          </View>
+
+          <Ionicons name="download-outline" size={20} color="#10B981" />
+        </TouchableOpacity>
 
         {/* Search Input */}
         <View style={styles.searchBox}>
@@ -183,6 +213,43 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  exportBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  exportBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  exportIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exportBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  exportBannerSub: {
+    fontSize: 11,
+    color: Palette.darkTextSecondary,
+    marginTop: 1,
   },
   searchBox: {
     flexDirection: 'row',
