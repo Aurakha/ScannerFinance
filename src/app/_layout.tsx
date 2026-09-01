@@ -20,14 +20,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
-    const inAllowedGroup = segments[0] === 'auth' || segments[0] === 'admin';
-    const isUserLoggedIn = !!session;
-
-    // Setiap kali user membuka aplikasi dan belum login serta bukan di halaman auth/admin, arahkan ke login
-    if (!isUserLoggedIn && !inAllowedGroup) {
-      router.replace('/auth/login');
-    }
+    // Tidak memaksa redirect ke login sehingga pengguna selalu dapat langsung masuk ke dashboard
   }, [session, isLoading, segments]);
 
   return (
