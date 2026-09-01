@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 
@@ -13,9 +13,9 @@ export default function TabLayout() {
           backgroundColor: '#111214',
           borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-          paddingTop: 10,
+          height: Platform.OS === 'ios' ? 90 : 74,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: Palette.primary,
         tabBarInactiveTintColor: '#949BA4',
@@ -58,17 +58,17 @@ export default function TabLayout() {
         options={{
           title: 'Unggah Struk',
           tabBarIcon: ({ focused }) => (
-            <View style={styles.scanButtonCenter}>
-              <View style={styles.scanButtonInner}>
+            <View style={styles.floatingContainer}>
+              <View style={styles.scanButtonCenter}>
                 <Ionicons name="cloud-upload" size={22} color="#FFFFFF" />
               </View>
             </View>
           ),
           tabBarLabelStyle: {
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: '700',
-            color: Palette.primary,
-            marginTop: 4,
+            color: Palette.primaryLight,
+            marginTop: 10,
           },
         }}
       />
@@ -105,28 +105,25 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  scanButtonCenter: {
-    top: -14,
-    justifyContent: 'center',
+  floatingContainer: {
+    position: 'absolute',
+    top: -18,
     alignItems: 'center',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#111214',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: Palette.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    elevation: 6,
+    justifyContent: 'center',
   },
-  scanButtonInner: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  scanButtonCenter: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#111214',
+    shadowColor: Palette.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

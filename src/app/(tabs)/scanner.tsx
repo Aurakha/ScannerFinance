@@ -5,10 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -19,10 +17,7 @@ import { ReceiptVerifyModal } from '@/components/forms/ReceiptVerifyModal';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
-import {
-  getSampleDemoReceipt,
-  processReceiptImage,
-} from '@/services/receiptService';
+import { processReceiptImage } from '@/services/receiptService';
 import { ReceiptScanResult } from '@/types';
 
 export default function ScannerScreen() {
@@ -70,15 +65,6 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleDemoScan = async (demoIndex = 0) => {
-    setIsProcessing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    setIsProcessing(false);
-    const demo = getSampleDemoReceipt(demoIndex);
-    setScanResult(demo);
-    setShowVerifyModal(true);
-  };
-
   const handleSaveVerifiedTransaction = async (verifiedData: any) => {
     try {
       const cat = categories.find((c) => c.id === verifiedData.category_id);
@@ -102,7 +88,7 @@ export default function ScannerScreen() {
       setScanResult(null);
       setCapturedImageUri(null);
 
-      Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan rincian item belanja telah tercatat.', [
+      Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan rincian item belanja telah tersimpan rapi.', [
         {
           text: 'Lihat Riwayat & Spreadsheet',
           onPress: () => router.push('/(tabs)/transactions'),
@@ -150,103 +136,74 @@ export default function ScannerScreen() {
           </View>
 
           <Text style={styles.formatHint}>
-            Format didukung: JPG, PNG, WebP (Nota cetak, tulisan tangan, atau screenshot m-Banking)
+            Format: JPG, PNG, WebP (Nota cetak kasir, tulisan tangan, atau bukti m-Banking)
           </Text>
         </TouchableOpacity>
 
-        {/* AI Capabilities Cards */}
-        <View style={styles.capabilitiesCard}>
-          <Text style={styles.capTitle}>Kemampuan Ekstraksi AI Gemini 3.6</Text>
-          
-          <View style={styles.capGrid}>
-            <View style={styles.capItem}>
-              <View style={[styles.capIconBox, { backgroundColor: 'rgba(88, 101, 242, 0.15)' }]}>
-                <Ionicons name="cart-outline" size={20} color={Palette.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.capItemTitle}>Barang & Kuantitas</Text>
-                <Text style={styles.capItemDesc}>Mengekstrak nama item, jumlah unit, & harga</Text>
-              </View>
+        {/* Card Panduan Cara Menggunakan Sistem */}
+        <View style={styles.guideCard}>
+          <View style={styles.guideHeader}>
+            <View style={styles.guideIconBox}>
+              <Ionicons name="book-outline" size={20} color={Palette.primary} />
             </View>
-
-            <View style={styles.capItem}>
-              <View style={[styles.capIconBox, { backgroundColor: 'rgba(35, 165, 90, 0.15)' }]}>
-                <Ionicons name="bicycle-outline" size={20} color="#23A55A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.capItemTitle}>Ongkos Kirim (Delivery)</Text>
-                <Text style={styles.capItemDesc}>Mendeteksi biaya kurir GoSend, Grab, JNE</Text>
-              </View>
-            </View>
-
-            <View style={styles.capItem}>
-              <View style={[styles.capIconBox, { backgroundColor: 'rgba(240, 178, 50, 0.15)' }]}>
-                <Ionicons name="card-outline" size={20} color="#F0B232" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.capItemTitle}>Biaya Admin & Layanan</Text>
-                <Text style={styles.capItemDesc}>Biaya jasa aplikasi, parkir, & service charge</Text>
-              </View>
-            </View>
-
-            <View style={styles.capItem}>
-              <View style={[styles.capIconBox, { backgroundColor: 'rgba(242, 63, 67, 0.15)' }]}>
-                <Ionicons name="pricetag-outline" size={20} color="#F23F43" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.capItemTitle}>Diskon & Pajak</Text>
-                <Text style={styles.capItemDesc}>Voucher hemat & pajak PPN dihitung bersih</Text>
-              </View>
+            <View>
+              <Text style={styles.guideTitle}>Cara Menggunakan Sistem</Text>
+              <Text style={styles.guideSub}>3 Langkah mudah merekap struk pengeluaran</Text>
             </View>
           </View>
-        </View>
 
-        {/* Quick Demo Templates Section */}
-        <View style={styles.demoSection}>
-          <Text style={styles.demoSectionTitle}>Simulasi Contoh Transaksi</Text>
-          <Text style={styles.demoSectionSub}>
-            Uji coba alur verifikasi dengan template struk realistis
-          </Text>
-
-          <View style={styles.demoButtonsContainer}>
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => handleDemoScan(0)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="cube-outline" size={18} color={Palette.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.demoBtnText}>Pantry Kantor + Ongkir GoSend</Text>
-                <Text style={styles.demoBtnSub}>Kopi, Tisu, Gula + Delivery Fee</Text>
+          <View style={styles.stepsContainer}>
+            {/* Step 1 */}
+            <View style={styles.stepRow}>
+              <View style={styles.stepNumberBadge}>
+                <Text style={styles.stepNumberText}>1</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Palette.darkTextMuted} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => handleDemoScan(1)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="restaurant-outline" size={18} color="#23A55A" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.demoBtnText}>Restoran + Service Charge</Text>
-                <Text style={styles.demoBtnSub}>Makan siang tim + Pajak PB1 & Layanan</Text>
+              <View style={styles.stepContent}>
+                <View style={styles.stepTitleRow}>
+                  <Ionicons name="cloud-upload-outline" size={16} color={Palette.primary} />
+                  <Text style={styles.stepTitle}>Unggah Foto Struk / Nota</Text>
+                </View>
+                <Text style={styles.stepDesc}>
+                  Pilih foto struk belanja toko fisik (Indomaret, SPBU, resto), nota manual tulisan tangan, atau bukti pembayaran online.
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Palette.darkTextMuted} />
-            </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => handleDemoScan(2)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="document-text-outline" size={18} color="#F0B232" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.demoBtnText}>Nota Manual Toko ATK</Text>
-                <Text style={styles.demoBtnSub}>Kertas HVS, Map, & Pulpen Kantor</Text>
+            <View style={styles.stepConnector} />
+
+            {/* Step 2 */}
+            <View style={styles.stepRow}>
+              <View style={[styles.stepNumberBadge, { backgroundColor: '#F0B232' }]}>
+                <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Palette.darkTextMuted} />
-            </TouchableOpacity>
+              <View style={styles.stepContent}>
+                <View style={styles.stepTitleRow}>
+                  <Ionicons name="sparkles-outline" size={16} color="#F0B232" />
+                  <Text style={styles.stepTitle}>AI Mengekstrak Otomatis</Text>
+                </View>
+                <Text style={styles.stepDesc}>
+                  AI Gemini 3.6 Flash membaca nama toko, tanggal & jam transaksi, daftar barang, ongkos kirim (GoSend/Grab), biaya admin, diskon, dan total biaya.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.stepConnector} />
+
+            {/* Step 3 */}
+            <View style={styles.stepRow}>
+              <View style={[styles.stepNumberBadge, { backgroundColor: '#23A55A' }]}>
+                <Text style={styles.stepNumberText}>3</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <View style={styles.stepTitleRow}>
+                  <Ionicons name="document-text-outline" size={16} color="#23A55A" />
+                  <Text style={styles.stepTitle}>Verifikasi & Ekspor Spreadsheet</Text>
+                </View>
+                <Text style={styles.stepDesc}>
+                  Periksa rincian data pada formulir konfirmasi, simpan ke database, dan ekspor ke Google Spreadsheet kapan saja dengan 1 klik!
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -344,81 +301,87 @@ const styles = StyleSheet.create({
     color: Palette.darkTextMuted,
     textAlign: 'center',
   },
-  capabilitiesCard: {
+  guideCard: {
     marginHorizontal: 20,
     backgroundColor: Palette.darkCard,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 20,
   },
-  capTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Palette.darkText,
-    marginBottom: 14,
-  },
-  capGrid: {
-    gap: 12,
-  },
-  capItem: {
+  guideHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
-  capIconBox: {
+  guideIconBox: {
     width: 38,
     height: 38,
     borderRadius: 10,
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  capItemTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Palette.darkText,
-  },
-  capItemDesc: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
-    marginTop: 1,
-  },
-  demoSection: {
-    marginHorizontal: 20,
-  },
-  demoSectionTitle: {
+  guideTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: Palette.darkText,
-    marginBottom: 4,
   },
-  demoSectionSub: {
+  guideSub: {
     fontSize: 12,
     color: Palette.darkTextSecondary,
-    marginBottom: 12,
+    marginTop: 1,
   },
-  demoButtonsContainer: {
-    gap: 10,
+  stepsContainer: {
+    paddingLeft: 4,
   },
-  demoButton: {
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  stepNumberBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Palette.darkCard,
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 6,
+    marginBottom: 4,
   },
-  demoBtnText: {
+  stepTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: Palette.darkText,
   },
-  demoBtnSub: {
-    fontSize: 11,
+  stepDesc: {
+    fontSize: 12,
     color: Palette.darkTextSecondary,
-    marginTop: 1,
+    lineHeight: 18,
+  },
+  stepConnector: {
+    width: 2,
+    height: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginLeft: 12,
+    marginVertical: 4,
   },
 });
