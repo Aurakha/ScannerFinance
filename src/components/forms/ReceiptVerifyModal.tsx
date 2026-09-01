@@ -339,7 +339,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Pajak (PPN/PB1):</Text>
+                <View>
+                  <Text style={styles.summaryLabel}>Pajak Tambahan (di luar harga):</Text>
+                  <Text style={styles.taxHintText}>*Harga Indomaret/retail sudah include PPN (biarkan 0)</Text>
+                </View>
                 <TextInput
                   style={styles.summaryInput}
                   value={taxAmount}
@@ -363,7 +366,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                <Text style={styles.summaryTotalLabel}>Total Akhir:</Text>
+                <Text style={styles.summaryTotalLabel}>Total Belanja:</Text>
                 <Text style={styles.summaryTotalVal}>{formatRupiah(calculatedTotal)}</Text>
               </View>
             </View>
@@ -616,6 +619,11 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 13,
     color: Palette.darkTextSecondary,
+  },
+  taxHintText: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginTop: 2,
   },
   summaryVal: {
     fontSize: 13,

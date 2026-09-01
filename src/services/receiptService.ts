@@ -7,16 +7,31 @@ import { getGoogleDriveSettings, uploadReceiptToGoogleDrive } from './googleDriv
 // Mock receipt templates untuk tombol pengujian instan "Demo AI"
 const DEMO_RECEIPTS: ReceiptScanResult[] = [
   {
+    merchant_name: 'Indomaret Point Kemang',
+    transaction_date: new Date().toISOString(),
+    suggested_category: 'Belanja Bulanan',
+    payment_method: 'qris',
+    subtotal: 14500,
+    tax_amount: 0, // PPN sudah include dalam harga 14.500
+    discount_amount: 0,
+    total_amount: 14500,
+    confidence_score: 0.98,
+    notes: 'No. Struk: INDO/2026/0891, Kasir: Siti',
+    items: [
+      { item_name: 'IDM PIRING KRTS 20\'S', quantity: 1, unit_price: 14500, total_price: 14500 },
+    ],
+  },
+  {
     merchant_name: 'Superindo & GoSend Delivery',
     transaction_date: new Date().toISOString(),
     suggested_category: 'Belanja Bulanan',
     payment_method: 'qris',
-    subtotal: 145000,
+    subtotal: 135000,
     tax_amount: 0,
-    discount_amount: 10000,
+    discount_amount: 0,
     total_amount: 157000,
     confidence_score: 0.98,
-    notes: 'Belanja pantry kantor via delivery, No. Pesanan: GO-98214',
+    notes: 'Belanja pantry kantor via delivery',
     items: [
       { item_name: 'Kopi Kapal Api Special Mix (10 sachet)', quantity: 2, unit_price: 18500, total_price: 37000 },
       { item_name: 'Gula Pasir Gulaku 1kg', quantity: 2, unit_price: 19500, total_price: 39000 },
@@ -31,8 +46,8 @@ const DEMO_RECEIPTS: ReceiptScanResult[] = [
     transaction_date: new Date(Date.now() - 3600000 * 3).toISOString(),
     suggested_category: 'Makanan & Minuman',
     payment_method: 'debit',
-    subtotal: 285000,
-    tax_amount: 28500,
+    subtotal: 313500,
+    tax_amount: 0,
     discount_amount: 0,
     total_amount: 327750,
     confidence_score: 0.99,
@@ -42,23 +57,6 @@ const DEMO_RECEIPTS: ReceiptScanResult[] = [
       { item_name: 'Nasi Putih Organik', quantity: 3, unit_price: 12000, total_price: 36000 },
       { item_name: 'Es Kelapa Jeruk', quantity: 3, unit_price: 19000, total_price: 57000 },
       { item_name: 'Biaya Service Charge (5%)', quantity: 1, unit_price: 14250, total_price: 14250 },
-    ],
-  },
-  {
-    merchant_name: 'Toko ATK & Fotocopy Berkah',
-    transaction_date: new Date(Date.now() - 86400000).toISOString(),
-    suggested_category: 'Pendidikan & Buku',
-    payment_method: 'cash',
-    subtotal: 88000,
-    tax_amount: 0,
-    discount_amount: 0,
-    total_amount: 88000,
-    confidence_score: 0.95,
-    notes: 'Nota manual perlengkapan dokumen kantor',
-    items: [
-      { item_name: 'Kertas HVS PaperOne A4 80gr (Rim)', quantity: 1, unit_price: 58000, total_price: 58000 },
-      { item_name: 'Map Snelhecter Plastik (Pcs)', quantity: 5, unit_price: 4000, total_price: 20000 },
-      { item_name: 'Pulpen Snowman V-1 Hitam (Pack)', quantity: 1, unit_price: 10000, total_price: 10000 },
     ],
   },
 ];
@@ -90,7 +88,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
         reader.readAsDataURL(blob);
       });
     } catch (e) {
-      console.warn('Web fetch blob error:', e);
+      console.warn('Web fetch blob error, trying ImageManipulator:', e);
     }
   }
 
@@ -112,7 +110,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 }
 
 /**
- * Memproses gambar struk via Google Gemini 3.6 Flash dengan ekstraksi lengkap Barang, Jasa, Ongkir, Admin, Pajak & Diskon
+ * Memproses gambar struk via Google Gemini 3.6 Flash dengan aturan PPN Indonesia (Tax-Inclusive by default)
  */
 export async function processReceiptImage(
   imageUri: string,
@@ -146,55 +144,56 @@ export async function processReceiptImage(
     '';
 
   if (!effectiveApiKey) {
-    throw new Error(
-      'Kunci Gemini API Key belum terpasang di file .env.'
-    );
+    throw new Error('Kunci Gemini API Key belum terpasang di file .env.');
   }
 
   // Model Gemini 3.6 Flash
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
 
   const systemPrompt = `
-Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan dan Reimbursement Kantor.
+Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan dan Reimbursement Indonesia.
 Tugas Anda:
-1. Periksa apakah gambar ini merupakan dokumen transaksi/keuangan (struk kasir fisik, nota tulisan tangan warung/toko, invoice, bukti transfer m-Banking, bill resto, kuitansi, atau rincian pesanan Gojek/Grab/Shopee/Tokopedia)?
-   - Jika JELAS BUKAN dokumen transaksi/struk belanja (misal: foto selfie, wajah orang, foto pemandangan, gambar hewan, atau gambar acak tanpa konteks transaksi), kembalikan:
+1. Periksa apakah gambar ini merupakan dokumen transaksi/keuangan (struk kasir minimarket/supermarket, nota tulisan tangan, invoice, bukti transfer m-Banking, bill resto, kuitansi, atau pesanan Gojek/Grab/Shopee/Tokopedia)?
+   - Jika JELAS BUKAN struk/bukti transaksi, kembalikan:
      {"is_receipt": false, "rejection_reason": "Gambar yang Anda unggah bukan struk belanja atau bukti transaksi keuangan."}
-2. Jika merupakan struk/nota/bukti pembayaran, ekstrak rincian secara lengkap dan teliti ke dalam JSON:
-   - merchant_name: Nama toko/vendor/penjual (contoh: "Indomaret", "Alfamart", "SPBU Pertamina", "Restoran Padang Sederhana", "Shopee - Toko Alat Tulis").
-   - transaction_date: Tanggal transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Jika jam tidak ada, default jam 12:00:00.
-   - suggested_category: Pilih salah satu yang paling cocok: "Makanan & Minuman" | "Belanja Bulanan" | "Transportasi" | "Tagihan & Utilitas" | "Hiburan & Rekreasi" | "Kesehatan & Medis" | "Pendidikan & Buku" | "Lainnya".
+
+2. Ekstraksi Data Keuangan & Aturan Pajak Indonesia:
+   - merchant_name: Nama toko/vendor/penjual (contoh: "Indomaret", "Alfamart", "SPBU Pertamina", "Superindo", "Restoran Sederhana").
+   - transaction_date: Tanggal & jam transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Contoh di struk "28.07.26-15:48" berarti "2026-07-28T15:48:00".
+   - suggested_category: "Makanan & Minuman" | "Belanja Bulanan" | "Transportasi" | "Tagihan & Utilitas" | "Hiburan & Rekreasi" | "Kesehatan & Medis" | "Pendidikan & Buku" | "Lainnya".
    - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer".
-   - items: Daftar seluruh item yang dibayar. SANGAT PENTING: Masukkan juga biaya jasa tambahan sebagai item baris jika ada, contohnya:
-     * Barang belanja fisik (misal: "Le Minerale 330ml", qty: 3, unit_price: 12500, total_price: 37500)
-     * Ongkos Kirim / Delivery Fee (misal: "Ongkos Kirim GoSend / JNE", qty: 1, unit_price: 15000, total_price: 15000)
-     * Biaya Layanan Aplikasi / Biaya Admin (misal: "Biaya Layanan Aplikasi", qty: 1, unit_price: 1000, total_price: 1000)
-     * Service Charge Restoran (misal: "Service Charge Resto", qty: 1, unit_price: 12000, total_price: 12000)
-     * Biaya Parkir / Tol
-   - subtotal: Jumlah total harga sebelum pajak & diskon.
-   - tax_amount: Pajak (PPN 11%, PB1 10%) jika tertera terpisah.
-   - discount_amount: Potongan harga/voucher/diskon hemat jika ada.
-   - total_amount: Total akhir bersih yang dibayar pelanggan.
-   - notes: Catatan seperti nomor pesanan atau kasir.
+   
+   ⚠️ ATURAN SANGAT PENTING MENGENAI PPN & TOTAL BELANJA DI INDONESIA:
+   - Di minimarket/retail Indonesia (seperti Indomaret, Alfamart, Superindo, dll.), harga barang yang tertera SUDAH TERMASUK PPN (Tax-Inclusive).
+   - Angka "PPN: DPP=... PPN=..." di bagian bawah struk hanyalah rincian informasi faktur pajak, BUKAN BIAYA TAMBAHAN.
+   - Total akhir ("total_amount") HARUS SAMA PERSIS dengan nominal "TOTAL BELANJA" atau nominal pembayaran yang dibayar kasir (contoh: jika TOTAL BELANJA Rp 14.500, maka total_amount adalah 14500).
+   - Jangan menambahkan PPN lagi ke total belanja jika harga barang sudah include PPN. Set tax_amount = 0 (karena sudah include di harga barang).
+   - tax_amount HANYA diisi jika pajak ditambahkan sebagai surcharge terpisah di luar harga barang (misal PB1 10% di beberapa restoran).
+
+   - items: Daftar seluruh item yang dibeli beserta kuantitas dan harga satuan. Masukkan juga biaya pengiriman (Ongkir) atau Biaya Layanan jika ada.
+   - subtotal: Total harga barang sebelum diskon.
+   - discount_amount: Potongan harga/diskon jika ada.
+   - total_amount: Total nominal uang yang sesungguhnya dibayarkan pelanggan (TOTAL BELANJA).
+   - notes: Catatan seperti nomor transaksi kasir.
 
 Format Output JSON Wajib:
 {
   "is_receipt": true,
-  "merchant_name": "Nama Toko / Penjual",
-  "transaction_date": "YYYY-MM-DDTHH:mm:ss",
+  "merchant_name": "Indomaret",
+  "transaction_date": "2026-07-28T15:48:00",
   "suggested_category": "Belanja Bulanan",
   "payment_method": "qris",
-  "subtotal": 0,
+  "subtotal": 14500,
   "tax_amount": 0,
   "discount_amount": 0,
-  "total_amount": 0,
+  "total_amount": 14500,
   "items": [
-    {"item_name": "Nama Barang / Jasa", "quantity": 1, "unit_price": 0, "total_price": 0}
+    {"item_name": "IDM PIRING KRTS 20'S", "quantity": 1, "unit_price": 14500, "total_price": 14500}
   ],
-  "confidence_score": 0.98,
-  "notes": ""
+  "confidence_score": 0.99,
+  "notes": "No: F848-4508/ANDRI/02"
 }
-Perhatian: Kembalikan JSON murni tanpa blok markdown.
+Perhatian: Kembalikan JSON murni tanpa markdown.
 `;
 
   const requestPayload = {
@@ -253,15 +252,17 @@ Perhatian: Kembalikan JSON murni tanpa blok markdown.
     );
   }
 
+  const finalTotal = Number(parsed.total_amount) || Number(parsed.subtotal) || 0;
+
   return {
     merchant_name: parsed.merchant_name || 'Toko Belanja',
     transaction_date: parsed.transaction_date || new Date().toISOString(),
     suggested_category: parsed.suggested_category || 'Belanja Bulanan',
     payment_method: parsed.payment_method || 'cash',
-    subtotal: Number(parsed.subtotal) || Number(parsed.total_amount) || 0,
+    subtotal: Number(parsed.subtotal) || finalTotal,
     tax_amount: Number(parsed.tax_amount) || 0,
     discount_amount: Number(parsed.discount_amount) || 0,
-    total_amount: Number(parsed.total_amount) || 0,
+    total_amount: finalTotal,
     items: (parsed.items || []).map((it: any) => ({
       item_name: it.item_name || 'Item',
       quantity: Number(it.quantity) || 1,
