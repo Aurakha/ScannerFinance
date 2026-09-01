@@ -10,7 +10,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#111214', // Discord Header & Tab Bar dark
+          backgroundColor: '#111214',
           borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 88 : 68,
@@ -56,11 +56,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scanner"
         options={{
-          title: 'Scan Struk',
+          title: 'Unggah Struk',
           tabBarIcon: ({ focused }) => (
             <View style={styles.scanButtonCenter}>
               <View style={styles.scanButtonInner}>
-                <Ionicons name="scan" size={24} color="#FFFFFF" />
+                <Ionicons name="cloud-upload" size={22} color="#FFFFFF" />
               </View>
             </View>
           ),
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Palette.primary, // Discord Blurple
+    backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

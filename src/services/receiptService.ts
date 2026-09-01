@@ -4,62 +4,67 @@ import { supabase } from './supabase';
 import { ReceiptScanResult } from '@/types';
 import { getGoogleDriveSettings, uploadReceiptToGoogleDrive } from './googleDriveService';
 
-// Mock receipt templates HANYA untuk tombol khusus "Demo AI"
+// Mock receipt templates untuk tombol pengujian instan "Demo AI"
 const DEMO_RECEIPTS: ReceiptScanResult[] = [
   {
-    merchant_name: 'Indomaret Point Kemang',
+    merchant_name: 'Superindo & GoSend Delivery',
     transaction_date: new Date().toISOString(),
     suggested_category: 'Belanja Bulanan',
     payment_method: 'qris',
-    subtotal: 78500,
+    subtotal: 145000,
     tax_amount: 0,
-    discount_amount: 5000,
-    total_amount: 73500,
-    confidence_score: 0.96,
-    notes: 'No. Struk: INDO/2026/0891, Kasir: Siti',
+    discount_amount: 10000,
+    total_amount: 157000,
+    confidence_score: 0.98,
+    notes: 'Belanja pantry kantor via delivery, No. Pesanan: GO-98214',
     items: [
-      { item_name: 'Susu UHT Ultra Milk 1L', quantity: 1, unit_price: 21500, total_price: 21500 },
-      { item_name: 'Roti Gandum Sari Roti', quantity: 1, unit_price: 19000, total_price: 19000 },
-      { item_name: 'Minyak Goreng Sania 2L', quantity: 1, unit_price: 34000, total_price: 34000 },
-      { item_name: 'Air Mineral Aqua 600ml', quantity: 1, unit_price: 4000, total_price: 4000 },
+      { item_name: 'Kopi Kapal Api Special Mix (10 sachet)', quantity: 2, unit_price: 18500, total_price: 37000 },
+      { item_name: 'Gula Pasir Gulaku 1kg', quantity: 2, unit_price: 19500, total_price: 39000 },
+      { item_name: 'Tisu Toilet Paseo 8 roll', quantity: 1, unit_price: 42000, total_price: 42000 },
+      { item_name: 'Sabun Cuci Piring Sunlight 750ml', quantity: 1, unit_price: 27000, total_price: 27000 },
+      { item_name: 'Ongkos Kirim (GoSend Instant)', quantity: 1, unit_price: 20000, total_price: 20000 },
+      { item_name: 'Biaya Layanan Aplikasi', quantity: 1, unit_price: 2000, total_price: 2000 },
     ],
   },
   {
-    merchant_name: 'Kopi Kenangan Senopati',
+    merchant_name: 'Restoran Bebek Tepi Sawah',
     transaction_date: new Date(Date.now() - 3600000 * 3).toISOString(),
     suggested_category: 'Makanan & Minuman',
-    payment_method: 'e-wallet',
-    subtotal: 58000,
-    tax_amount: 5800,
-    discount_amount: 10000,
-    total_amount: 53800,
-    confidence_score: 0.98,
-    notes: 'Meja 04 - Order via App',
+    payment_method: 'debit',
+    subtotal: 285000,
+    tax_amount: 28500,
+    discount_amount: 0,
+    total_amount: 327750,
+    confidence_score: 0.99,
+    notes: 'Makan siang operasional tim (Meja 12)',
     items: [
-      { item_name: 'Kopi Kenangan Mantan (L)', quantity: 1, unit_price: 24000, total_price: 24000 },
-      { item_name: 'Avocado Coffee Ice (R)', quantity: 1, unit_price: 28000, total_price: 28000 },
-      { item_name: 'Roti Coklat Klasik', quantity: 1, unit_price: 6000, total_price: 6000 },
+      { item_name: 'Paket Bebek Betutu Spesial', quantity: 2, unit_price: 95000, total_price: 190000 },
+      { item_name: 'Nasi Putih Organik', quantity: 3, unit_price: 12000, total_price: 36000 },
+      { item_name: 'Es Kelapa Jeruk', quantity: 3, unit_price: 19000, total_price: 57000 },
+      { item_name: 'Biaya Service Charge (5%)', quantity: 1, unit_price: 14250, total_price: 14250 },
     ],
   },
   {
-    merchant_name: 'SPBU Pertamina 34-12345',
+    merchant_name: 'Toko ATK & Fotocopy Berkah',
     transaction_date: new Date(Date.now() - 86400000).toISOString(),
-    suggested_category: 'Transportasi',
+    suggested_category: 'Pendidikan & Buku',
     payment_method: 'cash',
-    subtotal: 150000,
+    subtotal: 88000,
     tax_amount: 0,
     discount_amount: 0,
-    total_amount: 150000,
-    confidence_score: 0.99,
-    notes: 'Pompa 3 - Operator Budi',
+    total_amount: 88000,
+    confidence_score: 0.95,
+    notes: 'Nota manual perlengkapan dokumen kantor',
     items: [
-      { item_name: 'Pertamax 92 (Liter)', quantity: 11.54, unit_price: 13000, total_price: 150000 },
+      { item_name: 'Kertas HVS PaperOne A4 80gr (Rim)', quantity: 1, unit_price: 58000, total_price: 58000 },
+      { item_name: 'Map Snelhecter Plastik (Pcs)', quantity: 5, unit_price: 4000, total_price: 20000 },
+      { item_name: 'Pulpen Snowman V-1 Hitam (Pack)', quantity: 1, unit_price: 10000, total_price: 10000 },
     ],
   },
 ];
 
 /**
- * Mengubah URI gambar apa pun (Blob, HTTP, Data URI, File URI) ke Base64 murni yang kompatibel dengan Gemini Vision
+ * Mengubah URI gambar apa pun (Blob, HTTP, Data URI, File URI) ke Base64 murni
  */
 export async function convertUriToBase64(uri: string, directBase64?: string): Promise<string> {
   if (directBase64 && directBase64.length > 50) {
@@ -85,7 +90,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
         reader.readAsDataURL(blob);
       });
     } catch (e) {
-      console.warn('Web fetch blob error, trying ImageManipulator:', e);
+      console.warn('Web fetch blob error:', e);
     }
   }
 
@@ -107,7 +112,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 }
 
 /**
- * Memproses gambar struk via Google Gemini Multimodal Vision API (gemini-3.6-flash)
+ * Memproses gambar struk via Google Gemini 3.6 Flash dengan ekstraksi lengkap Barang, Jasa, Ongkir, Admin, Pajak & Diskon
  */
 export async function processReceiptImage(
   imageUri: string,
@@ -142,39 +147,54 @@ export async function processReceiptImage(
 
   if (!effectiveApiKey) {
     throw new Error(
-      'Kunci Gemini API Key belum terpasang. Silakan masukkan Gemini API Key di file .env atau menu Profil.'
+      'Kunci Gemini API Key belum terpasang di file .env.'
     );
   }
 
-  // Model Gemini 3.6 Flash (Latest Fast Vision Model)
+  // Model Gemini 3.6 Flash
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
 
   const systemPrompt = `
-Anda adalah AI OCR & Akuntan Finansial Cerdas.
-Periksa foto ini dengan seksama:
-1. Apakah ini struk belanja, nota, bukti transaksi, kuitansi, bill restoran, atau tiket pembayaran?
-   - Jika JELAS BUKAN struk/nota (misal: foto selfie, wajah orang, pemandangan, gambar hewan, objek acak yang tidak ada hubungan dengan transaksi/struk belanja), kembalikan:
-     {"is_receipt": false, "rejection_reason": "Gambar yang Anda unggah bukan merupakan struk belanja atau bukti transaksi."}
-2. Jika ini adalah struk/nota belanja (fisik, cetak kasir, maupun tulisan tangan nota warung), ekstrak data secara teliti dan kembalikan format JSON murni:
+Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan dan Reimbursement Kantor.
+Tugas Anda:
+1. Periksa apakah gambar ini merupakan dokumen transaksi/keuangan (struk kasir fisik, nota tulisan tangan warung/toko, invoice, bukti transfer m-Banking, bill resto, kuitansi, atau rincian pesanan Gojek/Grab/Shopee/Tokopedia)?
+   - Jika JELAS BUKAN dokumen transaksi/struk belanja (misal: foto selfie, wajah orang, foto pemandangan, gambar hewan, atau gambar acak tanpa konteks transaksi), kembalikan:
+     {"is_receipt": false, "rejection_reason": "Gambar yang Anda unggah bukan struk belanja atau bukti transaksi keuangan."}
+2. Jika merupakan struk/nota/bukti pembayaran, ekstrak rincian secara lengkap dan teliti ke dalam JSON:
+   - merchant_name: Nama toko/vendor/penjual (contoh: "Indomaret", "Alfamart", "SPBU Pertamina", "Restoran Padang Sederhana", "Shopee - Toko Alat Tulis").
+   - transaction_date: Tanggal transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Jika jam tidak ada, default jam 12:00:00.
+   - suggested_category: Pilih salah satu yang paling cocok: "Makanan & Minuman" | "Belanja Bulanan" | "Transportasi" | "Tagihan & Utilitas" | "Hiburan & Rekreasi" | "Kesehatan & Medis" | "Pendidikan & Buku" | "Lainnya".
+   - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer".
+   - items: Daftar seluruh item yang dibayar. SANGAT PENTING: Masukkan juga biaya jasa tambahan sebagai item baris jika ada, contohnya:
+     * Barang belanja fisik (misal: "Le Minerale 330ml", qty: 3, unit_price: 12500, total_price: 37500)
+     * Ongkos Kirim / Delivery Fee (misal: "Ongkos Kirim GoSend / JNE", qty: 1, unit_price: 15000, total_price: 15000)
+     * Biaya Layanan Aplikasi / Biaya Admin (misal: "Biaya Layanan Aplikasi", qty: 1, unit_price: 1000, total_price: 1000)
+     * Service Charge Restoran (misal: "Service Charge Resto", qty: 1, unit_price: 12000, total_price: 12000)
+     * Biaya Parkir / Tol
+   - subtotal: Jumlah total harga sebelum pajak & diskon.
+   - tax_amount: Pajak (PPN 11%, PB1 10%) jika tertera terpisah.
+   - discount_amount: Potongan harga/voucher/diskon hemat jika ada.
+   - total_amount: Total akhir bersih yang dibayar pelanggan.
+   - notes: Catatan seperti nomor pesanan atau kasir.
+
+Format Output JSON Wajib:
 {
   "is_receipt": true,
-  "merchant_name": "Nama toko/merchant (contoh: Indomaret, Alfamart, SPBU Pertamina, Starbucks, Warung Makan)",
+  "merchant_name": "Nama Toko / Penjual",
   "transaction_date": "YYYY-MM-DDTHH:mm:ss",
-  "suggested_category": "Makanan & Minuman | Belanja Bulanan | Transportasi | Tagihan & Utilitas | Hiburan & Rekreasi | Kesehatan & Medis | Pendidikan & Buku | Lainnya",
-  "payment_method": "cash | qris | debit | credit | e-wallet | transfer",
+  "suggested_category": "Belanja Bulanan",
+  "payment_method": "qris",
   "subtotal": 0,
   "tax_amount": 0,
   "discount_amount": 0,
   "total_amount": 0,
   "items": [
-    {"item_name": "Nama barang/menu", "quantity": 1, "unit_price": 0, "total_price": 0}
+    {"item_name": "Nama Barang / Jasa", "quantity": 1, "unit_price": 0, "total_price": 0}
   ],
-  "confidence_score": 0.95,
-  "notes": "Nomor struk atau catatan kasir jika tertera"
+  "confidence_score": 0.98,
+  "notes": ""
 }
-Perhatian:
-- Jangan sertakan format markdown seperti \`\`\`json. Kembalikan JSON murni.
-- Pastikan semua angka nominal harga berupa angka bulat (integer) dalam Rupiah tanpa titik atau tulisan Rp.
+Perhatian: Kembalikan JSON murni tanpa blok markdown.
 `;
 
   const requestPayload = {
@@ -208,7 +228,7 @@ Perhatian:
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Gemini API Error details:', errorText);
-    throw new Error(`Gemini API Error (${response.status}): Periksa kembali kuota atau validitas API Key Gemini Anda.`);
+    throw new Error(`Gemini API Error (${response.status}): Periksa kembali kuota atau koneksi internet Anda.`);
   }
 
   const jsonResponse = await response.json();
