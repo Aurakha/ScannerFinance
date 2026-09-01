@@ -28,26 +28,28 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleRegister = async () => {
+    setErrorMessage('');
     if (!fullName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Perhatian', 'Semua kolom wajib diisi.');
+      setErrorMessage('Semua kolom wajib diisi.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Perhatian', 'Kata sandi minimal 6 karakter.');
+      setErrorMessage('Kata sandi minimal 6 karakter.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Perhatian', 'Konfirmasi kata sandi tidak cocok.');
+      setErrorMessage('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
     const { error } = await signUp(email.trim(), password, fullName.trim());
     if (error) {
-      Alert.alert('Pendaftaran Gagal', error);
+      setErrorMessage(error);
     } else {
       if (Platform.OS === 'web') {
         window.alert('Pendaftaran Berhasil! 🎉\nAkun Anda telah aktif. Masuk ke dashboard pribadi Anda.');
@@ -103,6 +105,14 @@ export default function RegisterScreen() {
 
             {/* Register Card */}
             <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              {/* Inline Error Banner */}
+              {errorMessage ? (
+                <View style={styles.errorBanner}>
+                  <Ionicons name="alert-circle" size={20} color={Palette.coral} />
+                  <Text style={styles.errorBannerText}>{errorMessage}</Text>
+                </View>
+              ) : null}
+
               {/* Full Name */}
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
@@ -118,7 +128,10 @@ export default function RegisterScreen() {
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={fullName}
-                    onChangeText={setFullName}
+                    onChangeText={(val) => {
+                      setFullName(val);
+                      if (errorMessage) setErrorMessage('');
+                    }}
                     placeholder="Contoh: User 1"
                     placeholderTextColor={theme.textMuted}
                   />
@@ -290,6 +303,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(242, 63, 67, 0.12)',
+    borderColor: 'rgba(242, 63, 67, 0.35)',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    color: Palette.coral,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   fieldGroup: {
     marginBottom: 12,

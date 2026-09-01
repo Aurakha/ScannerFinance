@@ -25,16 +25,18 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async () => {
+    setErrorMessage('');
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Perhatian', 'Email dan password tidak boleh kosong.');
+      setErrorMessage('Email dan password tidak boleh kosong.');
       return;
     }
 
     const { error } = await signIn(email.trim(), password);
     if (error) {
-      Alert.alert('Gagal Masuk', error);
+      setErrorMessage(error);
     } else {
       router.replace('/(tabs)');
     }
@@ -83,6 +85,14 @@ export default function LoginScreen() {
               Masuk ke akun Anda untuk mengakses dashboard pribadi
             </Text>
 
+            {/* Inline Error Notification Banner */}
+            {errorMessage ? (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={20} color={Palette.coral} />
+                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
             {/* Email Field */}
             <View style={styles.fieldGroup}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Email</Text>
@@ -96,7 +106,10 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.input, { color: theme.text }]}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (errorMessage) setErrorMessage('');
+                  }}
                   placeholder="nama@perusahaan.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
@@ -118,7 +131,10 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.input, { color: theme.text }]}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    if (errorMessage) setErrorMessage('');
+                  }}
                   placeholder="••••••••"
                   placeholderTextColor={theme.textMuted}
                   secureTextEntry={!showPassword}
@@ -248,7 +264,25 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 12,
     marginTop: 4,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(242, 63, 67, 0.12)',
+    borderColor: 'rgba(242, 63, 67, 0.35)',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    color: Palette.coral,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   fieldGroup: {
     marginBottom: 14,

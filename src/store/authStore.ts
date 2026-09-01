@@ -194,7 +194,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (error) {
-        return { error: error.message };
+        let msg = error.message;
+        if (msg.includes('User already registered') || msg.includes('already exists')) {
+          msg = 'Email ini sudah terdaftar. Silakan langsung masuk ke akun Anda.';
+        } else if (msg.includes('Password should be at least')) {
+          msg = 'Kata sandi minimal harus 6 karakter.';
+        } else if (msg.includes('valid email')) {
+          msg = 'Format alamat email tidak valid.';
+        }
+        return { error: msg };
       }
 
       if (data.user) {
@@ -230,7 +238,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (error) {
-        return { error: error.message };
+        let msg = error.message;
+        if (msg.includes('Invalid login credentials')) {
+          msg = 'Email atau kata sandi salah. Silakan periksa kembali atau buat akun baru jika belum terdaftar.';
+        } else if (msg.includes('Email not confirmed')) {
+          msg = 'Email belum diverifikasi. Cek inbox email Anda atau nonaktifkan "Confirm email" di pengaturan Supabase Auth.';
+        } else if (msg.includes('rate limit') || msg.includes('Too many requests')) {
+          msg = 'Terlalu banyak percobaan masuk. Mohon tunggu beberapa saat.';
+        }
+        return { error: msg };
       }
 
       if (data.user) {
