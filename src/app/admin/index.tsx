@@ -50,8 +50,13 @@ export default function AdminPanelScreen() {
   const [cashAdvance, setCashAdvance] = useState('5000000');
 
   useEffect(() => {
+    if (currentUser && currentUser.role !== 'admin') {
+      Alert.alert('Akses Dibatasi', 'Halaman Panel Admin hanya dapat diakses oleh akun dengan role Admin.');
+      router.replace('/(tabs)');
+      return;
+    }
     fetchUsers();
-  }, []);
+  }, [currentUser]);
 
   const fetchUsers = async () => {
     setIsLoading(true);

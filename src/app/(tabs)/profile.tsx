@@ -55,6 +55,15 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Apakah Anda yakin ingin keluar dari akun ini?');
+      if (confirmed) {
+        await signOut();
+        router.replace('/auth/login');
+      }
+      return;
+    }
+
     Alert.alert('Keluar Akun', 'Apakah Anda yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
       {
@@ -127,6 +136,20 @@ export default function ProfileScreen() {
                     {session ? 'Akun Supabase Aktif' : 'Mode Tamu / Demo'}
                   </Text>
                 </View>
+
+                {user?.role === 'admin' && (
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: 'rgba(88, 101, 242, 0.15)', marginLeft: 6 },
+                    ]}
+                  >
+                    <Ionicons name="shield-checkmark" size={12} color={Palette.primary} />
+                    <Text style={[styles.statusText, { color: Palette.primary }]}>
+                      Role: Admin
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -147,18 +170,21 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.adminPanelBtn,
-                { backgroundColor: theme.cardHover, borderColor: theme.border },
-              ]}
-              onPress={() => router.push('/admin' as any)}
-            >
-              <Ionicons name="shield-checkmark-outline" size={16} color={Palette.primary} />
-              <Text style={[styles.adminPanelBtnText, { color: theme.text }]}>
-                Akses Panel Admin (Kelola User) 🛡️
-              </Text>
-            </TouchableOpacity>
+            {/* Tombol Panel Admin Hanya Ditampilkan Jika Role Pengguna adalah Admin */}
+            {user?.role === 'admin' && (
+              <TouchableOpacity
+                style={[
+                  styles.adminPanelBtn,
+                  { backgroundColor: theme.cardHover, borderColor: theme.border },
+                ]}
+                onPress={() => router.push('/admin' as any)}
+              >
+                <Ionicons name="shield-checkmark-outline" size={16} color={Palette.primary} />
+                <Text style={[styles.adminPanelBtnText, { color: theme.text }]}>
+                  Akses Panel Admin (Kelola User) 🛡️
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 

@@ -12,6 +12,7 @@ ADD COLUMN IF NOT EXISTS city TEXT DEFAULT 'Jakarta',
 ADD COLUMN IF NOT EXISTS verifier_name TEXT DEFAULT 'Pemeriksa 1',
 ADD COLUMN IF NOT EXISTS approver_name TEXT DEFAULT 'Pimpinan 1',
 ADD COLUMN IF NOT EXISTS cash_advance_amount NUMERIC(15, 2) DEFAULT 5000000,
+ADD COLUMN IF NOT EXISTS submission_date TEXT DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 
 -- 2. Pastikan RLS profiles mengizinkan read & update

@@ -21,7 +21,7 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, generateCompanyExpenseReportCSV } from '@/utils/exportReport';
+import { downloadCSV, generateCompanyExpenseReportCSV, openPrintableReport } from '@/utils/exportReport';
 import { exportToGoogleSpreadsheet } from '@/services/googleDriveService';
 
 export default function TransactionsScreen() {
@@ -63,6 +63,14 @@ export default function TransactionsScreen() {
   );
 
   const handleDelete = (id: string, merchant: string) => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus transaksi dari "${merchant}"?`);
+      if (confirmed) {
+        removeTransaction(id);
+      }
+      return;
+    }
+
     Alert.alert(
       'Hapus Transaksi',
       `Apakah Anda yakin ingin menghapus transaksi dari "${merchant}"?`,
@@ -77,55 +85,35 @@ export default function TransactionsScreen() {
     );
   };
 
+  const handlePrintReport = () => {
+    openPrintableReport(filteredTransactions, user || undefined);
+  };
+
   const handleExportGoogleSheet = async () => {
     try {
       setIsExportingSheet(true);
       const csv = generateCompanyExpenseReportCSV(filteredTransactions, user || undefined);
       const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
-      // 1. Selalu unduh file CSV otomatis ke perangkat
-      downloadCSV(csv, `${fileName}.csv`);
+      // 1. Selalu unduh file otomatis ke perangkat
+      downloadCSV(csv, `${fileName}.xls`);
 
       // 2. Buka Spreadsheet di tab baru
       const result = await exportToGoogleSpreadsheet(csv, fileName);
       setIsExportingSheet(false);
 
       if (result.isDirectCloud) {
-        Alert.alert(
-          'Google Spreadsheet Berhasil Dibuat! 📊',
-          'File Google Sheets baru telah otomatis dibuat di Google Drive Anda.',
-          [
-            { text: 'Tutup', style: 'cancel' },
-            {
-              text: 'Buka Spreadsheet ↗',
-              onPress: () => {
-                if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                  window.open(result.spreadsheetUrl, '_blank');
-                } else {
-                  Linking.openURL(result.spreadsheetUrl);
-                }
-              },
-            },
-          ]
-        );
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.open(result.spreadsheetUrl, '_blank');
+        } else {
+          Linking.openURL(result.spreadsheetUrl);
+        }
       } else {
-        Alert.alert(
-          'File Rekap Berhasil Diunduh! 📊',
-          'Berkas CSV rekapitulasi klaim biaya telah diunduh ke komputer Anda. Buka Google Sheets untuk melihatnya sekarang?',
-          [
-            { text: 'Selesai', style: 'cancel' },
-            {
-              text: 'Buka Google Sheets ↗',
-              onPress: () => {
-                if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                  window.open('https://sheets.new', '_blank');
-                } else {
-                  Linking.openURL('https://sheets.new');
-                }
-              },
-            },
-          ]
-        );
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.open('https://sheets.new', '_blank');
+        } else {
+          Linking.openURL('https://sheets.new');
+        }
       }
     } catch (err: any) {
       setIsExportingSheet(false);
@@ -154,7 +142,7 @@ export default function TransactionsScreen() {
           }
         />
 
-        {/* 1-Click Google Spreadsheet Export Banner (PT. San Kawan Abadi Format) */}
+        {/* 1-Click Printable & Spreadsheet Banner (Format Foto 2 & 3) */}
         <View
           style={[
             styles.spreadsheetBanner,
@@ -166,31 +154,42 @@ export default function TransactionsScreen() {
         >
           <View style={styles.bannerLeftCol}>
             <View style={styles.spreadsheetIconCircle}>
-              <Ionicons name="grid" size={20} color={Palette.greenOnline} />
+              <Ionicons name="document-text" size={20} color={Palette.greenOnline} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spreadsheetBannerTitle, { color: theme.text }]}>
-                Ekspor ke Google Spreadsheet 📊
+                Rekap Klaim Resmi (Foto 2 & 3) 📋
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
-                Format tabel reimbursement resmi {user?.company_name || 'PT. Nama Perusahaan'}
+                {user?.company_name || 'PT. San Kawan Abadi'} • Siap Cetak / Google Sheets
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.openSpreadsheetBtn}
-            onPress={handleExportGoogleSheet}
-            disabled={isExportingSheet}
-          >
-            {isExportingSheet ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <Text style={styles.openSpreadsheetBtnText}>Unduh & Buka ↗</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableOpacity
+              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
+              onPress={handlePrintReport}
+            >
+              <Ionicons name="print-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.openSpreadsheetBtnText}>Cetak / PDF 🖨️</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.openSpreadsheetBtn}
+              onPress={handleExportGoogleSheet}
+              disabled={isExportingSheet}
+            >
+              {isExportingSheet ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="grid-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.openSpreadsheetBtnText}>Spreadsheet ↗</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}

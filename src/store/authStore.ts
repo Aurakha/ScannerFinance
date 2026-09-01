@@ -154,6 +154,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           verifier_name: dbProfile?.verifier_name || localProfile.verifier_name,
           approver_name: dbProfile?.approver_name || localProfile.approver_name,
           cash_advance_amount: dbProfile?.cash_advance_amount ?? localProfile.cash_advance_amount,
+          submission_date: dbProfile?.submission_date || localProfile.submission_date,
+          role: dbProfile?.role || 'user',
         };
 
         set({
@@ -171,7 +173,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginAsDemo: () => {
     set({
-      user: DEFAULT_PROFILE,
+      user: { ...DEFAULT_PROFILE, role: 'user' },
       session: { user: { id: 'user-default-1', email: 'demo@scanfinance.com' } },
       isDemoMode: false,
     });
@@ -186,6 +188,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         options: {
           data: {
             full_name: fullName,
+            role: 'user',
           },
         },
       });
@@ -200,6 +203,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           id: data.user.id,
           email: data.user.email || email,
           full_name: fullName,
+          role: 'user',
         };
         set({ user: newProf, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProf));
@@ -231,12 +235,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (data.user) {
         const u = data.user;
+        let dbProfile: any = null;
+        try {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', u.id)
+            .single();
+          dbProfile = prof;
+        } catch {}
+
         const current = get().user || DEFAULT_PROFILE;
         const merged: UserProfile = {
           ...current,
           id: u.id,
           email: u.email || email,
-          full_name: u.user_metadata?.full_name || current.full_name,
+          full_name: dbProfile?.full_name || u.user_metadata?.full_name || current.full_name,
+          company_name: dbProfile?.company_name || current.company_name,
+          department: dbProfile?.department || current.department,
+          project_name: dbProfile?.project_name || current.project_name,
+          city: dbProfile?.city || current.city,
+          verifier_name: dbProfile?.verifier_name || current.verifier_name,
+          approver_name: dbProfile?.approver_name || current.approver_name,
+          cash_advance_amount: dbProfile?.cash_advance_amount ?? current.cash_advance_amount,
+          submission_date: dbProfile?.submission_date || current.submission_date,
+          role: dbProfile?.role || 'user',
         };
         set({ user: merged, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
@@ -253,7 +276,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await supabase.auth.signOut();
     } catch {}
-    set({ session: null, isDemoMode: true, impersonatingUser: null });
+    if (!isSSR) {
+      try {
+        await AsyncStorage.removeItem(PROFILE_STORAGE_KEY);
+      } catch {}
+    }
+    set({ user: null, session: null, isDemoMode: false, impersonatingUser: null });
   },
 
   updateProfile: async (data: Partial<UserProfile>) => {

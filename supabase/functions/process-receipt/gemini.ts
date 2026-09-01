@@ -14,6 +14,8 @@ export interface ExtractedReceiptResult {
   suggested_category: string;
   payment_method: string;
   subtotal: number;
+  shipping_fee?: number;
+  admin_fee?: number;
   tax_amount: number;
   discount_amount: number;
   total_amount: number;
@@ -30,30 +32,32 @@ export async function parseReceiptWithGemini(
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   const systemPrompt = `
-Anda adalah asisten AI OCR dan akuntan finansial profesional tingkat lanjut khusus mengekstrak data dari foto struk belanja di Indonesia (seperti Indomaret, Alfamart, Hypermart, Superindo, restoran, kafe, SPBU Pertamina, nota manual warung/toko, dll.).
+Anda adalah asisten AI OCR dan akuntan finansial profesional tingkat lanjut khusus mengekstrak data dari foto struk belanja, nota, dan aplikasi pesanan online di Indonesia (Indomaret, Alfamart, ShopeeFood, GrabFood, GoFood, restoran, SPBU, dsb.).
 
 Tugas Anda:
-1. Baca foto struk dengan sangat cermat, bahkan jika berkerut, berbayang, sedikit buram, atau miring.
+1. Baca foto struk dengan cermat.
 2. Ekstrak data berikut dan kembalikan HANYA format JSON murni tanpa markdown/penjelasan:
-   - merchant_name: Nama toko/restoran (misal: "Indomaret Point", "Kopi Kenangan", "Alfamart").
-   - transaction_date: Tanggal dan waktu transaksi dalam format ISO 8601 (YYYY-MM-DDTHH:mm:ss). Jika jam tidak ada, default jam 12:00:00. Jika tahun tidak ada, asumsikan tahun berjalan.
-   - suggested_category: Pilih salah satu yang paling relevan: "Makanan & Minuman", "Belanja Bulanan", "Transportasi", "Tagihan & Utilitas", "Hiburan & Rekreasi", "Kesehatan & Medis", "Pendidikan & Buku", "Lainnya".
+   - merchant_name: Nama toko/restoran/aplikasi (contoh: "ShopeeFood", "Indomaret", "Alfamart").
+   - transaction_date: Tanggal dan waktu transaksi dalam format ISO 8601 (YYYY-MM-DDTHH:mm:ss).
+   - suggested_category: Pilih salah satu: "Makanan & Minuman", "Belanja Bulanan", "Transportasi", "Tagihan & Utilitas", "Hiburan & Rekreasi", "Kesehatan & Medis", "Pendidikan & Buku", "Lainnya".
    - payment_method: "cash", "qris", "debit", "credit", "e-wallet", atau "transfer".
-   - subtotal: Total harga sebelum pajak/diskon (angka numeric).
-   - tax_amount: Pajak (PPN 11%, PB1 10%, dsb.) jika ada, bernilai 0 jika tidak ada.
-   - discount_amount: Total potongan harga/voucher/hemat jika ada, bernilai 0 jika tidak ada.
-   - total_amount: Total akhir yang dibayarkan pelanggan (harus berupa angka nominal bersih).
-   - items: Daftar barang belanjaan dengan format array:
-     - item_name: Nama barang yang mudah dipahami (perbaiki singkatan umum struk ritel).
-     - quantity: Jumlah barang (default 1).
+   - subtotal: Subtotal harga produk sebelum ongkir, biaya admin, dan diskon.
+   - shipping_fee: Biaya pengiriman / ongkir jika ada (0 jika tidak ada).
+   - admin_fee: Total biaya layanan, biaya penanganan, dan biaya lain-lain jika ada (0 jika tidak ada).
+   - tax_amount: Pajak (PPN/PB1) jika ada (0 jika tidak ada).
+   - discount_amount: Potongan voucher / diskon (0 jika tidak ada).
+   - total_amount: Total akhir yang dibayarkan pelanggan.
+   - items: Daftar barang/menu yang dibeli:
+     - item_name: Nama barang.
+     - quantity: Jumlah barang.
      - unit_price: Harga satuan.
-     - total_price: Harga total untuk item tersebut (quantity * unit_price).
-   - confidence_score: Tingkat keyakinan pembacaan dari 0.0 sampai 1.0.
-   - notes: Catatan tambahan seperti nomor struk atau info kasir jika ada.
+     - total_price: Harga total item (quantity * unit_price).
+   - confidence_score: Tingkat keyakinan (0.0 - 1.0).
+   - notes: Catatan tambahan seperti nomor pesanan jika ada.
 
 Catatan penting:
 - Jangan pernah mengembalikan NaN atau null untuk angka (gunakan 0).
-- Pastikan semua nominal dalam mata uang Rupiah bulat tanpa simbol 'Rp' atau titik pemisah ribuan pada nilai JSON.
+- Pastikan semua nominal berupa angka integer/float tanpa simbol 'Rp' atau titik pemisah ribuan.
 `;
 
   const requestBody = {
