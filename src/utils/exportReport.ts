@@ -1,99 +1,159 @@
-import { Transaction } from '@/types';
-import { formatDateOnly, formatDateTime, formatTimeOnly } from './formatters';
+import { Transaction, UserProfile } from '@/types';
+import { formatDateOnly, formatRupiah } from './formatters';
 import { Platform } from 'react-native';
 
-export interface CompanyReportHeader {
-  companyName: string;
-  employeeName: string;
-  department: string;
-  reportDate: string;
-  projectName: string;
-  cashAdvance?: number;
+export interface CompanyReportOptions {
+  profile?: UserProfile;
 }
 
-export const defaultCompanyHeader: CompanyReportHeader = {
-  companyName: 'PT. San Kawan Abadi',
-  employeeName: 'Gabriel Rudra Renata',
-  department: 'Operation',
-  reportDate: formatDateOnly(new Date()),
-  projectName: 'Head Office',
-  cashAdvance: 0,
-};
-
 /**
- * Mengonversi seluruh data transaksi dan rincian item ke format CSV / Spreadsheet tabel rekapitulasi kantor dengan WAKTU transaksi lengkap
+ * Mengonversi seluruh data transaksi dan rincian item ke format CSV / Spreadsheet tabel rekapitulasi kantor
+ * 100% PERSIS dengan format PT. San Kawan Abadi (Foto 3 & 4)
  */
 export function generateCompanyExpenseReportCSV(
   transactions: Transaction[],
-  header: CompanyReportHeader = defaultCompanyHeader
+  profile?: UserProfile
 ): string {
-  // Sort transaksi berdasarkan tanggal & waktu
+  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
+  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
+  const department = profile?.department || 'Operation';
+  const reportDate = profile?.submission_date || formatDateOnly(new Date());
+  const projectName = profile?.project_name || 'Head Office';
+  const city = profile?.city || 'Tangerang';
+  const verifierName = profile?.verifier_name || 'Yunitha';
+  const approverName = profile?.approver_name || 'Dwi Hartanto';
+  const cashAdvance = profile?.cash_advance_amount ?? 7117500;
+
+  // Sort transaksi berdasarkan tanggal
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
   );
 
-  let csvContent = '';
+  let csv = '';
 
-  // 1. Header Informasi Perusahaan & Karyawan
-  csvContent += `Nama Perusahaan,:,${header.companyName}\n`;
-  csvContent += `Nama,:,${header.employeeName}\n`;
-  csvContent += `Dept/Divisi,:,${header.department}\n`;
-  csvContent += `Tanggal Cetak,:,${header.reportDate}\n`;
-  csvContent += `Project,:,${header.projectName}\n\n`;
+  // 1. Header Profil Atas (Persis Foto 2 & 3)
+  csv += `Nama Perusahaan,:,${companyName},,,,,,,\n`;
+  csv += `Nama,:,${employeeName},,,,,,,\n`;
+  csv += `Dept/Divisi,:,${department},,,,,,,\n`;
+  csv += `Tanggal,:,${reportDate},,,,,,,\n`;
+  csv += `Project,:,${projectName},,,,,,,\n`;
+  csv += `----------------------------------------------------------------------------------------------------\n`;
 
-  // 2. Header Tabel dengan Kolom Tanggal & Waktu
-  csvContent += `TANGGAL,WAKTU,NO,KETERANGAN (NAMA BARANG / JASA),JUMLAH ITEM,KATEGORI,HARGA SATUAN (Rp),TOTAL (Rp)\n`;
+  // 2. Header Tabel Kolom (Persis Foto 3)
+  csv += `TANGGAL,NO,KETERANGAN,JUMLAH ITEM,Operational (Rp) - B,Pantry (Rp) - C,Fasilitas (Rp) - D,Lain-Lain (Rp) - F,TOTAL (Rp) -G\n`;
 
-  let rowNumber = 1;
+  let rowNo = 1;
+  let sumOperational = 0;
+  let sumPantry = 0;
+  let sumFasilitas = 0;
+  let sumLainLain = 0;
   let grandTotal = 0;
-  const categoryTotals: Record<string, number> = {};
 
   sortedTx.forEach((tx) => {
     const txDateStr = formatDateOnly(tx.transaction_date);
-    const txTimeStr = formatTimeOnly(tx.transaction_date);
-    const catName = tx.category?.name || 'Operasional';
+    const catName = (tx.category?.name || '').toLowerCase();
+
+    // Identifikasi kolom kategori perusahaan (B, C, D, atau F)
+    let targetCol: 'operational' | 'pantry' | 'fasilitas' | 'lainlain' = 'operational';
+    if (catName.includes('pantry') || catName.includes('makan') || catName.includes('belanja')) {
+      targetCol = 'pantry';
+    } else if (catName.includes('fasilitas') || catName.includes('kesehatan') || catName.includes('hiburan') || catName.includes('kantor')) {
+      targetCol = 'fasilitas';
+    } else if (catName.includes('lain') || catName.includes('buku') || catName.includes('pendidikan')) {
+      targetCol = 'lainlain';
+    } else {
+      targetCol = 'operational';
+    }
 
     if (tx.items && tx.items.length > 0) {
-      // 1 Struk memuat banyak item baris belanja & jasa
-      tx.items.forEach((item) => {
-        const itemTotal = Number(item.total_price) || (Number(item.quantity) || 1) * (Number(item.unit_price) || 0);
-        grandTotal += itemTotal;
-        categoryTotals[catName] = (categoryTotals[catName] || 0) + itemTotal;
+      tx.items.forEach((it) => {
+        const itTotal = Number(it.total_price) || (Number(it.quantity) || 1) * (Number(it.unit_price) || 0);
+        grandTotal += itTotal;
 
-        const cleanItemName = `"${item.item_name.replace(/"/g, '""')}"`;
-        const qtyStr = `"${item.quantity} Pcs"`;
+        let bVal = '';
+        let cVal = '';
+        let dVal = '';
+        let fVal = '';
 
-        csvContent += `"${txDateStr}","${txTimeStr}",${rowNumber},${cleanItemName},${qtyStr},"${catName}",${item.unit_price || 0},${itemTotal}\n`;
-        rowNumber++;
+        if (targetCol === 'operational') {
+          bVal = String(itTotal);
+          sumOperational += itTotal;
+        } else if (targetCol === 'pantry') {
+          cVal = String(itTotal);
+          sumPantry += itTotal;
+        } else if (targetCol === 'fasilitas') {
+          dVal = String(itTotal);
+          sumFasilitas += itTotal;
+        } else {
+          fVal = String(itTotal);
+          sumLainLain += itTotal;
+        }
+
+        const cleanName = `"${it.item_name.replace(/"/g, '""')}"`;
+        const qtyStr = `"${it.quantity || 1} Pcs"`;
+
+        csv += `"${txDateStr}",${rowNo},${cleanName},${qtyStr},${bVal},${cVal},${dVal},${fVal},${itTotal}\n`;
+        rowNo++;
       });
     } else {
-      // Jika struk tidak memiliki rincian item terpisah
       const total = Number(tx.total_amount) || 0;
       grandTotal += total;
-      categoryTotals[catName] = (categoryTotals[catName] || 0) + total;
 
-      csvContent += `"${txDateStr}","${txTimeStr}",${rowNumber},"${tx.merchant_name}","1 Paket","${catName}",${total},${total}\n`;
-      rowNumber++;
+      let bVal = '';
+      let cVal = '';
+      let dVal = '';
+      let fVal = '';
+
+      if (targetCol === 'operational') {
+        bVal = String(total);
+        sumOperational += total;
+      } else if (targetCol === 'pantry') {
+        cVal = String(total);
+        sumPantry += total;
+      } else if (targetCol === 'fasilitas') {
+        dVal = String(total);
+        sumFasilitas += total;
+      } else {
+        fVal = String(total);
+        sumLainLain += total;
+      }
+
+      const cleanName = `"${tx.merchant_name.replace(/"/g, '""')}"`;
+      csv += `"${txDateStr}",${rowNo},${cleanName},"1 Paket",${bVal},${cVal},${dVal},${fVal},${total}\n`;
+      rowNo++;
+    }
+
+    // Jika ada diskon di struk
+    if (tx.discount_amount && tx.discount_amount > 0) {
+      grandTotal -= tx.discount_amount;
+      csv += `"${txDateStr}",${rowNo},"Diskon / Voucher","-",,,,-${tx.discount_amount},-${tx.discount_amount}\n`;
+      rowNo++;
     }
   });
 
-  csvContent += `\n`;
-  csvContent += `TOTAL PENGELUARAN,,,,,,,${grandTotal}\n`;
+  // 3. Baris Total Tabel (Persis Foto 4)
+  csv += `,,,TOTAL,${sumOperational || '-'},${sumPantry || '-'},${sumFasilitas || '-'},${sumLainLain || '-'},${grandTotal}\n\n`;
 
-  if (header.cashAdvance && header.cashAdvance > 0) {
-    const refund = header.cashAdvance - grandTotal;
-    csvContent += `Jumlah Cash Advance,,,,,,,${header.cashAdvance}\n`;
-    csvContent += `Jumlah yang Diklaim,,,,,,,${grandTotal}\n`;
-    csvContent += `Jumlah Pengembalian Dana,,,,,,,${refund}\n`;
-  }
+  // 4. Rekapitulasi Cash Advance (Persis Foto 4)
+  csv += `Total Pengeluaran (f),,,,,,,,${grandTotal}\n`;
+  csv += `----------------------------------------------------------------------------------------------------\n`;
+  csv += `Jumlah Cash Advance : ,,,,${cashAdvance},,,,\n`;
+  csv += `Jumlah yang diklaim,,,,${grandTotal},,,,\n`;
+  const refund = cashAdvance - grandTotal;
+  csv += `Jumlah pengembalian dana,,,,${refund},,,,\n\n`;
 
-  return csvContent;
+  // 5. Kotak 3 Kolom Tanda Tangan (Persis Foto 4)
+  csv += `${city}, ${reportDate},,,,,,,,\n`;
+  csv += `Dibuat oleh,,,,Diperiksa,,,Diperiksa & Diketahui oleh,\n\n\n`;
+  csv += `"${employeeName}",,,,"${verifierName}",,,"${approverName}",\n`;
+
+  return csv;
 }
 
 /**
  * Memicu download berkas CSV di browser atau perangkat
  */
-export function downloadCSV(csvContent: string, fileName = 'Rekap_Pengeluaran_ScanFinance.csv') {
+export function downloadCSV(csvContent: string, fileName = 'Rekapitulasi_Pengeluaran_SanKawanAbadi.csv') {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -103,5 +163,6 @@ export function downloadCSV(csvContent: string, fileName = 'Rekap_Pengeluaran_Sc
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }

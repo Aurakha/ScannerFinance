@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
+import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
 
 interface StatCardProps {
@@ -25,6 +26,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   badgeType = 'success',
   onPress,
 }) => {
+  const { theme } = useThemeStore();
+
   const getBadgeColor = () => {
     switch (badgeType) {
       case 'danger':
@@ -47,13 +50,14 @@ export const StatCard: React.FC<StatCardProps> = ({
       style={[
         styles.card,
         {
-          borderColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: theme.card,
+          borderColor: theme.border,
         },
       ]}
     >
       <View style={styles.headerRow}>
         <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}>
-          <Ionicons name={icon} size={20} color={color} />
+          <Ionicons name={icon} size={18} color={color} />
         </View>
 
         {badgeText && (
@@ -63,36 +67,39 @@ export const StatCard: React.FC<StatCardProps> = ({
         )}
       </View>
 
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.amount}>{formatRupiah(amount)}</Text>
+      <Text style={[styles.title, { color: theme.textSecondary }]}>{title}</Text>
+      <Text style={[styles.amount, { color: theme.text }]}>
+        {title.includes('Struk') ? `${amount} Struk` : formatRupiah(amount)}
+      </Text>
 
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: theme.textMuted }]}>{subtitle}</Text>
+      ) : null}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 3,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -102,24 +109,21 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   title: {
-    fontSize: 13,
-    color: Palette.darkTextSecondary,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 4,
   },
   amount: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
-    color: Palette.darkText,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 12,
-    color: Palette.darkTextMuted,
-    marginTop: 6,
+    fontSize: 11,
+    marginTop: 4,
   },
 });

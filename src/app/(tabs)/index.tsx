@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,17 +16,23 @@ import { TransactionCard } from '@/components/transactions/TransactionCard';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { transactions, stats } = useTransactionStore();
+  const { transactions, stats, loadData } = useTransactionStore();
+  const { theme, mode, toggleTheme } = useThemeStore();
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -35,25 +41,50 @@ export default function DashboardScreen() {
         {/* Header */}
         <Header
           title={`Halo, ${user?.full_name?.split(' ')[0] || 'Pengguna'} 👋`}
-          subtitle="Rekap & analisis pengeluaran cerdas Anda"
+          subtitle={user?.company_name || 'Rekap & analisis pengeluaran cerdas Anda'}
+          rightAction={
+            <TouchableOpacity
+              style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny' : 'moon'}
+                size={18}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
+              />
+            </TouchableOpacity>
+          }
         />
 
         {/* Discord Hero Financial Overview */}
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.25)' : 'rgba(88, 101, 242, 0.4)',
+            },
+          ]}
+        >
           <View style={styles.heroHeader}>
-            <Text style={styles.heroLabel}>Total Pengeluaran Bulan Ini</Text>
-            <View style={styles.badgeMonth}>
-              <Text style={styles.badgeMonthText}>September 2026</Text>
+            <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>
+              Total Pengeluaran Tercatat
+            </Text>
+            <View style={[styles.badgeMonth, { backgroundColor: theme.cardHover }]}>
+              <Text style={[styles.badgeMonthText, { color: theme.text }]}>Aktif</Text>
             </View>
           </View>
 
-          <Text style={styles.heroAmount}>{formatRupiah(stats.totalExpense)}</Text>
+          <Text style={[styles.heroAmount, { color: theme.text }]}>
+            {formatRupiah(stats.totalExpense)}
+          </Text>
 
           {/* Budget Limit Progress Bar */}
           <View style={styles.budgetProgressContainer}>
             <View style={styles.budgetLabels}>
-              <Text style={styles.budgetSubText}>
-                Terpakai: {formatPercent(stats.budgetUsedPercentage)} dari {formatRupiah(stats.budgetLimit)}
+              <Text style={[styles.budgetSubText, { color: theme.textSecondary }]}>
+                Terpakai: {formatPercent(stats.budgetUsedPercentage)} dari{' '}
+                {formatRupiah(stats.budgetLimit)}
               </Text>
               <Text
                 style={[
@@ -65,7 +96,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
 
-            <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarBg, { backgroundColor: theme.cardHover }]}>
               <View
                 style={[
                   styles.progressBarFill,
@@ -107,7 +138,14 @@ export default function DashboardScreen() {
 
         {/* Quick Scan CTA Card */}
         <TouchableOpacity
-          style={styles.quickScanCard}
+          style={[
+            styles.quickScanCard,
+            {
+              backgroundColor:
+                mode === 'dark' ? 'rgba(88, 101, 242, 0.12)' : 'rgba(88, 101, 242, 0.08)',
+              borderColor: 'rgba(88, 101, 242, 0.3)',
+            },
+          ]}
           onPress={() => router.push('/(tabs)/scanner')}
           activeOpacity={0.85}
         >
@@ -116,19 +154,21 @@ export default function DashboardScreen() {
               <Ionicons name="camera" size={24} color="#FFFFFF" />
             </View>
             <View>
-              <Text style={styles.quickScanTitle}>Scan Struk Belanja</Text>
-              <Text style={styles.quickScanSubtitle}>
-                AI mengekstrak toko, item, dan total otomatis
+              <Text style={[styles.quickScanTitle, { color: theme.text }]}>
+                Scan / Unggah Struk Belanja
+              </Text>
+              <Text style={[styles.quickScanSubtitle, { color: theme.textSecondary }]}>
+                AI otomatis ekstrak item, ongkir, & biaya admin
               </Text>
             </View>
           </View>
 
-          <Ionicons name="chevron-forward" size={22} color={Palette.darkTextSecondary} />
+          <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
         </TouchableOpacity>
 
         {/* Expense Category Donut Chart */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Distribusi Pengeluaran</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Distribusi Pengeluaran</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/analytics')}>
             <Text style={styles.seeAllText}>Detail Analisis</Text>
           </TouchableOpacity>
@@ -141,18 +181,23 @@ export default function DashboardScreen() {
 
         {/* Recent Transactions List */}
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>Transaksi Terakhir</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Transaksi Terakhir</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
             <Text style={styles.seeAllText}>Lihat Semua</Text>
           </TouchableOpacity>
         </View>
 
         {recentTransactions.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="receipt-outline" size={40} color={Palette.darkTextMuted} />
-            <Text style={styles.emptyTitle}>Belum ada transaksi</Text>
-            <Text style={styles.emptySubtitle}>
-              Ambil foto struk belanja Anda untuk mulai mencatat keuangan
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <Ionicons name="receipt-outline" size={40} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>Belum ada transaksi</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
+              Unggah foto struk belanja Anda untuk mulai mencatat keuangan
             </Text>
           </View>
         ) : (
@@ -172,7 +217,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Palette.darkBg,
   },
   container: {
     flex: 1,
@@ -180,19 +224,24 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 40,
   },
+  themeToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   heroCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
+    marginHorizontal: 16,
     borderRadius: 20,
-    padding: 22,
+    padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(88, 101, 242, 0.25)',
     shadowColor: Palette.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 6,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   heroHeader: {
     flexDirection: 'row',
@@ -202,26 +251,22 @@ const styles = StyleSheet.create({
   },
   heroLabel: {
     fontSize: 13,
-    color: Palette.darkTextSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   badgeMonth: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeMonthText: {
     fontSize: 11,
-    color: Palette.darkText,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   heroAmount: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
-    color: Palette.darkText,
     letterSpacing: -1,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   budgetProgressContainer: {
     marginTop: 4,
@@ -233,7 +278,6 @@ const styles = StyleSheet.create({
   },
   budgetSubText: {
     fontSize: 12,
-    color: Palette.darkTextSecondary,
   },
   budgetRemainingText: {
     fontSize: 12,
@@ -241,7 +285,6 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -251,44 +294,40 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   quickScanCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(88, 101, 242, 0.1)',
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(88, 101, 242, 0.3)',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   quickScanLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     flex: 1,
   },
   quickScanIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quickScanTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   quickScanSubtitle: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
+    fontSize: 11,
     marginTop: 2,
     paddingRight: 10,
   },
@@ -296,13 +335,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   seeAllText: {
     fontSize: 13,
@@ -310,23 +348,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 30,
+    marginHorizontal: 16,
+    borderRadius: 18,
+    padding: 26,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: Palette.darkText,
-    marginTop: 12,
+    marginTop: 10,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: Palette.darkTextMuted,
     textAlign: 'center',
     marginTop: 4,
   },

@@ -13,10 +13,12 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { SpendingBarChart } from '@/components/charts/SpendingBarChart';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
+import { useThemeStore } from '@/store/themeStore';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function AnalyticsScreen() {
   const { stats, transactions } = useTransactionStore();
+  const { theme, mode, toggleTheme } = useThemeStore();
   const [activePeriod, setActivePeriod] = useState<'month' | 'week'>('month');
 
   // Siapkan data pengeluaran 7 hari terakhir
@@ -50,7 +52,7 @@ export default function AnalyticsScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -59,14 +61,35 @@ export default function AnalyticsScreen() {
         <Header
           title="Analisis Finansial"
           subtitle="Insight pola belanja & monitoring anggaran"
+          rightAction={
+            <TouchableOpacity
+              style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny' : 'moon'}
+                size={18}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
+              />
+            </TouchableOpacity>
+          }
         />
 
         {/* Budget Health Card */}
-        <View style={styles.budgetCard}>
+        <View
+          style={[
+            styles.budgetCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
           <View style={styles.budgetCardHeader}>
             <View>
-              <Text style={styles.budgetCardTitle}>Kesehatan Anggaran</Text>
-              <Text style={styles.budgetCardSub}>Batas: {formatRupiah(stats.budgetLimit)}</Text>
+              <Text style={[styles.budgetCardTitle, { color: theme.text }]}>
+                Kesehatan Anggaran
+              </Text>
+              <Text style={[styles.budgetCardSub, { color: theme.textSecondary }]}>
+                Batas: {formatRupiah(stats.budgetLimit)}
+              </Text>
             </View>
 
             <View
@@ -104,14 +127,21 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
-          <View style={styles.budgetMetricsRow}>
+          <View
+            style={[
+              styles.budgetMetricsRow,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+          >
             <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>Terpakai</Text>
-              <Text style={styles.metricVal}>{formatRupiah(stats.totalExpense)}</Text>
+              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>Terpakai</Text>
+              <Text style={[styles.metricVal, { color: theme.text }]}>
+                {formatRupiah(stats.totalExpense)}
+              </Text>
             </View>
-            <View style={styles.metricDivider} />
+            <View style={[styles.metricDivider, { backgroundColor: theme.border }]} />
             <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>Sisa Anggaran</Text>
+              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>Sisa Anggaran</Text>
               <Text
                 style={[
                   styles.metricVal,
@@ -132,7 +162,9 @@ export default function AnalyticsScreen() {
         {/* Category Breakdown Donut */}
         <View style={styles.sectionMargin}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Porsi Kategori Pengeluaran</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Porsi Kategori Pengeluaran
+            </Text>
           </View>
           <CategoryPieChart
             data={stats.categoryBreakdown}
@@ -143,16 +175,26 @@ export default function AnalyticsScreen() {
         {/* Top Expense Breakdown List */}
         <View style={styles.sectionMargin}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Rincian Kategori Terbesar</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Rincian Kategori Terbesar
+            </Text>
           </View>
 
-          <View style={styles.breakdownCard}>
+          <View
+            style={[
+              styles.breakdownCard,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
             {stats.categoryBreakdown.map((cat, idx) => (
               <View
                 key={cat.categoryId}
                 style={[
                   styles.breakdownRow,
-                  idx !== stats.categoryBreakdown.length - 1 && styles.borderBottom,
+                  idx !== stats.categoryBreakdown.length - 1 && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.border,
+                  },
                 ]}
               >
                 <View style={[styles.catIconBox, { backgroundColor: `${cat.categoryColor}20` }]}>
@@ -161,12 +203,16 @@ export default function AnalyticsScreen() {
 
                 <View style={styles.catInfo}>
                   <View style={styles.catNameRow}>
-                    <Text style={styles.catName}>{cat.categoryName}</Text>
-                    <Text style={styles.catAmount}>{formatRupiah(cat.amount)}</Text>
+                    <Text style={[styles.catName, { color: theme.text }]}>{cat.categoryName}</Text>
+                    <Text style={[styles.catAmount, { color: theme.text }]}>
+                      {formatRupiah(cat.amount)}
+                    </Text>
                   </View>
 
                   <View style={styles.progressRow}>
-                    <View style={styles.catProgressBg}>
+                    <View
+                      style={[styles.catProgressBg, { backgroundColor: theme.background }]}
+                    >
                       <View
                         style={[
                           styles.catProgressFill,
@@ -177,7 +223,9 @@ export default function AnalyticsScreen() {
                         ]}
                       />
                     </View>
-                    <Text style={styles.catPercentText}>{formatPercent(cat.percentage)}</Text>
+                    <Text style={[styles.catPercentText, { color: theme.textSecondary }]}>
+                      {formatPercent(cat.percentage)}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -192,7 +240,6 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Palette.darkBg,
   },
   container: {
     flex: 1,
@@ -200,47 +247,48 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 40,
   },
+  themeToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   budgetCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
+    marginHorizontal: 16,
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   budgetCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   budgetCardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   budgetCardSub: {
     fontSize: 12,
-    color: Palette.darkTextSecondary,
     marginTop: 2,
   },
   statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   statusPillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   budgetMetricsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   metricBox: {
     flex: 1,
@@ -248,50 +296,40 @@ const styles = StyleSheet.create({
   },
   metricDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   metricLabel: {
     fontSize: 11,
-    color: Palette.darkTextMuted,
     marginBottom: 4,
   },
   metricVal: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    color: Palette.darkText,
   },
   sectionMargin: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   sectionHeader: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   breakdownCard: {
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 18,
+    padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   breakdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-  },
-  borderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    paddingVertical: 10,
   },
   catIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -307,12 +345,10 @@ const styles = StyleSheet.create({
   catName: {
     fontSize: 13,
     fontWeight: '600',
-    color: Palette.darkText,
   },
   catAmount: {
     fontSize: 13,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   progressRow: {
     flexDirection: 'row',
@@ -321,8 +357,7 @@ const styles = StyleSheet.create({
   },
   catProgressBg: {
     flex: 1,
-    height: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    height: 6,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -333,7 +368,6 @@ const styles = StyleSheet.create({
   catPercentText: {
     fontSize: 11,
     fontWeight: '600',
-    color: Palette.darkTextSecondary,
     width: 34,
     textAlign: 'right',
   },

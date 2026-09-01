@@ -3,28 +3,32 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useTransactionStore } from '@/store/transactionStore';
-import { Palette } from '@/constants/theme';
+import { useThemeStore } from '@/store/themeStore';
 
 export default function RootLayout() {
   const { initializeAuth } = useAuthStore();
   const { loadData } = useTransactionStore();
+  const { mode, theme, loadTheme } = useThemeStore();
 
   useEffect(() => {
+    loadTheme();
     initializeAuth();
     loadData();
   }, []);
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: Palette.darkBg },
+          contentStyle: { backgroundColor: theme.background },
           animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
         <Stack.Screen
           name="transaction/[id]"
           options={{

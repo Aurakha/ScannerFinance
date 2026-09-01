@@ -1,24 +1,27 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, StyleSheet, Platform, Text } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
+import { useThemeStore } from '@/store/themeStore';
 
 export default function TabLayout() {
+  const { theme } = useThemeStore();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#111214',
-          borderTopColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: theme.tabBar,
+          borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 90 : 74,
           paddingBottom: Platform.OS === 'ios' ? 28 : 12,
           paddingTop: 8,
         },
         tabBarActiveTintColor: Palette.primary,
-        tabBarInactiveTintColor: '#949BA4',
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -59,7 +62,7 @@ export default function TabLayout() {
           title: 'Unggah Struk',
           tabBarIcon: ({ focused }) => (
             <View style={styles.floatingContainer}>
-              <View style={styles.scanButtonCenter}>
+              <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar }]}>
                 <Ionicons name="cloud-upload" size={22} color="#FFFFFF" />
               </View>
             </View>
@@ -119,7 +122,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#111214',
     shadowColor: Palette.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.45,

@@ -17,6 +17,7 @@ import { ReceiptVerifyModal } from '@/components/forms/ReceiptVerifyModal';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 import { processReceiptImage } from '@/services/receiptService';
 import { ReceiptScanResult } from '@/types';
 
@@ -29,6 +30,7 @@ export default function ScannerScreen() {
 
   const { addTransaction, categories } = useTransactionStore();
   const { geminiApiKey } = useAuthStore();
+  const { theme, mode, toggleTheme } = useThemeStore();
 
   const handlePickImage = async () => {
     try {
@@ -80,6 +82,8 @@ export default function ScannerScreen() {
         subtotal: verifiedData.subtotal,
         tax_amount: verifiedData.tax_amount,
         discount_amount: verifiedData.discount_amount,
+        shipping_fee: verifiedData.shipping_fee,
+        admin_fee: verifiedData.admin_fee,
         payment_method: verifiedData.payment_method,
         notes: verifiedData.notes,
         receipt_image_url: finalReceiptUrl,
@@ -106,7 +110,7 @@ export default function ScannerScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -115,11 +119,29 @@ export default function ScannerScreen() {
         <Header
           title="Unggah & Ekstrak Struk"
           subtitle="AI mengekstrak toko, item, ongkir, & biaya admin"
+          rightAction={
+            <TouchableOpacity
+              style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny' : 'moon'}
+                size={18}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
+              />
+            </TouchableOpacity>
+          }
         />
 
         {/* Primary Drag & Dropzone Card */}
         <TouchableOpacity
-          style={styles.dropzoneCard}
+          style={[
+            styles.dropzoneCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: 'rgba(88, 101, 242, 0.4)',
+            },
+          ]}
           onPress={handlePickImage}
           activeOpacity={0.85}
         >
@@ -127,8 +149,8 @@ export default function ScannerScreen() {
             <Ionicons name="cloud-upload" size={44} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.dropzoneTitle}>Pilih Foto Struk / Nota</Text>
-          <Text style={styles.dropzoneSubtitle}>
+          <Text style={[styles.dropzoneTitle, { color: theme.text }]}>Pilih Foto Struk / Nota</Text>
+          <Text style={[styles.dropzoneSubtitle, { color: theme.textSecondary }]}>
             Klik di sini untuk mengunggah foto struk belanja dari galeri atau komputer Anda
           </Text>
 
@@ -137,20 +159,27 @@ export default function ScannerScreen() {
             <Text style={styles.selectButtonText}>Pilih Gambar</Text>
           </View>
 
-          <Text style={styles.formatHint}>
+          <Text style={[styles.formatHint, { color: theme.textMuted }]}>
             Format: JPG, PNG, WebP (Nota cetak kasir, tulisan tangan, atau bukti m-Banking)
           </Text>
         </TouchableOpacity>
 
         {/* Card Panduan Cara Menggunakan Sistem */}
-        <View style={styles.guideCard}>
+        <View
+          style={[
+            styles.guideCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
           <View style={styles.guideHeader}>
             <View style={styles.guideIconBox}>
               <Ionicons name="book-outline" size={20} color={Palette.primary} />
             </View>
             <View>
-              <Text style={styles.guideTitle}>Cara Menggunakan Sistem</Text>
-              <Text style={styles.guideSub}>3 Langkah mudah merekap struk pengeluaran</Text>
+              <Text style={[styles.guideTitle, { color: theme.text }]}>Cara Menggunakan Sistem</Text>
+              <Text style={[styles.guideSub, { color: theme.textSecondary }]}>
+                3 Langkah mudah merekap struk pengeluaran
+              </Text>
             </View>
           </View>
 
@@ -163,15 +192,15 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="cloud-upload-outline" size={16} color={Palette.primary} />
-                  <Text style={styles.stepTitle}>Unggah Foto Struk / Nota</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>Unggah Foto Struk / Nota</Text>
                 </View>
-                <Text style={styles.stepDesc}>
+                <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
                   Pilih foto struk belanja toko fisik (Indomaret, SPBU, resto), nota manual tulisan tangan, atau bukti pembayaran online.
                 </Text>
               </View>
             </View>
 
-            <View style={styles.stepConnector} />
+            <View style={[styles.stepConnector, { backgroundColor: theme.border }]} />
 
             {/* Step 2 */}
             <View style={styles.stepRow}>
@@ -181,15 +210,15 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="sparkles-outline" size={16} color="#F0B232" />
-                  <Text style={styles.stepTitle}>AI Mengekstrak Otomatis</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>AI Mengekstrak Otomatis</Text>
                 </View>
-                <Text style={styles.stepDesc}>
+                <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
                   AI Gemini 3.6 Flash membaca nama toko, tanggal & jam transaksi, daftar barang, ongkos kirim (GoSend/Grab), biaya admin, diskon, dan total biaya.
                 </Text>
               </View>
             </View>
 
-            <View style={styles.stepConnector} />
+            <View style={[styles.stepConnector, { backgroundColor: theme.border }]} />
 
             {/* Step 3 */}
             <View style={styles.stepRow}>
@@ -199,9 +228,9 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="document-text-outline" size={16} color="#23A55A" />
-                  <Text style={styles.stepTitle}>Verifikasi & Ekspor Spreadsheet</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>Verifikasi & Ekspor Spreadsheet</Text>
                 </View>
-                <Text style={styles.stepDesc}>
+                <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
                   Periksa rincian data pada formulir konfirmasi, simpan ke database, dan ekspor ke Google Spreadsheet kapan saja dengan 1 klik!
                 </Text>
               </View>
@@ -231,7 +260,6 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Palette.darkBg,
   },
   container: {
     flex: 1,
@@ -239,86 +267,87 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 40,
   },
+  themeToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   dropzoneCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
-    borderRadius: 24,
-    padding: 28,
+    marginHorizontal: 16,
+    borderRadius: 22,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(88, 101, 242, 0.4)',
     borderStyle: 'dashed',
-    marginBottom: 20,
     shadowColor: Palette.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 4,
+    marginBottom: 16,
   },
   uploadGlowCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     shadowColor: Palette.primary,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5,
-    shadowRadius: 12,
+    shadowRadius: 14,
     elevation: 8,
   },
   dropzoneTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: Palette.darkText,
     marginBottom: 6,
   },
   dropzoneSubtitle: {
-    fontSize: 13,
-    color: Palette.darkTextSecondary,
+    fontSize: 12,
     textAlign: 'center',
+    marginBottom: 16,
     lineHeight: 18,
-    maxWidth: 320,
-    marginBottom: 20,
+    paddingHorizontal: 12,
   },
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     backgroundColor: Palette.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 14,
-    marginBottom: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 12,
   },
   selectButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   formatHint: {
-    fontSize: 11,
-    color: Palette.darkTextMuted,
+    fontSize: 10,
     textAlign: 'center',
   },
   guideCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
+    marginHorizontal: 16,
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 20,
   },
   guideHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 20,
-    paddingBottom: 14,
+    marginBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    paddingBottom: 12,
   },
   guideIconBox: {
     width: 38,
@@ -330,13 +359,11 @@ const styles = StyleSheet.create({
   },
   guideTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: Palette.darkText,
+    fontWeight: '800',
   },
   guideSub: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    marginTop: 1,
+    fontSize: 11,
+    marginTop: 2,
   },
   stepsContainer: {
     paddingLeft: 4,
@@ -344,12 +371,12 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: 12,
   },
   stepNumberBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -357,8 +384,8 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '800',
-    fontSize: 12,
   },
   stepContent: {
     flex: 1,
@@ -372,18 +399,15 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   stepDesc: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
   },
   stepConnector: {
     width: 2,
-    height: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginLeft: 12,
+    height: 16,
+    marginLeft: 11,
     marginVertical: 4,
   },
 });

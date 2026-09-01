@@ -67,6 +67,14 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  company_name?: string;
+  department?: string;
+  project_name?: string;
+  city?: string;
+  verifier_name?: string; // Diperiksa oleh
+  approver_name?: string; // Diperiksa & Diketahui oleh
+  cash_advance_amount?: number;
+  submission_date?: string;
   avatar_url?: string;
   currency: string;
   monthly_income_budget: number;

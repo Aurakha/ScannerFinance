@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Palette } from '@/constants/theme';
+import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
 
 interface DailyExpense {
@@ -16,12 +17,18 @@ interface SpendingBarChartProps {
 }
 
 export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmount }) => {
+  const { theme, mode } = useThemeStore();
   const calculatedMax = maxAmount || Math.max(...data.map((d) => d.amount), 50000);
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.card, borderColor: theme.border },
+      ]}
+    >
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Tren Pengeluaran 7 Hari Terakhir</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Tren Pengeluaran 7 Hari Terakhir</Text>
       </View>
 
       <View style={styles.chartArea}>
@@ -29,7 +36,15 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmo
           const barHeightPercentage = Math.min(100, Math.max(8, (item.amount / calculatedMax) * 100));
           return (
             <View key={idx} style={styles.barColumn}>
-              <View style={styles.barTrack}>
+              <View
+                style={[
+                  styles.barTrack,
+                  {
+                    backgroundColor:
+                      mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                  },
+                ]}
+              >
                 <View
                   style={[
                     styles.barFill,
@@ -45,12 +60,13 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmo
               <Text
                 style={[
                   styles.dayLabel,
-                  item.isToday && { color: Palette.primary, fontWeight: '700' },
+                  { color: item.isToday ? Palette.primary : theme.textSecondary },
+                  item.isToday && { fontWeight: '700' },
                 ]}
               >
                 {item.dayLabel}
               </Text>
-              <Text style={styles.dateLabel}>{item.dateNumber}</Text>
+              <Text style={[styles.dateLabel, { color: theme.textMuted }]}>{item.dateNumber}</Text>
             </View>
           );
         })}
@@ -61,39 +77,35 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmo
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Palette.darkCard,
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerRow: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: Palette.darkText,
   },
   chartArea: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 140,
-    paddingTop: 10,
+    height: 130,
+    paddingTop: 8,
   },
   barColumn: {
     alignItems: 'center',
     flex: 1,
   },
   barTrack: {
-    height: 90,
+    height: 86,
     width: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 7,
     justifyContent: 'flex-end',
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   barFill: {
     width: '100%',
@@ -101,12 +113,10 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontSize: 11,
-    color: Palette.darkTextSecondary,
     fontWeight: '500',
   },
   dateLabel: {
     fontSize: 10,
-    color: Palette.darkTextMuted,
     marginTop: 2,
   },
 });

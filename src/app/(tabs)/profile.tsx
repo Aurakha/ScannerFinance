@@ -9,155 +9,327 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '@/components/common/Header';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-import { useTransactionStore } from '@/store/transactionStore';
+import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
 
 export default function ProfileScreen() {
-  const { user } = useAuthStore();
-  const { budgetLimit, setBudgetLimit } = useTransactionStore();
+  const router = useRouter();
+  const { user, session, isDemoMode, updateProfile, signOut } = useAuthStore();
+  const { theme, mode, toggleTheme } = useThemeStore();
 
-  const [inputBudget, setInputBudget] = useState(String(budgetLimit));
+  const [fullName, setFullName] = useState(user?.full_name || 'Gabriel Rudra Renata');
+  const [companyName, setCompanyName] = useState(user?.company_name || 'PT. San Kawan Abadi');
+  const [department, setDepartment] = useState(user?.department || 'Operation');
+  const [projectName, setProjectName] = useState(user?.project_name || 'Head Office');
+  const [city, setCity] = useState(user?.city || 'Tangerang');
+  const [verifierName, setVerifierName] = useState(user?.verifier_name || 'Yunitha');
+  const [approverName, setApproverName] = useState(user?.approver_name || 'Dwi Hartanto');
+  const [cashAdvance, setCashAdvance] = useState(String(user?.cash_advance_amount ?? 7117500));
 
-  const handleSaveBudget = () => {
-    const val = Number(inputBudget) || 5000000;
-    setBudgetLimit(val);
-    Alert.alert('Tersimpan', `Batas anggaran bulanan disetel ke ${formatRupiah(val)}.`);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      await updateProfile({
+        full_name: fullName,
+        company_name: companyName,
+        department: department,
+        project_name: projectName,
+        city: city,
+        verifier_name: verifierName,
+        approver_name: approverName,
+        cash_advance_amount: Number(cashAdvance) || 0,
+      });
+      setIsSaving(false);
+      Alert.alert('Tersimpan! ✅', 'Data profil dan informasi klaim perusahaan berhasil diperbarui.');
+    } catch (err: any) {
+      setIsSaving(false);
+      Alert.alert('Gagal', err.message || 'Tidak dapat memperbarui profil.');
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert('Keluar Akun', 'Apakah Anda yakin ingin keluar dari akun ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Keluar',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/auth/login');
+        },
+      },
+    ]);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Header title="Profil & Setelan" subtitle="Kelola preferensi & akun Anda" />
+        <Header
+          title="Profil & Pengaturan"
+          subtitle="Atur identitas perusahaan, verifikator klaim, dan preferensi tema"
+          rightAction={
+            <TouchableOpacity
+              style={[styles.themeBtn, { backgroundColor: theme.cardHover }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny' : 'moon'}
+                size={18}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
+              />
+            </TouchableOpacity>
+          }
+        />
 
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLargeText}>
-              {user?.full_name?.charAt(0).toUpperCase() || 'U'}
-            </Text>
+        {/* User Account Card */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={styles.userHeaderRow}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarInitial}>
+                {fullName.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+            <View style={styles.userInfoCol}>
+              <Text style={[styles.userName, { color: theme.text }]}>{fullName}</Text>
+              <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
+                {user?.email || 'Akun Tamu / Demo'}
+              </Text>
+              <View style={styles.badgeRow}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: session ? 'rgba(35, 165, 90, 0.15)' : 'rgba(240, 178, 50, 0.15)' },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: session ? Palette.greenOnline : Palette.amberIdle },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: session ? Palette.greenOnline : Palette.amberIdle },
+                    ]}
+                  >
+                    {session ? 'Akun Supabase Aktif' : 'Mode Tamu / Demo'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.full_name || 'Pengguna Cerdas'}</Text>
-            <Text style={styles.userEmail}>{user?.email || 'demo@scanfinance.app'}</Text>
-
-            <View style={styles.statusBadge}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.statusBadgeText}>Akun Aktif</Text>
-            </View>
+          <View style={styles.authBtnRow}>
+            {!session ? (
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={() => router.push('/auth/login')}
+              >
+                <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.loginBtnText}>Masuk / Daftar Akun Pribadi</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={16} color={Palette.coral} />
+                <Text style={styles.logoutBtnText}>Keluar Akun</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Cloud & AI Services Status Card */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>Status Layanan Otomatis</Text>
-          <Text style={styles.sectionCardSub}>
-            Layanan AI, Database, dan Cloud Storage sudah terkonfigurasi otomatis
+        {/* Theme Settings Card */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Tampilan & Tema Aplikasi</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
+            Pilih mode tampilan yang nyaman untuk mata Anda
           </Text>
 
-          <View style={styles.serviceRow}>
-            <View style={styles.serviceLeft}>
-              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(88, 101, 242, 0.15)' }]}>
-                <Ionicons name="sparkles" size={18} color={Palette.primary} />
-              </View>
-              <View>
-                <Text style={styles.serviceName}>Google Gemini 3.6 Flash AI</Text>
-                <Text style={styles.serviceDesc}>Pemindaian & Ekstraksi Struk Belanja</Text>
-              </View>
-            </View>
-            <View style={styles.activePill}>
-              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
-              <Text style={styles.activePillText}>Aktif</Text>
-            </View>
-          </View>
+          <View style={styles.themeSelectorRow}>
+            <TouchableOpacity
+              style={[
+                styles.themeOptionCard,
+                mode === 'dark' && styles.themeOptionActive,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+              onPress={() => mode !== 'dark' && toggleTheme()}
+            >
+              <Ionicons
+                name="moon"
+                size={24}
+                color={mode === 'dark' ? Palette.primary : theme.textMuted}
+              />
+              <Text
+                style={[
+                  styles.themeOptionTitle,
+                  { color: mode === 'dark' ? Palette.primary : theme.text },
+                ]}
+              >
+                Dark Mode
+              </Text>
+              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
+                Tema Discord Dark
+              </Text>
+            </TouchableOpacity>
 
-          <View style={styles.serviceRow}>
-            <View style={styles.serviceLeft}>
-              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-                <Ionicons name="logo-google" size={18} color="#3B82F6" />
-              </View>
-              <View>
-                <Text style={styles.serviceName}>Penyimpanan Google Drive</Text>
-                <Text style={styles.serviceDesc}>Arsip Foto Struk Otomatis</Text>
-              </View>
-            </View>
-            <View style={styles.activePill}>
-              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
-              <Text style={styles.activePillText}>Aktif</Text>
-            </View>
-          </View>
-
-          <View style={[styles.serviceRow, { borderBottomWidth: 0 }]}>
-            <View style={styles.serviceLeft}>
-              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                <Ionicons name="server" size={18} color="#10B981" />
-              </View>
-              <View>
-                <Text style={styles.serviceName}>Supabase PostgreSQL</Text>
-                <Text style={styles.serviceDesc}>Database Transaksi & Row Level Security</Text>
-              </View>
-            </View>
-            <View style={styles.activePill}>
-              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
-              <Text style={styles.activePillText}>Aktif</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Monthly Budget Setting */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionIconBox}>
-              <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
-            </View>
-            <View>
-              <Text style={styles.sectionCardTitle}>Batas Anggaran Bulanan</Text>
-              <Text style={styles.sectionCardSub}>Target maksimal pengeluaran per bulan</Text>
-            </View>
-          </View>
-
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              value={inputBudget}
-              onChangeText={setInputBudget}
-              keyboardType="numeric"
-              placeholder="5000000"
-              placeholderTextColor={Palette.darkTextMuted}
-            />
-            <TouchableOpacity style={styles.actionBtn} onPress={handleSaveBudget}>
-              <Text style={styles.actionBtnText}>Simpan</Text>
+            <TouchableOpacity
+              style={[
+                styles.themeOptionCard,
+                mode === 'light' && styles.themeOptionActive,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+              onPress={() => mode !== 'light' && toggleTheme()}
+            >
+              <Ionicons
+                name="sunny"
+                size={24}
+                color={mode === 'light' ? Palette.primary : theme.textMuted}
+              />
+              <Text
+                style={[
+                  styles.themeOptionTitle,
+                  { color: mode === 'light' ? Palette.primary : theme.text },
+                ]}
+              >
+                Light Mode
+              </Text>
+              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
+                Tema Cerah & Bersih
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* App Info & About */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>Tentang ScanFinance</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Versi Aplikasi</Text>
-            <Text style={styles.infoVal}>v1.0.0 (Expo SDK 57)</Text>
+        {/* Company & Reimbursement Profile Form (Foto 2, 3, 4) */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Informasi Perusahaan & Rekapitulasi Klaim
+          </Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
+            Data ini otomatis dicetak pada header dan kolom tanda tangan Google Spreadsheet
+          </Text>
+
+          {/* Form Fields Grid */}
+          <View style={styles.formGrid}>
+            <View style={styles.formField}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Nama Perusahaan</Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                value={companyName}
+                onChangeText={setCompanyName}
+                placeholder="Misal: PT. San Kawan Abadi"
+                placeholderTextColor={theme.textMuted}
+              />
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Nama Lengkap Pembuat</Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Misal: Gabriel Rudra Renata"
+                placeholderTextColor={theme.textMuted}
+              />
+            </View>
+
+            <View style={styles.rowTwoCols}>
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Dept / Divisi</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={department}
+                  onChangeText={setDepartment}
+                  placeholder="Misal: Operation"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Project / Lokasi</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={projectName}
+                  onChangeText={setProjectName}
+                  placeholder="Misal: Head Office"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowTwoCols}>
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Kota Tanda Tangan</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="Misal: Tangerang"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Jumlah Cash Advance (Rp)</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={cashAdvance}
+                  onChangeText={setCashAdvance}
+                  keyboardType="numeric"
+                  placeholder="7117500"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </View>
+
+            {/* Verificators */}
+            <View style={styles.rowTwoCols}>
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Diperiksa oleh</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={verifierName}
+                  onChangeText={setVerifierName}
+                  placeholder="Misal: Yunitha"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={[styles.formField, { flex: 1 }]}>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Diperiksa & Diketahui oleh</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={approverName}
+                  onChangeText={setApproverName}
+                  placeholder="Misal: Dwi Hartanto"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Tema Desain</Text>
-            <Text style={styles.infoVal}>Discord Dark & Blurple</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Penyimpanan Foto</Text>
-            <Text style={styles.infoVal}>Google Drive</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Database</Text>
-            <Text style={styles.infoVal}>Supabase PostgreSQL + RLS</Text>
-          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={styles.saveProfileBtn}
+            onPress={handleSaveProfile}
+            disabled={isSaving}
+          >
+            <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.saveProfileBtnText}>
+              {isSaving ? 'Menyimpan...' : 'Simpan Data Perusahaan'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -167,196 +339,180 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Palette.darkBg,
   },
   container: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingHorizontal: 16,
+    paddingBottom: 90,
   },
-  userCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 20,
-  },
-  avatarLarge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Palette.primaryDark,
+  themeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Palette.primaryLight,
-    marginRight: 16,
   },
-  avatarLargeText: {
-    fontSize: 24,
+  card: {
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  userHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  userInfo: {
+  userInfoCol: {
     flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Palette.darkText,
+    fontSize: 17,
+    fontWeight: '800',
   },
   userEmail: {
-    fontSize: 13,
-    color: Palette.darkTextSecondary,
+    fontSize: 12,
     marginTop: 2,
-    marginBottom: 6,
+  },
+  badgeRow: {
+    marginTop: 6,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(35, 165, 90, 0.12)',
+    alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+    borderRadius: 12,
+    gap: 6,
   },
-  onlineDot: {
+  statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#23A55A',
   },
-  statusBadgeText: {
-    fontSize: 11,
-    color: '#23A55A',
-    fontWeight: '600',
-  },
-  sectionCard: {
-    marginHorizontal: 20,
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 16,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  sectionIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: 'rgba(88, 101, 242, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionCardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Palette.darkText,
-  },
-  sectionCardSub: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  serviceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  serviceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  serviceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  serviceName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Palette.darkText,
-  },
-  serviceDesc: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
-    marginTop: 1,
-  },
-  activePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(35, 165, 90, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  activePillText: {
+  statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#23A55A',
   },
-  inputRow: {
+  authBtnRow: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 14,
+  },
+  loginBtn: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: Palette.darkText,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  actionBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Palette.primary,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 8,
   },
-  actionBtnText: {
+  loginBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
   },
-  infoRow: {
+  logoutBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(242, 63, 67, 0.1)',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 8,
+  },
+  logoutBtnText: {
+    color: Palette.coral,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 14,
+  },
+  themeSelectorRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeOptionCard: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  themeOptionActive: {
+    borderColor: Palette.primary,
+  },
+  themeOptionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  themeOptionDesc: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  formGrid: {
+    gap: 10,
+  },
+  formField: {
+    marginBottom: 4,
+  },
+  rowTwoCols: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  textInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    fontSize: 13,
   },
-  infoLabel: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
+  saveProfileBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Palette.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 16,
+    gap: 8,
   },
-  infoVal: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Palette.darkText,
+  saveProfileBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

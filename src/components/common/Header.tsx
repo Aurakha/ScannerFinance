@@ -3,36 +3,33 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
-  rightAction?: {
-    icon: keyof typeof Ionicons.glyphMap;
-    onPress: () => void;
-  };
+  rightAction?: React.ReactNode;
 }
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, rightAction }) => {
   const { user } = useAuthStore();
+  const { theme } = useThemeStore();
 
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.actionsContainer}>
-        {rightAction && (
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={rightAction.onPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name={rightAction.icon} size={22} color={Palette.darkText} />
-          </TouchableOpacity>
-        )}
+        {rightAction}
 
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -49,45 +46,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 12 : 16,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 10 : 14,
+    paddingBottom: 14,
   },
   textContainer: {
     flex: 1,
+    paddingRight: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
-    color: Palette.darkText,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 13,
-    color: Palette.darkTextSecondary,
+    fontSize: 12,
     marginTop: 2,
     fontWeight: '500',
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 8,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Palette.primaryDark,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
@@ -95,7 +81,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

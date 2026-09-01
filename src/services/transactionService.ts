@@ -39,20 +39,21 @@ const SEED_TRANSACTIONS: Transaction[] = [
     user_id: 'local-user',
     category_id: 'cat-makanan',
     category: DEFAULT_CATEGORIES.find((c) => c.id === 'cat-makanan'),
-    merchant_name: 'Kopi Kenangan Senopati',
-    transaction_date: new Date(Date.now() - 3600000 * 4).toISOString(),
-    total_amount: 53800,
-    subtotal: 58000,
-    tax_amount: 5800,
-    discount_amount: 10000,
+    merchant_name: 'ShopeeFood - Bakmi Jogja',
+    transaction_date: new Date().toISOString(),
+    total_amount: 70500,
+    subtotal: 68000,
+    tax_amount: 0,
+    discount_amount: 12000,
+    shipping_fee: 8000,
+    admin_fee: 6500,
     payment_method: 'e-wallet',
-    notes: 'Kopi sore bersama tim',
+    notes: 'No. Pesanan: 3223849468528128954',
     items: [
-      { item_name: 'Kopi Kenangan Mantan (L)', quantity: 1, unit_price: 24000, total_price: 24000 },
-      { item_name: 'Avocado Coffee Ice (R)', quantity: 1, unit_price: 28000, total_price: 28000 },
-      { item_name: 'Roti Coklat Klasik', quantity: 1, unit_price: 6000, total_price: 6000 },
+      { item_name: 'Bakmi Godog', quantity: 1, unit_price: 34000, total_price: 34000 },
+      { item_name: 'Bakmi Goreng', quantity: 1, unit_price: 34000, total_price: 34000 },
     ],
-    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    created_at: new Date().toISOString(),
   },
 ];
 
@@ -68,10 +69,16 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
     const nonSeed = localTx.filter((t) => !t.id.startsWith('tx-seed-'));
     if (nonSeed.length === 0) return;
 
+    // Ambil sesi user saat ini jika ada
+    const { data: sessionRes } = await supabase.auth.getSession();
+    const currentUserId = sessionRes?.session?.user?.id || null;
+
     // Ambil data transaksi yang sudah ada di Supabase
-    const { data: cloudData } = await supabase
-      .from('transactions')
-      .select('id, merchant_name, transaction_date');
+    let query = supabase.from('transactions').select('id, merchant_name, transaction_date');
+    if (currentUserId) {
+      query = query.eq('user_id', currentUserId);
+    }
+    const { data: cloudData } = await query;
 
     const cloudKeys = new Set(
       (cloudData || []).map((c) => `${c.merchant_name}_${c.transaction_date}`)
@@ -80,7 +87,6 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
     for (const tx of nonSeed) {
       const key = `${tx.merchant_name}_${tx.transaction_date}`;
       if (!cloudKeys.has(key)) {
-        // Cari category UUID jika ada
         let sbCatId: string | null = null;
         if (tx.category_id && tx.category_id.includes('-') && tx.category_id.length === 36) {
           sbCatId = tx.category_id;
@@ -94,9 +100,10 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
           if (catRes?.id) sbCatId = catRes.id;
         }
 
-        const { data: inserted, error: insertErr } = await supabase
+        const { data: inserted } = await supabase
           .from('transactions')
           .insert({
+            user_id: currentUserId,
             category_id: sbCatId,
             merchant_name: tx.merchant_name,
             transaction_date: tx.transaction_date,
@@ -126,7 +133,7 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
       }
     }
   } catch (err) {
-    console.warn('Auto sync local to Supabase notice:', err);
+    console.warn('Auto sync notice:', err);
   }
 }
 
@@ -135,12 +142,15 @@ export async function getTransactions(): Promise<Transaction[]> {
     return inMemoryTransactions || SEED_TRANSACTIONS;
   }
 
-  // 1. Coba sinkronkan data lokal ke cloud Supabase jika ada
+  // 1. Coba sinkronkan data lokal ke cloud Supabase
   await syncLocalTransactionsToSupabase();
 
-  // 2. Ambil seluruh transaksi live dari Supabase Cloud
+  // 2. Ambil seluruh transaksi live dari Supabase Cloud berdasarkan user_id (jika login)
   try {
-    const { data, error } = await supabase
+    const { data: sessionRes } = await supabase.auth.getSession();
+    const currentUserId = sessionRes?.session?.user?.id;
+
+    let query = supabase
       .from('transactions')
       .select(`
         *,
@@ -149,12 +159,17 @@ export async function getTransactions(): Promise<Transaction[]> {
       `)
       .order('transaction_date', { ascending: false });
 
+    if (currentUserId) {
+      query = query.eq('user_id', currentUserId);
+    }
+
+    const { data, error } = await query;
+
     if (!error && data && data.length > 0) {
       const formatted = data.map((d: any) => ({
         ...d,
         items: d.items || [],
       }));
-      // Simpan backup ke local storage
       await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(formatted));
       return formatted as Transaction[];
     }
@@ -191,6 +206,9 @@ export async function saveTransaction(
 
   // 1. Simpan langsung ke Supabase PostgreSQL
   try {
+    const { data: sessionRes } = await supabase.auth.getSession();
+    const currentUserId = sessionRes?.session?.user?.id || null;
+
     let sbCategoryId: string | null = null;
     if (newTx.category_id && newTx.category_id.includes('-') && newTx.category_id.length === 36) {
       sbCategoryId = newTx.category_id;
@@ -209,6 +227,7 @@ export async function saveTransaction(
     const { data: insertedTx, error: txError } = await supabase
       .from('transactions')
       .insert({
+        user_id: currentUserId,
         category_id: sbCategoryId,
         merchant_name: newTx.merchant_name,
         transaction_date: newTx.transaction_date,
@@ -239,11 +258,9 @@ export async function saveTransaction(
         }));
         await supabase.from('transaction_items').insert(itemsToInsert);
       }
-    } else if (txError) {
-      console.warn('Supabase insert notice:', txError.message);
     }
   } catch (err) {
-    console.warn('Supabase sync error, keeping in local storage:', err);
+    console.warn('Supabase sync error:', err);
   }
 
   // 2. Update local storage sebagai offline cache
@@ -297,6 +314,10 @@ export async function getCategories(): Promise<Category[]> {
   return DEFAULT_CATEGORIES;
 }
 
+/**
+ * Menghitung statistik pengeluaran.
+ * Jika bulan berjalan belum memiliki data, otomatis menggunakan seluruh transaksi aktif agar dashboard tidak kosong (Rp 0).
+ */
 export function calculateMonthlyStats(
   transactions: Transaction[],
   budgetLimit: number = 5000000
@@ -309,11 +330,14 @@ export function calculateMonthlyStats(
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
 
-  const totalExpense = thisMonthTx
+  // Tampilkan data bulan ini, atau jika belum ada transaksi di bulan ini, gunakan seluruh transaksi aktif
+  const targetTx = thisMonthTx.length > 0 ? thisMonthTx : transactions;
+
+  const totalExpense = targetTx
     .filter((t) => t.category?.type !== 'income')
     .reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
 
-  const totalIncome = thisMonthTx
+  const totalIncome = targetTx
     .filter((t) => t.category?.type === 'income')
     .reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
 
@@ -333,7 +357,7 @@ export function calculateMonthlyStats(
     }
   > = {};
 
-  thisMonthTx.forEach((t) => {
+  targetTx.forEach((t) => {
     if (t.category?.type === 'income') return;
     const catName = t.category?.name || 'Lainnya';
     const catColor = t.category?.color || '#6B7280';
@@ -372,7 +396,7 @@ export function calculateMonthlyStats(
     budgetLimit,
     budgetUsedPercentage,
     dailyAverage,
-    receiptCount: thisMonthTx.length,
+    receiptCount: targetTx.length,
     categoryBreakdown,
   };
 }

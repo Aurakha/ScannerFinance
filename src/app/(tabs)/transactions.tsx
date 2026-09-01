@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
-  Linking,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,33 +18,44 @@ import { Header } from '@/components/common/Header';
 import { TransactionCard } from '@/components/transactions/TransactionCard';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
+import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
 import { downloadCSV, generateCompanyExpenseReportCSV } from '@/utils/exportReport';
 import { exportToGoogleSpreadsheet } from '@/services/googleDriveService';
 
 export default function TransactionsScreen() {
   const router = useRouter();
-  const { transactions, categories, removeTransaction } = useTransactionStore();
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const { user } = useAuthStore();
+  const { theme, mode, toggleTheme } = useThemeStore();
+  const {
+    transactions,
+    categories,
+    activeFilter,
+    searchQuery,
+    setActiveFilter,
+    setSearchQuery,
+    removeTransaction,
+  } = useTransactionStore();
+
   const [isExportingSheet, setIsExportingSheet] = useState(false);
 
-  const filteredTransactions = transactions.filter((tx) => {
+  // Filter transactions
+  const filteredTransactions = transactions.filter((t) => {
+    const matchCategory = activeFilter === 'all' || t.category_id === activeFilter;
     const matchSearch =
-      !search ||
-      tx.merchant_name.toLowerCase().includes(search.toLowerCase()) ||
-      (tx.notes && tx.notes.toLowerCase().includes(search.toLowerCase())) ||
-      (tx.items && tx.items.some((it) => it.item_name.toLowerCase().includes(search.toLowerCase())));
+      !searchQuery ||
+      t.merchant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.items?.some((i) => i.item_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchCat =
-      selectedCategory === 'all' || tx.category_id === selectedCategory;
-
-    return matchSearch && matchCat;
+    return matchCategory && matchSearch;
   });
 
-  const totalFilteredExpense = filteredTransactions
-    .filter((t) => t.category?.type !== 'income')
-    .reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
+  const totalFilteredAmount = filteredTransactions.reduce(
+    (sum, t) => sum + Number(t.total_amount || 0),
+    0
+  );
 
   const handleDelete = (id: string, merchant: string) => {
     Alert.alert(
@@ -64,13 +75,13 @@ export default function TransactionsScreen() {
   const handleExportGoogleSheet = async () => {
     try {
       setIsExportingSheet(true);
-      const csv = generateCompanyExpenseReportCSV(filteredTransactions);
-      const fileName = `Rekapitulasi_Klaim_Biaya_${new Date().toISOString().slice(0, 10)}`;
+      const csv = generateCompanyExpenseReportCSV(filteredTransactions, user || undefined);
+      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'SanKawanAbadi').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
-      // 1. Selalu unduh file CSV otomatis
+      // 1. Selalu unduh file CSV otomatis ke perangkat
       downloadCSV(csv, `${fileName}.csv`);
 
-      // 2. Buat atau buka Google Spreadsheet
+      // 2. Buka Spreadsheet di tab baru
       const result = await exportToGoogleSpreadsheet(csv, fileName);
       setIsExportingSheet(false);
 
@@ -95,7 +106,7 @@ export default function TransactionsScreen() {
       } else {
         Alert.alert(
           'File Rekap Berhasil Diunduh! 📊',
-          'Berkas CSV rekapitulasi telah diunduh ke komputer Anda. Buka Google Sheets untuk mengimpor atau melihatnya sekarang?',
+          'Berkas CSV rekapitulasi klaim biaya telah diunduh ke komputer Anda. Buka Google Sheets untuk melihatnya sekarang?',
           [
             { text: 'Selesai', style: 'cancel' },
             {
@@ -113,141 +124,179 @@ export default function TransactionsScreen() {
       }
     } catch (err: any) {
       setIsExportingSheet(false);
-      const csv = generateCompanyExpenseReportCSV(filteredTransactions);
-      downloadCSV(csv, `Rekap_Klaim_Pengeluaran_${Date.now()}.csv`);
-      Alert.alert('Unduhan Berhasil', 'Berkas CSV rekapitulasi telah berhasil diunduh ke perangkat Anda.');
+      Alert.alert('Gagal Ekspor', err.message || 'Terjadi kesalahan saat mengekspor laporan.');
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
         {/* Header */}
         <Header
           title="Riwayat Transaksi"
           subtitle={`${filteredTransactions.length} transaksi tercatat`}
-          rightAction={{
-            icon: 'share-outline',
-            onPress: handleExportGoogleSheet,
-          }}
+          rightAction={
+            <TouchableOpacity
+              style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny' : 'moon'}
+                size={18}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
+              />
+            </TouchableOpacity>
+          }
         />
 
-        {/* Google Spreadsheet Export Banner */}
-        <TouchableOpacity
-          style={styles.exportBanner}
-          onPress={handleExportGoogleSheet}
-          disabled={isExportingSheet}
-          activeOpacity={0.8}
+        {/* 1-Click Google Spreadsheet Export Banner (PT. San Kawan Abadi Format) */}
+        <View
+          style={[
+            styles.spreadsheetBanner,
+            {
+              backgroundColor: mode === 'dark' ? 'rgba(35, 165, 90, 0.12)' : 'rgba(35, 165, 90, 0.08)',
+              borderColor: 'rgba(35, 165, 90, 0.3)',
+            },
+          ]}
         >
-          <View style={styles.exportBannerLeft}>
-            <View style={styles.exportIconBox}>
-              <Ionicons name="grid-outline" size={20} color="#23A55A" />
+          <View style={styles.bannerLeftCol}>
+            <View style={styles.spreadsheetIconCircle}>
+              <Ionicons name="grid" size={20} color={Palette.greenOnline} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.exportBannerTitle}>Ekspor ke Google Spreadsheet 📊</Text>
-              <Text style={styles.exportBannerSub}>
-                Otomatis buat & buka tabel rekapitulasi klaim di Google Sheets Anda
+              <Text style={[styles.spreadsheetBannerTitle, { color: theme.text }]}>
+                Ekspor ke Google Spreadsheet 📊
+              </Text>
+              <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
+                Format tabel reimbursement resmi {user?.company_name || 'PT. San Kawan Abadi'}
               </Text>
             </View>
           </View>
 
-          {isExportingSheet ? (
-            <ActivityIndicator size="small" color={Palette.primary} />
-          ) : (
-            <View style={styles.openPill}>
-              <Text style={styles.openPillText}>Buka ↗</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.openSpreadsheetBtn}
+            onPress={handleExportGoogleSheet}
+            disabled={isExportingSheet}
+          >
+            {isExportingSheet ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.openSpreadsheetBtnText}>Unduh & Buka ↗</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
 
-        {/* Search Input */}
-        <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={18} color={Palette.darkTextMuted} />
+        {/* Search Bar */}
+        <View
+          style={[
+            styles.searchBar,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
+          <Ionicons name="search-outline" size={18} color={theme.textMuted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
             placeholder="Cari toko, barang belanjaan, atau catatan..."
-            placeholderTextColor={Palette.darkTextMuted}
-            value={search}
-            onChangeText={setSearch}
+            placeholderTextColor={theme.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Palette.darkTextMuted} />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={theme.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        {/* Category Horizontal Filter */}
-        <View style={styles.filterWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterList}
+        {/* Category Filters Pill Row */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterRow}
+          contentContainerStyle={styles.filterContent}
+        >
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              activeFilter === 'all' && styles.filterChipActive,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+            onPress={() => setActiveFilter('all')}
           >
-            <TouchableOpacity
+            <Text
               style={[
-                styles.filterChip,
-                selectedCategory === 'all' && styles.filterChipActive,
+                styles.filterChipText,
+                activeFilter === 'all' && styles.filterChipTextActive,
+                { color: activeFilter === 'all' ? '#FFFFFF' : theme.textSecondary },
               ]}
-              onPress={() => setSelectedCategory('all')}
             >
-              <Text
+              Semua
+            </Text>
+          </TouchableOpacity>
+
+          {categories.map((cat) => {
+            const isSelected = activeFilter === cat.id;
+            return (
+              <TouchableOpacity
+                key={cat.id}
                 style={[
-                  styles.filterChipText,
-                  selectedCategory === 'all' && styles.filterChipTextActive,
+                  styles.filterChip,
+                  isSelected && {
+                    backgroundColor: `${cat.color}25`,
+                    borderColor: cat.color,
+                  },
+                  { backgroundColor: theme.card, borderColor: theme.border },
                 ]}
+                onPress={() => setActiveFilter(cat.id)}
               >
-                Semua
-              </Text>
-            </TouchableOpacity>
-
-            {categories.map((cat) => {
-              const isActive = selectedCategory === cat.id;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
+                <View style={[styles.dot, { backgroundColor: cat.color }]} />
+                <Text
                   style={[
-                    styles.filterChip,
-                    isActive && {
-                      backgroundColor: `${cat.color}25`,
-                      borderColor: cat.color,
-                    },
+                    styles.filterChipText,
+                    isSelected && { color: cat.color, fontWeight: '700' },
+                    { color: isSelected ? cat.color : theme.textSecondary },
                   ]}
-                  onPress={() => setSelectedCategory(cat.id)}
                 >
-                  <View style={[styles.dot, { backgroundColor: cat.color }]} />
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      isActive && { color: cat.color, fontWeight: '700' },
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-        {/* Subtotal of filtered items */}
-        <View style={styles.summaryBar}>
-          <Text style={styles.summaryLabel}>Total Filter:</Text>
-          <Text style={styles.summaryAmount}>{formatRupiah(totalFilteredExpense)}</Text>
+        {/* Subtotal Summary Header */}
+        <View style={styles.totalHeader}>
+          <Text style={[styles.totalCountText, { color: theme.textMuted }]}>
+            Total Tercatat:
+          </Text>
+          <Text style={[styles.totalAmountText, { color: theme.text }]}>
+            {formatRupiah(totalFilteredAmount)}
+          </Text>
         </View>
 
         {/* Transactions List */}
         <ScrollView
-          style={styles.list}
+          style={styles.listContainer}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
           {filteredTransactions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={48} color={Palette.darkTextMuted} />
-              <Text style={styles.emptyTitle}>Tidak ada transaksi ditemukan</Text>
-              <Text style={styles.emptySubtitle}>
-                Coba sesuaikan kata kunci pencarian atau filter kategori Anda.
+            <View
+              style={[
+                styles.emptyState,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <Ionicons name="receipt-outline" size={48} color={theme.textMuted} />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                Tidak ada transaksi ditemukan
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
+                {searchQuery
+                  ? 'Coba gunakan kata kunci pencarian yang lain'
+                  : 'Unggah struk untuk menambahkan transaksi baru'}
               </Text>
             </View>
           ) : (
@@ -269,106 +318,96 @@ export default function TransactionsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Palette.darkBg,
   },
   container: {
     flex: 1,
   },
-  exportBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  themeToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(35, 165, 90, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(35, 165, 90, 0.3)',
-    marginHorizontal: 20,
+  },
+  spreadsheetBanner: {
+    marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    gap: 10,
   },
-  exportBannerLeft: {
+  bannerLeftCol: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     flex: 1,
   },
-  exportIconBox: {
-    width: 36,
-    height: 36,
+  spreadsheetIconCircle: {
+    width: 38,
+    height: 38,
     borderRadius: 10,
     backgroundColor: 'rgba(35, 165, 90, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  exportBannerTitle: {
+  spreadsheetBannerTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: Palette.darkText,
+    fontWeight: '800',
   },
-  exportBannerSub: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
+  spreadsheetBannerSub: {
+    fontSize: 10,
     marginTop: 1,
   },
-  openPill: {
-    backgroundColor: '#23A55A',
+  openSpreadsheetBtn: {
+    backgroundColor: Palette.greenOnline,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 8,
   },
-  openPillText: {
+  openSpreadsheetBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
   },
-  searchBox: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Palette.darkCard,
-    marginHorizontal: 20,
-    paddingHorizontal: 14,
-    height: 46,
-    borderRadius: 14,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    gap: 10,
-    marginBottom: 12,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    color: Palette.darkText,
     fontSize: 13,
   },
-  filterWrapper: {
-    marginBottom: 12,
+  filterRow: {
+    maxHeight: 38,
+    marginBottom: 10,
   },
-  filterList: {
-    paddingHorizontal: 20,
-    gap: 8,
+  filterContent: {
+    paddingHorizontal: 16,
+    gap: 6,
+    alignItems: 'center',
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Palette.darkCard,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   filterChipActive: {
-    backgroundColor: Palette.primaryMuted,
+    backgroundColor: Palette.primary,
     borderColor: Palette.primary,
-  },
-  filterChipText: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: Palette.primary,
-    fontWeight: '700',
   },
   dot: {
     width: 6,
@@ -376,49 +415,53 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginRight: 6,
   },
-  summaryBar: {
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  totalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
-  summaryLabel: {
-    fontSize: 12,
-    color: Palette.darkTextMuted,
-    fontWeight: '500',
+  totalCountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  summaryAmount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Palette.darkText,
+  totalAmountText: {
+    fontSize: 15,
+    fontWeight: '800',
   },
-  list: {
+  listContainer: {
     flex: 1,
   },
   listContent: {
-    padding: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   emptyState: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    padding: 30,
+    borderRadius: 16,
+    borderWidth: 1,
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 30,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: Palette.darkText,
-    marginTop: 14,
+    marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: Palette.darkTextMuted,
+    fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
-    lineHeight: 18,
   },
 });
