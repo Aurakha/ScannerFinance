@@ -17,6 +17,7 @@ interface AuthState {
   loginAsDemo: () => void;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   // Admin Features
@@ -283,6 +284,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return {};
     } catch (err: any) {
       return { error: err.message || 'Terjadi kesalahan saat masuk.' };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  resetPasswordForEmail: async (email: string) => {
+    try {
+      set({ isLoading: true });
+      const redirectTo =
+        Platform.OS === 'web' && typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/login`
+          : undefined;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Gagal mengirim link reset password.' };
     } finally {
       set({ isLoading: false });
     }

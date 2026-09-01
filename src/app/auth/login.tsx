@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,13 +20,19 @@ import { useThemeStore } from '@/store/themeStore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, loginAsDemo, isLoading } = useAuthStore();
+  const { signIn, loginAsDemo, resetPasswordForEmail, isLoading } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Forgot Password State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStatus, setForgotStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const handleLogin = async () => {
     setErrorMessage('');
@@ -39,6 +46,27 @@ export default function LoginScreen() {
       setErrorMessage(error);
     } else {
       router.replace('/(tabs)');
+    }
+  };
+
+  const handleSendResetPassword = async () => {
+    setForgotStatus(null);
+    if (!forgotEmail.trim()) {
+      setForgotStatus({ type: 'error', text: 'Silakan masukkan alamat email Anda.' });
+      return;
+    }
+
+    setIsSendingReset(true);
+    const { error } = await resetPasswordForEmail(forgotEmail.trim());
+    setIsSendingReset(false);
+
+    if (error) {
+      setForgotStatus({ type: 'error', text: error });
+    } else {
+      setForgotStatus({
+        type: 'success',
+        text: 'Link reset kata sandi telah dikirim ke email Anda! Silakan periksa inbox / spam Anda.',
+      });
     }
   };
 
@@ -120,11 +148,20 @@ export default function LoginScreen() {
 
             {/* Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kata Sandi</Text>
+              <View style={styles.labelRow}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Kata Sandi</Text>
+                <TouchableOpacity onPress={() => {
+                  setForgotEmail(email);
+                  setForgotStatus(null);
+                  setShowForgotModal(true);
+                }}>
+                  <Text style={styles.forgotPasswordText}>Lupa Kata Sandi?</Text>
+                </TouchableOpacity>
+              </View>
               <View
                 style={[
                   styles.inputWrapper,
-                  { backgroundColor: theme.background, borderColor: theme.border },
+                  { backgroundColor: theme.background, borderColor: theme.border, marginTop: 6 },
                 ]}
               >
                 <Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />
@@ -188,6 +225,88 @@ export default function LoginScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Modal Lupa Kata Sandi */}
+      <Modal visible={showForgotModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <Ionicons name="key-outline" size={20} color={Palette.primary} />
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Reset Kata Sandi</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowForgotModal(false)}>
+                <Ionicons name="close" size={22} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+              Masukkan alamat email akun Anda. Kami akan mengirimkan tautan reset kata sandi resmi dari Supabase.
+            </Text>
+
+            {forgotStatus ? (
+              <View
+                style={[
+                  styles.modalStatusBanner,
+                  forgotStatus.type === 'success'
+                    ? { backgroundColor: 'rgba(35, 165, 90, 0.15)', borderColor: Palette.greenOnline }
+                    : { backgroundColor: 'rgba(242, 63, 67, 0.15)', borderColor: Palette.coral },
+                ]}
+              >
+                <Ionicons
+                  name={forgotStatus.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                  size={18}
+                  color={forgotStatus.type === 'success' ? Palette.greenOnline : Palette.coral}
+                />
+                <Text
+                  style={[
+                    styles.modalStatusText,
+                    { color: forgotStatus.type === 'success' ? Palette.greenOnline : Palette.coral },
+                  ]}
+                >
+                  {forgotStatus.text}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Alamat Email</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  { backgroundColor: theme.background, borderColor: theme.border },
+                ]}
+              >
+                <Ionicons name="mail-outline" size={18} color={theme.textMuted} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={forgotEmail}
+                  onChangeText={(val) => {
+                    setForgotEmail(val);
+                    if (forgotStatus) setForgotStatus(null);
+                  }}
+                  placeholder="nama@perusahaan.com"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleSendResetPassword}
+              disabled={isSendingReset}
+            >
+              {isSendingReset ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Kirim Link Reset Kata Sandi ✉️</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -334,17 +453,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  adminAccessBtn: {
+  labelRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 12,
-    height: 42,
-    marginTop: 10,
-    borderWidth: 1,
-    gap: 8,
+    marginBottom: 6,
   },
-  adminAccessBtnText: {
+  forgotPasswordText: {
     fontSize: 12,
     fontWeight: '700',
     color: Palette.primaryLight,
@@ -361,5 +476,55 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: Palette.primaryLight,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    maxWidth: 440,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  modalStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+    gap: 8,
+  },
+  modalStatusText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });
