@@ -7,18 +7,21 @@ import { getGoogleDriveSettings, uploadReceiptToGoogleDrive } from './googleDriv
 // Mock receipt templates untuk tombol pengujian instan "Demo AI"
 const DEMO_RECEIPTS: ReceiptScanResult[] = [
   {
-    merchant_name: 'Indomaret Point Kemang',
+    merchant_name: 'ShopeeFood - Bakmi Jogja',
     transaction_date: new Date().toISOString(),
-    suggested_category: 'Belanja Bulanan',
-    payment_method: 'qris',
-    subtotal: 62500,
-    tax_amount: 6875, // PPN tercatat sebagai informasi
-    discount_amount: 0,
-    total_amount: 62500, // Total bayar tetap 62.500
+    suggested_category: 'Makanan & Minuman',
+    payment_method: 'e-wallet',
+    subtotal: 68000,
+    shipping_fee: 8000,
+    admin_fee: 6500, // Biaya Layanan (3.500) + Biaya Lain-lain (3.000)
+    tax_amount: 0,
+    discount_amount: 12000,
+    total_amount: 70500,
     confidence_score: 0.99,
-    notes: 'No: TORR-9361508/YUNI /01',
+    notes: 'No. Pesanan: 3223849468528128954',
     items: [
-      { item_name: 'MED/SPHP BERAS 5KG', quantity: 1, unit_price: 62500, total_price: 62500 },
+      { item_name: 'Bakmi Godog', quantity: 1, unit_price: 34000, total_price: 34000 },
+      { item_name: 'Bakmi Goreng', quantity: 1, unit_price: 34000, total_price: 34000 },
     ],
   },
 ];
@@ -72,7 +75,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 }
 
 /**
- * Memproses gambar struk via Google Gemini 3.6 Flash dengan ekstraksi lengkap PPN dan Total Belanja
+ * Memproses gambar struk via Google Gemini 3.6 Flash dengan pembacaan otomatis Ongkir, Biaya Layanan/Admin, Diskon, & Total
  */
 export async function processReceiptImage(
   imageUri: string,
@@ -113,43 +116,54 @@ export async function processReceiptImage(
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
 
   const systemPrompt = `
-Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan dan Struk Belanja Indonesia.
-Tugas Anda mengekstrak data dari struk belanja ini:
+Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, dll.).
+Tugas Anda mengekstrak data dari gambar transaksi ini:
 
 1. Validasi:
-   - Jika BUKAN struk/bukti transaksi belanja, kembalikan:
+   - Jika BUKAN dokumen transaksi/struk belanja, kembalikan:
      {"is_receipt": false, "rejection_reason": "Gambar bukan struk belanja atau bukti transaksi."}
 
 2. Ekstraksi Field:
-   - merchant_name: Nama toko/penjual (contoh: "Indomaret", "Alfamart", "Superindo", "SPBU Pertamina").
-   - transaction_date: Tanggal & jam transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Contoh di struk "14.08.26-13:44" -> "2026-08-14T13:44:00".
+   - merchant_name: Nama toko/restoran/platform (contoh: "ShopeeFood", "Bakmi Jogja", "Indomaret", "GrabFood", "Gojek", "SPBU Pertamina").
+   - transaction_date: Tanggal & jam transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Contoh di struk "19 Agt 2026 16:49" -> "2026-08-19T16:49:00".
    - suggested_category: "Makanan & Minuman" | "Belanja Bulanan" | "Transportasi" | "Tagihan & Utilitas" | "Hiburan & Rekreasi" | "Kesehatan & Medis" | "Pendidikan & Buku" | "Lainnya".
-   - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer".
-   - items: Daftar seluruh item belanjaan (nama barang, quantity, harga satuan, total harga).
-   - subtotal: Total harga barang sebelum diskon.
+   - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer". (Misal jika ShopeePay/GoPay/OVO -> "e-wallet").
    
-   ⚠️ ATURAN EKSTRAKSI PAJAK PPN & TOTAL BELANJA:
-   - tax_amount: BACA dan EKSTRAK nominal PPN yang tertera pada bagian bawah struk (contoh: jika tertera "PPN= 6.875" atau "PPN DIBEBASKAN: PPN= 6.875", maka tax_amount adalah 6875; jika tertera "PPN= 1.437", maka tax_amount adalah 1437; jika tidak ada, isi 0).
-   - discount_amount: Potongan harga/diskon jika ada (angka bulat, isi 0 jika tidak ada).
-   - total_amount: AMBIL LANGSUNG DARI BARIS "TOTAL BELANJA" / "NON TUNAI" / "TUNAI" (contoh: jika TOTAL BELANJA Rp 62.500, maka total_amount adalah 62500. JANGAN menambahkan PPN lagi ke total_amount karena total_amount adalah nominal yang sesungguhnya dibayarkan konsumen di kasir).
-   - notes: Catatan seperti nomor transaksi kasir (misal: "TORR-9361508/YUNI /01").
+   - items: Daftar HANYA barang/menu makanan/produk yang dibeli (contoh: Bakmi Godog x1 @34.000, Bakmi Goreng x1 @34.000). JANGAN memasukkan ongkir/biaya admin ke dalam list items barang.
+   
+   - subtotal: Subtotal pesanan menu/barang sebelum diskon & biaya tambahan (contoh: 68000).
+   
+   - shipping_fee: Biaya pengiriman / ongkos kirim / delivery fee jika ada (contoh: jika tertera "Biaya Pengiriman Rp8.000", isi 8000; jika tidak ada, isi 0).
+   
+   - admin_fee: JUMLAH TOTAL seluruh biaya layanan aplikasi, biaya penanganan, biaya admin kasir, dan biaya lain-lain jika ada (contoh: jika tertera "Biaya Layanan Rp3.500" dan "Biaya Lain-lain Rp3.000", maka admin_fee = 3500 + 3000 = 6500; jika tidak ada, isi 0).
+   
+   - discount_amount: Potongan voucher / diskon promo (contoh: jika tertera "Voucher Diskon -Rp12.000", isi 12000; jika tidak ada, isi 0).
+   
+   - tax_amount: Pajak PPN/PB1 jika tertera di luar harga barang (jika sudah termasuk pajak, isi 0 atau nilai PPN informasi).
+   
+   - total_amount: Total nominal yang sesungguhnya dibayarkan pelanggan (contoh: jika Total akhir Rp 70.500, maka total_amount = 70500).
+   
+   - notes: Catatan seperti nomor pesanan (contoh: "No. Pesanan: 3223849468528128954").
 
 Format Output JSON Wajib:
 {
   "is_receipt": true,
-  "merchant_name": "Indomaret",
-  "transaction_date": "2026-08-14T13:44:00",
-  "suggested_category": "Belanja Bulanan",
-  "payment_method": "qris",
-  "subtotal": 62500,
-  "tax_amount": 6875,
-  "discount_amount": 0,
-  "total_amount": 62500,
+  "merchant_name": "ShopeeFood",
+  "transaction_date": "2026-08-19T16:49:00",
+  "suggested_category": "Makanan & Minuman",
+  "payment_method": "e-wallet",
+  "subtotal": 68000,
+  "shipping_fee": 8000,
+  "admin_fee": 6500,
+  "tax_amount": 0,
+  "discount_amount": 12000,
+  "total_amount": 70500,
   "items": [
-    {"item_name": "MED/SPHP BERAS 5KG", "quantity": 1, "unit_price": 62500, "total_price": 62500}
+    {"item_name": "Bakmi Godog", "quantity": 1, "unit_price": 34000, "total_price": 34000},
+    {"item_name": "Bakmi Goreng", "quantity": 1, "unit_price": 34000, "total_price": 34000}
   ],
   "confidence_score": 0.99,
-  "notes": "No: TORR-9361508/YUNI /01"
+  "notes": "No. Pesanan: 3223849468528128954"
 }
 Perhatian: Kembalikan JSON murni tanpa markdown.
 `;
@@ -218,6 +232,8 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
     suggested_category: parsed.suggested_category || 'Belanja Bulanan',
     payment_method: parsed.payment_method || 'cash',
     subtotal: Number(parsed.subtotal) || finalTotal,
+    shipping_fee: Number(parsed.shipping_fee) || 0,
+    admin_fee: Number(parsed.admin_fee) || 0,
     tax_amount: Number(parsed.tax_amount) || 0,
     discount_amount: Number(parsed.discount_amount) || 0,
     total_amount: finalTotal,

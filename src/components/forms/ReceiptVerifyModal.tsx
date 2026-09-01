@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,8 @@ interface ReceiptVerifyModalProps {
     subtotal: number;
     tax_amount: number;
     discount_amount: number;
+    shipping_fee?: number;
+    admin_fee?: number;
     total_amount: number;
     notes: string;
     items: TransactionItem[];
@@ -67,10 +69,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(() => {
     const found = categories.find((c) => c.name === scanData.suggested_category);
-    return found ? found.id : categories[0]?.id || 'cat-belanja';
+    return found ? found.id : categories[0]?.id || 'cat-makanan';
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    scanData.payment_method || 'qris'
+    scanData.payment_method || 'e-wallet'
   );
   const [items, setItems] = useState<TransactionItem[]>(() => {
     return (scanData.items || []).map((it) => ({
@@ -81,9 +83,9 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     }));
   });
 
-  // Biaya-biaya rincian (Admin, Ongkir, PPN, Diskon)
-  const [adminFee, setAdminFee] = useState<string>('0');
-  const [shippingFee, setShippingFee] = useState<string>('0');
+  // Biaya-biaya rincian otomatis dari AI
+  const [adminFee, setAdminFee] = useState<string>(String(scanData.admin_fee || 0));
+  const [shippingFee, setShippingFee] = useState<string>(String(scanData.shipping_fee || 0));
   const [taxAmount, setTaxAmount] = useState<string>(String(scanData.tax_amount || 0));
   const [discountAmount, setDiscountAmount] = useState<string>(String(scanData.discount_amount || 0));
   const [notes, setNotes] = useState<string>(scanData.notes || '');
@@ -118,10 +120,6 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleRecalculateFromItems = () => {
-    setTotalAmount(String(itemsSubtotal));
-  };
-
   const handleSave = () => {
     if (!merchantName.trim()) {
       Alert.alert('Perhatian', 'Nama toko/merchant tidak boleh kosong.');
@@ -143,6 +141,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       category_id: selectedCategoryId,
       payment_method: paymentMethod,
       subtotal: itemsSubtotal > 0 ? itemsSubtotal : finalTotal,
+      shipping_fee: Number(shippingFee) || 0,
+      admin_fee: Number(adminFee) || 0,
       tax_amount: Number(taxAmount) || 0,
       discount_amount: Number(discountAmount) || 0,
       total_amount: finalTotal,
@@ -177,7 +177,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 style={styles.input}
                 value={merchantName}
                 onChangeText={setMerchantName}
-                placeholder="Misal: Indomaret, Superindo, Gojek"
+                placeholder="Misal: ShopeeFood, Indomaret, Superindo"
                 placeholderTextColor={Palette.darkTextMuted}
               />
             </View>
@@ -289,11 +289,11 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             <View style={styles.fieldGroup}>
               <View style={styles.itemHeaderRow}>
                 <Text style={styles.fieldLabel}>
-                  Daftar Barang Belanja ({items.length} Baris)
+                  Daftar Menu / Barang ({items.length} Item)
                 </Text>
                 <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
                   <Ionicons name="add-circle" size={16} color={Palette.primary} />
-                  <Text style={styles.addItemText}>Tambah Barang</Text>
+                  <Text style={styles.addItemText}>Tambah Menu</Text>
                 </TouchableOpacity>
               </View>
 
@@ -304,7 +304,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                       style={styles.itemNameInput}
                       value={item.item_name}
                       onChangeText={(val) => handleUpdateItem(idx, 'item_name', val)}
-                      placeholder="Nama Barang / Menu"
+                      placeholder="Nama Menu / Barang"
                       placeholderTextColor={Palette.darkTextMuted}
                     />
                     <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
@@ -347,12 +347,12 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               <Text style={styles.summaryCardHeader}>Ringkasan Nominal Transaksi</Text>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal Item:</Text>
+                <Text style={styles.summaryLabel}>Subtotal Menu/Item:</Text>
                 <Text style={styles.summaryVal}>{formatRupiah(itemsSubtotal)}</Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Biaya Admin / Layanan:</Text>
+                <Text style={styles.summaryLabel}>Biaya Layanan & Biaya Lain:</Text>
                 <TextInput
                   style={styles.summaryInput}
                   value={adminFee}
@@ -388,7 +388,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Diskon / Voucher:</Text>
+                <Text style={styles.summaryLabel}>Voucher / Diskon:</Text>
                 <TextInput
                   style={[styles.summaryInput, { color: Palette.coral }]}
                   value={discountAmount}
@@ -402,7 +402,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               <View style={[styles.summaryRow, styles.summaryTotalRow]}>
                 <View>
                   <Text style={styles.summaryTotalLabel}>Total Belanja (Dibayar):</Text>
-                  <Text style={styles.summaryTotalHint}>*Sesuai total struk kasir</Text>
+                  <Text style={styles.summaryTotalHint}>*Sesuai total struk kasir/pesanan</Text>
                 </View>
                 <View style={styles.totalInputWrapper}>
                   <Text style={styles.rpPrefix}>Rp</Text>
@@ -425,7 +425,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 style={[styles.input, { height: 60 }]}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Misal: Nomor kuitansi, nama kasir, atau keperluan kantor"
+                placeholder="Misal: Nomor pesanan, catatan pedas, dll."
                 placeholderTextColor={Palette.darkTextMuted}
                 multiline
               />

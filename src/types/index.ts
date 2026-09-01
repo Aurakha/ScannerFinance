@@ -31,6 +31,8 @@ export interface Transaction {
   subtotal: number;
   tax_amount: number;
   discount_amount: number;
+  shipping_fee?: number;
+  admin_fee?: number;
   payment_method: PaymentMethod;
   notes?: string;
   receipt_image_url?: string;
@@ -47,6 +49,8 @@ export interface ReceiptScanResult {
   subtotal: number;
   tax_amount: number;
   discount_amount: number;
+  shipping_fee?: number;
+  admin_fee?: number;
   total_amount: number;
   items: Array<{
     item_name: string;
