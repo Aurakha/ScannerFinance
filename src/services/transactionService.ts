@@ -12,7 +12,7 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 let inMemoryTransactions: Transaction[] | null = null;
 let inMemoryCategories: Category[] | null = null;
 
-// Dummy seed data awal untuk tampilan awal
+// Dummy seed data awal
 const SEED_TRANSACTIONS: Transaction[] = [
   {
     id: 'tx-seed-1',
@@ -54,32 +54,91 @@ const SEED_TRANSACTIONS: Transaction[] = [
     ],
     created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
   },
-  {
-    id: 'tx-seed-3',
-    user_id: 'local-user',
-    category_id: 'cat-transportasi',
-    category: DEFAULT_CATEGORIES.find((c) => c.id === 'cat-transportasi'),
-    merchant_name: 'SPBU Pertamina 34-12345',
-    transaction_date: new Date(Date.now() - 86400000).toISOString(),
-    total_amount: 150000,
-    subtotal: 150000,
-    tax_amount: 0,
-    discount_amount: 0,
-    payment_method: 'cash',
-    notes: 'Isi bensin full tank',
-    items: [
-      { item_name: 'Pertamax 92 (Liter)', quantity: 11.54, unit_price: 13000, total_price: 150000 },
-    ],
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
 ];
+
+/**
+ * Otomatis mengunggah data transaksi lokal yang belum masuk ke Supabase
+ */
+export async function syncLocalTransactionsToSupabase(): Promise<void> {
+  if (isSSR) return;
+  try {
+    const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
+    if (!raw) return;
+    const localTx: Transaction[] = JSON.parse(raw);
+    const nonSeed = localTx.filter((t) => !t.id.startsWith('tx-seed-'));
+    if (nonSeed.length === 0) return;
+
+    // Ambil data transaksi yang sudah ada di Supabase
+    const { data: cloudData } = await supabase
+      .from('transactions')
+      .select('id, merchant_name, transaction_date');
+
+    const cloudKeys = new Set(
+      (cloudData || []).map((c) => `${c.merchant_name}_${c.transaction_date}`)
+    );
+
+    for (const tx of nonSeed) {
+      const key = `${tx.merchant_name}_${tx.transaction_date}`;
+      if (!cloudKeys.has(key)) {
+        // Cari category UUID jika ada
+        let sbCatId: string | null = null;
+        if (tx.category_id && tx.category_id.includes('-') && tx.category_id.length === 36) {
+          sbCatId = tx.category_id;
+        } else if (tx.category?.name) {
+          const { data: catRes } = await supabase
+            .from('categories')
+            .select('id')
+            .ilike('name', tx.category.name)
+            .limit(1)
+            .single();
+          if (catRes?.id) sbCatId = catRes.id;
+        }
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from('transactions')
+          .insert({
+            category_id: sbCatId,
+            merchant_name: tx.merchant_name,
+            transaction_date: tx.transaction_date,
+            total_amount: tx.total_amount,
+            subtotal: tx.subtotal || tx.total_amount,
+            tax_amount: tx.tax_amount || 0,
+            discount_amount: tx.discount_amount || 0,
+            shipping_fee: tx.shipping_fee || 0,
+            admin_fee: tx.admin_fee || 0,
+            payment_method: tx.payment_method || 'cash',
+            notes: tx.notes || '',
+            receipt_image_url: tx.receipt_image_url || null,
+          })
+          .select()
+          .single();
+
+        if (inserted && tx.items && tx.items.length > 0) {
+          const itemsToInsert = tx.items.map((it) => ({
+            transaction_id: inserted.id,
+            item_name: it.item_name,
+            quantity: it.quantity || 1,
+            unit_price: it.unit_price || 0,
+            total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
+          }));
+          await supabase.from('transaction_items').insert(itemsToInsert);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Auto sync local to Supabase notice:', err);
+  }
+}
 
 export async function getTransactions(): Promise<Transaction[]> {
   if (isSSR) {
     return inMemoryTransactions || SEED_TRANSACTIONS;
   }
 
-  // 1. Coba ambil langsung dari Supabase Database
+  // 1. Coba sinkronkan data lokal ke cloud Supabase jika ada
+  await syncLocalTransactionsToSupabase();
+
+  // 2. Ambil seluruh transaksi live dari Supabase Cloud
   try {
     const { data, error } = await supabase
       .from('transactions')
@@ -103,7 +162,7 @@ export async function getTransactions(): Promise<Transaction[]> {
     console.warn('Supabase fetch transactions notice:', err);
   }
 
-  // 2. Fallback ke Local Storage / Seed Data
+  // 3. Fallback ke Local Storage
   try {
     const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
     if (raw) {
@@ -132,7 +191,6 @@ export async function saveTransaction(
 
   // 1. Simpan langsung ke Supabase PostgreSQL
   try {
-    // Cari UUID category di Supabase jika ada
     let sbCategoryId: string | null = null;
     if (newTx.category_id && newTx.category_id.includes('-') && newTx.category_id.length === 36) {
       sbCategoryId = newTx.category_id;
@@ -158,6 +216,8 @@ export async function saveTransaction(
         subtotal: newTx.subtotal || newTx.total_amount,
         tax_amount: newTx.tax_amount || 0,
         discount_amount: newTx.discount_amount || 0,
+        shipping_fee: newTx.shipping_fee || 0,
+        admin_fee: newTx.admin_fee || 0,
         payment_method: newTx.payment_method || 'cash',
         notes: newTx.notes || '',
         receipt_image_url: newTx.receipt_image_url || null,
