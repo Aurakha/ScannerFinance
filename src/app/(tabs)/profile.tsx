@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
-  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '@/components/common/Header';
@@ -16,56 +15,17 @@ import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useTransactionStore } from '@/store/transactionStore';
 import { formatRupiah } from '@/utils/formatters';
-import {
-  getGoogleDriveSettings,
-  saveGoogleDriveSettings,
-  GoogleDriveSettings,
-} from '@/services/googleDriveService';
 
 export default function ProfileScreen() {
-  const { user, geminiApiKey, setGeminiApiKey, isDemoMode } = useAuthStore();
+  const { user } = useAuthStore();
   const { budgetLimit, setBudgetLimit } = useTransactionStore();
 
-  const [inputKey, setInputKey] = useState(geminiApiKey);
   const [inputBudget, setInputBudget] = useState(String(budgetLimit));
-  const [isSavingKey, setIsSavingKey] = useState(false);
-
-  // Google Drive State
-  const [gdriveConfig, setGdriveConfig] = useState<GoogleDriveSettings>({
-    isEnabled: false,
-    accessToken: '',
-    folderId: '',
-    folderName: 'ScanFinance Receipts',
-  });
-  const [isSavingGDrive, setIsSavingGDrive] = useState(false);
-
-  useEffect(() => {
-    getGoogleDriveSettings().then(setGdriveConfig);
-  }, []);
-
-  const handleSaveApiKey = async () => {
-    setIsSavingKey(true);
-    await setGeminiApiKey(inputKey.trim());
-    setIsSavingKey(false);
-    Alert.alert('Tersimpan', 'Kunci Gemini API Key berhasil disimpan.');
-  };
 
   const handleSaveBudget = () => {
     const val = Number(inputBudget) || 5000000;
     setBudgetLimit(val);
     Alert.alert('Tersimpan', `Batas anggaran bulanan disetel ke ${formatRupiah(val)}.`);
-  };
-
-  const handleSaveGDrive = async () => {
-    setIsSavingGDrive(true);
-    await saveGoogleDriveSettings(gdriveConfig);
-    setIsSavingGDrive(false);
-    Alert.alert(
-      'Pengaturan Tersimpan',
-      gdriveConfig.isEnabled
-        ? 'Integrasi Google Drive aktif! Foto struk baru akan otomatis diunggah ke Google Drive Anda.'
-        : 'Integrasi Google Drive dinonaktifkan.'
-    );
   };
 
   return (
@@ -75,7 +35,7 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Header title="Profil & Setelan" subtitle="Kelola preferensi, Google Drive & integrasi AI" />
+        <Header title="Profil & Setelan" subtitle="Kelola preferensi & akun Anda" />
 
         {/* User Card */}
         <View style={styles.userCard}>
@@ -89,71 +49,67 @@ export default function ProfileScreen() {
             <Text style={styles.userName}>{user?.full_name || 'Pengguna Cerdas'}</Text>
             <Text style={styles.userEmail}>{user?.email || 'demo@scanfinance.app'}</Text>
 
-            <View style={styles.demoBadge}>
-              <Ionicons
-                name={isDemoMode ? 'flash-outline' : 'shield-checkmark-outline'}
-                size={12}
-                color={Palette.primary}
-              />
-              <Text style={styles.demoBadgeText}>
-                {isDemoMode ? 'Database Siap / Mode Lokal' : 'Tersambung ke Supabase'}
-              </Text>
+            <View style={styles.statusBadge}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.statusBadgeText}>Akun Aktif</Text>
             </View>
           </View>
         </View>
 
-        {/* Google Drive Integration Card */}
+        {/* Cloud & AI Services Status Card */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={[styles.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-              <Ionicons name="logo-google" size={20} color="#3B82F6" />
+          <Text style={styles.sectionCardTitle}>Status Layanan Otomatis</Text>
+          <Text style={styles.sectionCardSub}>
+            Layanan AI, Database, dan Cloud Storage sudah terkonfigurasi otomatis
+          </Text>
+
+          <View style={styles.serviceRow}>
+            <View style={styles.serviceLeft}>
+              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(88, 101, 242, 0.15)' }]}>
+                <Ionicons name="sparkles" size={18} color={Palette.primary} />
+              </View>
+              <View>
+                <Text style={styles.serviceName}>Google Gemini 3.6 Flash AI</Text>
+                <Text style={styles.serviceDesc}>Pemindaian & Ekstraksi Struk Belanja</Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionCardTitle}>Penyimpanan Google Drive</Text>
-              <Text style={styles.sectionCardSub}>
-                Simpan dan arsipkan foto struk belanja langsung ke Google Drive pribadi Anda
-              </Text>
+            <View style={styles.activePill}>
+              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
+              <Text style={styles.activePillText}>Aktif</Text>
             </View>
-            <Switch
-              value={gdriveConfig.isEnabled}
-              onValueChange={(val) => setGdriveConfig({ ...gdriveConfig, isEnabled: val })}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: Palette.primary }}
-              thumbColor="#FFFFFF"
-            />
           </View>
 
-          {gdriveConfig.isEnabled && (
-            <View style={styles.gdriveInputsContainer}>
-              <Text style={styles.fieldLabel}>Google OAuth Access Token</Text>
-              <TextInput
-                style={[styles.textInput, { fontSize: 12, marginBottom: 10 }]}
-                value={gdriveConfig.accessToken}
-                onChangeText={(val) => setGdriveConfig({ ...gdriveConfig, accessToken: val })}
-                secureTextEntry
-                placeholder="ya29.a0AfH6..."
-                placeholderTextColor={Palette.darkTextMuted}
-              />
-
-              <Text style={styles.fieldLabel}>Folder ID Google Drive (Opsional)</Text>
-              <TextInput
-                style={[styles.textInput, { fontSize: 12, marginBottom: 12 }]}
-                value={gdriveConfig.folderId}
-                onChangeText={(val) => setGdriveConfig({ ...gdriveConfig, folderId: val })}
-                placeholder="1B2M3K4..."
-                placeholderTextColor={Palette.darkTextMuted}
-              />
-
-              <TouchableOpacity style={styles.actionBtnFull} onPress={handleSaveGDrive}>
-                <Text style={styles.actionBtnText}>
-                  {isSavingGDrive ? 'Menyimpan...' : 'Simpan Pengaturan Google Drive'}
-                </Text>
-              </TouchableOpacity>
-
-              <Text style={styles.hintText}>
-                💡 Foto struk akan otomatis diunggah ke Google Drive dan link preview struk akan tersimpan di database.
-              </Text>
+          <View style={styles.serviceRow}>
+            <View style={styles.serviceLeft}>
+              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                <Ionicons name="logo-google" size={18} color="#3B82F6" />
+              </View>
+              <View>
+                <Text style={styles.serviceName}>Penyimpanan Google Drive</Text>
+                <Text style={styles.serviceDesc}>Arsip Foto Struk Otomatis</Text>
+              </View>
             </View>
-          )}
+            <View style={styles.activePill}>
+              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
+              <Text style={styles.activePillText}>Aktif</Text>
+            </View>
+          </View>
+
+          <View style={[styles.serviceRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.serviceLeft}>
+              <View style={[styles.serviceIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                <Ionicons name="server" size={18} color="#10B981" />
+              </View>
+              <View>
+                <Text style={styles.serviceName}>Supabase PostgreSQL</Text>
+                <Text style={styles.serviceDesc}>Database Transaksi & Row Level Security</Text>
+              </View>
+            </View>
+            <View style={styles.activePill}>
+              <Ionicons name="checkmark-circle" size={14} color="#23A55A" />
+              <Text style={styles.activePillText}>Aktif</Text>
+            </View>
+          </View>
         </View>
 
         {/* Monthly Budget Setting */}
@@ -183,40 +139,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Gemini API Key Configuration */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={[styles.sectionIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
-              <Ionicons name="sparkles-outline" size={20} color={Palette.indigo} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionCardTitle}>Google Gemini API Key</Text>
-              <Text style={styles.sectionCardSub}>
-                Gunakan API Key sendiri untuk pemindaian struk tak terbatas
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.textInput, { fontSize: 12 }]}
-              value={inputKey}
-              onChangeText={setInputKey}
-              secureTextEntry
-              placeholder="AIzaSy..."
-              placeholderTextColor={Palette.darkTextMuted}
-            />
-            <TouchableOpacity style={styles.actionBtn} onPress={handleSaveApiKey}>
-              <Text style={styles.actionBtnText}>
-                {isSavingKey ? 'Menyimpan...' : 'Simpan'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.hintText}>
-            💡 Jika dikosongkan, aplikasi akan menggunakan Supabase Edge Function atau template struk demo.
-          </Text>
-        </View>
-
         {/* App Info & About */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionCardTitle}>Tentang ScanFinance</Text>
@@ -225,10 +147,12 @@ export default function ProfileScreen() {
             <Text style={styles.infoVal}>v1.0.0 (Expo SDK 57)</Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Tema Desain</Text>
+            <Text style={styles.infoVal}>Discord Dark & Blurple</Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Penyimpanan Foto</Text>
-            <Text style={styles.infoVal}>
-              {gdriveConfig.isEnabled ? 'Google Drive' : 'Supabase Storage / Lokal'}
-            </Text>
+            <Text style={styles.infoVal}>Google Drive</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Database</Text>
@@ -292,19 +216,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 6,
   },
-  demoBadge: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    gap: 6,
+    backgroundColor: 'rgba(35, 165, 90, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
-  demoBadgeText: {
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#23A55A',
+  },
+  statusBadgeText: {
     fontSize: 11,
-    color: Palette.primaryLight,
+    color: '#23A55A',
     fontWeight: '600',
   },
   sectionCard: {
@@ -326,7 +256,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -339,19 +269,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Palette.darkTextSecondary,
     marginTop: 2,
+    marginBottom: 12,
   },
-  gdriveInputsContainer: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-    paddingTop: 14,
+  serviceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  fieldLabel: {
-    fontSize: 11,
+  serviceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  serviceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceName: {
+    fontSize: 13,
     fontWeight: '600',
+    color: Palette.darkText,
+  },
+  serviceDesc: {
+    fontSize: 11,
     color: Palette.darkTextSecondary,
-    marginBottom: 6,
-    textTransform: 'uppercase',
+    marginTop: 1,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(35, 165, 90, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  activePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#23A55A',
   },
   inputRow: {
     flexDirection: 'row',
@@ -375,23 +338,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionBtnFull: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   actionBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
-  },
-  hintText: {
-    fontSize: 11,
-    color: Palette.darkTextMuted,
-    marginTop: 10,
-    lineHeight: 16,
   },
   infoRow: {
     flexDirection: 'row',
