@@ -41,6 +41,18 @@ export function formatDateOnly(dateString: string | Date): string {
   }
 }
 
+/**
+ * Format tanggal singkat untuk laporan ekspor (contoh: 6-Agu-26)
+ */
+export function formatDateShort(dateString: string | Date): string {
+  try {
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    return format(date, 'd-MMM-yy', { locale: id });
+  } catch {
+    return String(dateString);
+  }
+}
+
 export function formatDateTime(dateString: string | Date): string {
   try {
     const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;

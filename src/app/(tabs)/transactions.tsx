@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,29 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport, openPrintableReport } from '@/utils/exportReport';
+import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport } from '@/utils/exportReport';
+
+/** Nama bulan Indonesia singkat */
+const MONTH_NAMES_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+];
+
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  return `${MONTH_NAMES_SHORT[month - 1]} ${year}`;
+}
+
+function shiftMonth(monthKey: string, delta: number): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  const d = new Date(year, month - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function TransactionsScreen() {
   const router = useRouter();
@@ -42,6 +64,7 @@ export default function TransactionsScreen() {
   const [isExportingSheet, setIsExportingSheet] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
 
   React.useEffect(() => {
     loadData(user?.id);
@@ -50,8 +73,32 @@ export default function TransactionsScreen() {
   // Selected category helper
   const selectedCategory = categories.find((c) => c.id === activeFilter);
 
-  // Filter transactions
+  // Available months derived from transactions
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set<string>();
+    monthSet.add(getCurrentMonthKey()); // always include current month
+    transactions.forEach((t) => {
+      try {
+        const d = new Date(t.transaction_date);
+        if (!isNaN(d.getTime())) {
+          monthSet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        }
+      } catch {}
+    });
+    return Array.from(monthSet).sort();
+  }, [transactions]);
+
+  // Filter transactions by month, category, and search
   const filteredTransactions = transactions.filter((t) => {
+    // Month filter
+    try {
+      const d = new Date(t.transaction_date);
+      const txMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (txMonth !== selectedMonth) return false;
+    } catch {
+      return false;
+    }
+
     const matchCategory = activeFilter === 'all' || t.category_id === activeFilter;
     const matchSearch =
       !searchQuery ||
@@ -90,14 +137,11 @@ export default function TransactionsScreen() {
     );
   };
 
-  const handlePrintReport = () => {
-    openPrintableReport(filteredTransactions, user || undefined);
-  };
-
   const handleExportExcel = () => {
     try {
       setIsExportingExcel(true);
-      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xls`;
+      const monthLabel = formatMonthLabel(selectedMonth);
+      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${monthLabel.replace(/\s+/g, '_')}.xls`;
       exportExcelReport(filteredTransactions, user || undefined, fileName);
       setTimeout(() => setIsExportingExcel(false), 800);
       if (Platform.OS === 'web') {
@@ -114,7 +158,8 @@ export default function TransactionsScreen() {
   const handleExportGoogleSheet = async () => {
     try {
       setIsExportingSheet(true);
-      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+      const monthLabel = formatMonthLabel(selectedMonth);
+      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${monthLabel.replace(/\s+/g, '_')}`;
       const result = await exportGoogleSpreadsheetReport(filteredTransactions, user || undefined, fileName);
       setIsExportingSheet(false);
       if (Platform.OS !== 'web') {
@@ -147,7 +192,39 @@ export default function TransactionsScreen() {
           }
         />
 
-        {/* 1-Click Printable, Excel & Spreadsheet Banner */}
+        {/* Month Filter Navigation */}
+        <View
+          style={[
+            styles.monthFilterRow,
+            {
+              backgroundColor: mode === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.06)',
+              borderColor: mode === 'dark' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.18)',
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.monthArrowBtn, { backgroundColor: theme.cardHover }]}
+            onPress={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+          >
+            <Ionicons name="chevron-back" size={16} color={theme.text} />
+          </TouchableOpacity>
+
+          <View style={styles.monthLabelContainer}>
+            <Ionicons name="calendar-outline" size={15} color={Palette.primary} />
+            <Text style={[styles.monthLabelText, { color: theme.text }]}>
+              {formatMonthLabel(selectedMonth)}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.monthArrowBtn, { backgroundColor: theme.cardHover }]}
+            onPress={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+          >
+            <Ionicons name="chevron-forward" size={16} color={theme.text} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Export Banner */}
         <View
           style={[
             styles.spreadsheetBanner,
@@ -166,7 +243,7 @@ export default function TransactionsScreen() {
                 Rekap Formulir SKA Resmi 📋
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
-                {user?.company_name || 'PT. San Kawan Abadi'} • Format Rapih & Lega
+                {user?.company_name || 'PT. San Kawan Abadi'} • {formatMonthLabel(selectedMonth)}
               </Text>
             </View>
           </View>
@@ -202,15 +279,6 @@ export default function TransactionsScreen() {
                   <Text style={styles.openSpreadsheetBtnText}>Spreadsheet ↗</Text>
                 </>
               )}
-            </TouchableOpacity>
-
-            {/* Tombol Cetak / PDF */}
-            <TouchableOpacity
-              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
-              onPress={handlePrintReport}
-            >
-              <Ionicons name="print-outline" size={14} color="#FFFFFF" />
-              <Text style={styles.openSpreadsheetBtnText}>Cetak / PDF</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -317,7 +385,7 @@ export default function TransactionsScreen() {
               <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
                 {searchQuery
                   ? 'Coba gunakan kata kunci pencarian yang lain'
-                  : 'Unggah struk untuk menambahkan transaksi baru'}
+                  : `Belum ada transaksi di bulan ${formatMonthLabel(selectedMonth)}`}
               </Text>
             </View>
           ) : (
@@ -478,6 +546,35 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  monthFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  monthArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  monthLabelText: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   spreadsheetBanner: {
     marginHorizontal: 16,
