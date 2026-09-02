@@ -80,19 +80,29 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 export async function processReceiptImage(
   imageUri: string,
   userGeminiApiKey?: string,
-  providedBase64?: string
+  rawBase64?: string,
+  userName?: string
 ): Promise<ReceiptScanResult> {
-  const base64Data = await convertUriToBase64(imageUri, providedBase64);
+  const base64Data = rawBase64 || (await convertUriToBase64(imageUri));
 
   if (!base64Data) {
-    throw new Error('Gagal membaca data gambar. Pastikan file gambar dapat diakses.');
+    throw new Error('Gagal membaca data foto struk belanja.');
   }
+
+  // Generate nama file: tanggal_namaUser (contoh: 2-Sep-26_raka2.jpg atau 10-Agt-26_raka2_1523.jpg)
+  const today = new Date();
+  const day = today.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const month = monthNames[today.getMonth()];
+  const year = String(today.getFullYear()).slice(-2);
+  const timeSuffix = `${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+  const cleanName = (userName || 'user').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+  const fileName = `${day}-${month}-${year}_${cleanName}_${timeSuffix}.jpg`;
 
   // Upload ke Google Drive di latar belakang (non-blocking)
   let driveLink: string | undefined;
   const driveUploadPromise = (async () => {
     try {
-      const fileName = `Struk_${Date.now()}.jpg`;
       const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
       if (driveRes?.webViewLink) {
         driveLink = driveRes.webViewLink;

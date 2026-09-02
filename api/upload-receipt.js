@@ -60,7 +60,17 @@ module.exports = async function handler(req, res) {
     }
 
     const token = tokenData.access_token;
-    const cleanFileName = fileName || `Struk_${Date.now()}.jpg`;
+    let cleanFileName = fileName;
+    if (!cleanFileName) {
+      const today = new Date();
+      const day = today.getDate();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const month = monthNames[today.getMonth()];
+      const year = String(today.getFullYear()).slice(-2);
+      const timeSuffix = `${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+      const uName = (req.body?.userName || 'user').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      cleanFileName = `${day}-${month}-${year}_${uName}_${timeSuffix}.jpg`;
+    }
     const cleanMime = mimeType || 'image/jpeg';
 
     // 2. Cari atau buat folder "ScanFinance Receipts"

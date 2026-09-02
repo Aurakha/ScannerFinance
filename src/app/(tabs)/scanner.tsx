@@ -29,7 +29,7 @@ export default function ScannerScreen() {
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
 
   const { addTransaction, categories } = useTransactionStore();
-  const { geminiApiKey } = useAuthStore();
+  const { user, geminiApiKey } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
 
   const handlePickImage = async () => {
@@ -54,7 +54,8 @@ export default function ScannerScreen() {
     try {
       setCapturedImageUri(imageUri);
       setIsProcessing(true);
-      const parsedData = await processReceiptImage(imageUri, geminiApiKey, base64Data);
+      const userName = user?.full_name || user?.email?.split('@')[0] || 'user';
+      const parsedData = await processReceiptImage(imageUri, geminiApiKey, base64Data, userName);
       setIsProcessing(false);
       setScanResult(parsedData);
       setShowVerifyModal(true);
