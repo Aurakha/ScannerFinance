@@ -25,6 +25,7 @@ export default function AdminPanelScreen() {
   const {
     getAllUsers,
     createUserByAdmin,
+    updateUserRole,
     impersonateUser,
     user: currentUser,
   } = useAuthStore();
@@ -43,6 +44,7 @@ export default function AdminPanelScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
   const [companyName, setCompanyName] = useState('PT. Nama Perusahaan');
   const [department, setDepartment] = useState('Divisi Operasional');
   const [projectName, setProjectName] = useState('Head Office / Proyek 1');
@@ -76,6 +78,7 @@ export default function AdminPanelScreen() {
       full_name: fullName.trim(),
       email: email.trim(),
       password: password.trim() || 'password123',
+      role: newUserRole,
       company_name: companyName.trim(),
       department: department.trim(),
       project_name: projectName.trim(),
@@ -85,16 +88,41 @@ export default function AdminPanelScreen() {
     setIsSubmitting(false);
 
     if (res.success) {
-      Alert.alert('Berhasil! 🎉', `Akun untuk "${fullName}" telah berhasil didaftarkan.`);
+      Alert.alert('Berhasil! 🎉', `Akun untuk "${fullName}" (${newUserRole.toUpperCase()}) telah berhasil didaftarkan.`);
       setShowAddModal(false);
       // Reset form
       setFullName('');
       setEmail('');
       setPassword('');
+      setNewUserRole('user');
       fetchUsers();
     } else {
       Alert.alert('Gagal', res.error || 'Terjadi kesalahan saat menambahkan pengguna.');
     }
+  };
+
+  const handleToggleRole = (targetUser: UserProfile) => {
+    const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
+    const actionText = newRole === 'admin' ? 'menjadi Super Admin' : 'menjadi Pengguna Biasa (User)';
+    Alert.alert(
+      'Ubah Hak Akses Role',
+      `Apakah Anda yakin ingin mengubah hak akses "${targetUser.full_name}" ${actionText}?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Ya, Ubah',
+          onPress: async () => {
+            const res = await updateUserRole(targetUser.id, newRole);
+            if (res.success) {
+              Alert.alert('Sukses', `Hak akses "${targetUser.full_name}" kini adalah ${newRole.toUpperCase()}.`);
+              fetchUsers();
+            } else {
+              Alert.alert('Gagal', res.error || 'Terjadi kesalahan saat mengubah role.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleEnterUserDashboard = async (targetUser: UserProfile) => {
@@ -262,6 +290,15 @@ export default function AdminPanelScreen() {
                       <Text style={[styles.userName, { color: theme.text }]}>
                         {u.full_name}
                       </Text>
+                      {u.role === 'admin' ? (
+                        <View style={[styles.roleBadge, { backgroundColor: 'rgba(234, 179, 8, 0.15)', borderColor: Palette.amber }]}>
+                          <Text style={[styles.roleBadgeText, { color: Palette.amber }]}>🛡️ Admin</Text>
+                        </View>
+                      ) : (
+                        <View style={[styles.roleBadge, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: Palette.primary }]}>
+                          <Text style={[styles.roleBadgeText, { color: Palette.primaryLight }]}>👤 User</Text>
+                        </View>
+                      )}
                       {isCurrent && (
                         <View style={styles.currentBadge}>
                           <Text style={styles.currentBadgeText}>Sedang Aktif</Text>
@@ -288,27 +325,53 @@ export default function AdminPanelScreen() {
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.switchDashboardBtn,
-                      isCurrent && { backgroundColor: theme.cardHover },
-                    ]}
-                    onPress={() => handleEnterUserDashboard(u)}
-                  >
-                    <Ionicons
-                      name="log-in-outline"
-                      size={16}
-                      color={isCurrent ? theme.text : '#FFFFFF'}
-                    />
-                    <Text
+                  <View style={styles.cardActionsRight}>
+                    {!isCurrent && (
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleRoleBtn,
+                          { borderColor: u.role === 'admin' ? Palette.primary : Palette.amber },
+                        ]}
+                        onPress={() => handleToggleRole(u)}
+                      >
+                        <Ionicons
+                          name={u.role === 'admin' ? 'person-outline' : 'shield-checkmark-outline'}
+                          size={13}
+                          color={u.role === 'admin' ? Palette.primaryLight : Palette.amber}
+                        />
+                        <Text
+                          style={[
+                            styles.toggleRoleBtnText,
+                            { color: u.role === 'admin' ? Palette.primaryLight : Palette.amber },
+                          ]}
+                        >
+                          {u.role === 'admin' ? 'Jadikan User' : 'Jadikan Admin'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
                       style={[
-                        styles.switchDashboardBtnText,
-                        isCurrent && { color: theme.text },
+                        styles.switchDashboardBtn,
+                        isCurrent && { backgroundColor: theme.cardHover },
                       ]}
+                      onPress={() => handleEnterUserDashboard(u)}
                     >
-                      {isCurrent ? 'Lihat Dashboard' : 'Masuk ke Dashboard'}
-                    </Text>
-                  </TouchableOpacity>
+                      <Ionicons
+                        name="log-in-outline"
+                        size={15}
+                        color={isCurrent ? theme.text : '#FFFFFF'}
+                      />
+                      <Text
+                        style={[
+                          styles.switchDashboardBtnText,
+                          isCurrent && { color: theme.text },
+                        ]}
+                      >
+                        {isCurrent ? 'Dashboard' : 'Masuk Dashboard'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             );
@@ -336,6 +399,66 @@ export default function AdminPanelScreen() {
 
             <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
               <View style={styles.modalForm}>
+                {/* Role Picker */}
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                    Hak Akses (Role Akun)
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.roleChoiceBtn,
+                        newUserRole === 'user' && styles.roleChoiceBtnActive,
+                        {
+                          borderColor: newUserRole === 'user' ? Palette.primary : theme.border,
+                          backgroundColor: theme.background,
+                        },
+                      ]}
+                      onPress={() => setNewUserRole('user')}
+                    >
+                      <Ionicons
+                        name="person"
+                        size={15}
+                        color={newUserRole === 'user' ? Palette.primary : theme.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.roleChoiceText,
+                          { color: newUserRole === 'user' ? Palette.primary : theme.text },
+                        ]}
+                      >
+                        User Biasa
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.roleChoiceBtn,
+                        newUserRole === 'admin' && styles.roleChoiceBtnActive,
+                        {
+                          borderColor: newUserRole === 'admin' ? Palette.amber : theme.border,
+                          backgroundColor: theme.background,
+                        },
+                      ]}
+                      onPress={() => setNewUserRole('admin')}
+                    >
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={15}
+                        color={newUserRole === 'admin' ? Palette.amber : theme.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.roleChoiceText,
+                          { color: newUserRole === 'admin' ? Palette.amber : theme.text },
+                        ]}
+                      >
+                        Super Admin
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
                 <View style={styles.fieldGroup}>
                   <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
                     Nama Lengkap *
@@ -736,5 +859,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
+  },
+  roleBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  roleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cardActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleRoleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  toggleRoleBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  roleChoiceBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  roleChoiceBtnActive: {
+    backgroundColor: 'rgba(88, 101, 242, 0.1)',
+  },
+  roleChoiceText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

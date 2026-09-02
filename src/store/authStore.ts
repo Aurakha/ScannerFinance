@@ -31,7 +31,9 @@ interface AuthState {
     project_name?: string;
     city?: string;
     cash_advance_amount?: number;
+    role?: 'admin' | 'user';
   }) => Promise<{ success: boolean; error?: string }>;
+  updateUserRole: (userId: string, role: 'admin' | 'user') => Promise<{ success: boolean; error?: string }>;
   impersonateUser: (targetUser: UserProfile) => void;
   exitImpersonation: () => void;
 }
@@ -43,8 +45,8 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const DEFAULT_PROFILE: UserProfile = {
   id: 'user-default-1',
-  email: 'user1@company.com',
-  full_name: 'User 1',
+  email: 'user@scanfinance.com',
+  full_name: 'Pengguna ScanFinance',
   company_name: 'PT. Nama Perusahaan',
   department: 'Divisi Operasional',
   project_name: 'Head Office / Proyek 1',
@@ -90,7 +92,7 @@ const SEED_USERS: UserProfile[] = [
     currency: 'IDR',
     monthly_income_budget: 12000000,
     monthly_expense_budget: 7000000,
-    role: 'user',
+    role: 'admin',
     created_at: new Date().toISOString(),
   },
 ];
@@ -141,32 +143,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .from('profiles')
           .select('*')
           .eq('id', u.id)
-          .single();
+          .maybeSingle();
+
+        const role = dbProfile?.role || 'user';
 
         const merged: UserProfile = {
-          ...localProfile,
+          ...DEFAULT_PROFILE,
           id: u.id,
           email: u.email || localProfile.email,
-          full_name: dbProfile?.full_name || u.user_metadata?.full_name || localProfile.full_name,
+          full_name:
+            dbProfile?.full_name ||
+            u.user_metadata?.full_name ||
+            localProfile.full_name,
+          role,
           company_name: dbProfile?.company_name || localProfile.company_name,
           department: dbProfile?.department || localProfile.department,
           project_name: dbProfile?.project_name || localProfile.project_name,
           city: dbProfile?.city || localProfile.city,
           verifier_name: dbProfile?.verifier_name || localProfile.verifier_name,
           approver_name: dbProfile?.approver_name || localProfile.approver_name,
-          cash_advance_amount: dbProfile?.cash_advance_amount ?? localProfile.cash_advance_amount,
-          submission_date: dbProfile?.submission_date || localProfile.submission_date,
-          role: dbProfile?.role || 'user',
+          cash_advance_amount:
+            dbProfile?.cash_advance_amount !== undefined
+              ? Number(dbProfile.cash_advance_amount)
+              : localProfile.cash_advance_amount,
         };
 
-        set({
-          session: data.session,
-          isDemoMode: false,
-          user: merged,
-        });
+        set({ user: merged, session: data.session, isDemoMode: false });
+        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
       }
-    } catch (err) {
-      console.warn('Auth init notice:', err);
+    } catch (e) {
+      console.warn('Auth init note:', e);
     } finally {
       set({ isLoading: false });
     }
@@ -174,9 +180,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginAsDemo: () => {
     set({
-      user: { ...DEFAULT_PROFILE, role: 'user' },
-      session: { user: { id: 'user-default-1', email: 'demo@scanfinance.com' } },
-      isDemoMode: false,
+      user: DEFAULT_PROFILE,
+      session: null,
+      isDemoMode: true,
+      impersonatingUser: null,
     });
   },
 
@@ -189,14 +196,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         options: {
           data: {
             full_name: fullName,
-            role: 'user',
           },
         },
       });
 
       if (error) {
         let msg = error.message;
-        if (msg.includes('User already registered') || msg.includes('already exists')) {
+        if (msg.includes('already registered') || msg.includes('User already registered')) {
           msg = 'Email ini sudah terdaftar. Silakan langsung masuk ke akun Anda.';
         } else if (msg.includes('Password should be at least')) {
           msg = 'Kata sandi minimal harus 6 karakter.';
@@ -258,28 +264,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .from('profiles')
             .select('*')
             .eq('id', u.id)
-            .single();
+            .maybeSingle();
           dbProfile = prof;
         } catch {}
 
-        const current = get().user || DEFAULT_PROFILE;
-        const merged: UserProfile = {
-          ...current,
+        const role = dbProfile?.role || 'user';
+
+        const newProf: UserProfile = {
+          ...DEFAULT_PROFILE,
           id: u.id,
           email: u.email || email,
-          full_name: dbProfile?.full_name || u.user_metadata?.full_name || current.full_name,
-          company_name: dbProfile?.company_name || current.company_name,
-          department: dbProfile?.department || current.department,
-          project_name: dbProfile?.project_name || current.project_name,
-          city: dbProfile?.city || current.city,
-          verifier_name: dbProfile?.verifier_name || current.verifier_name,
-          approver_name: dbProfile?.approver_name || current.approver_name,
-          cash_advance_amount: dbProfile?.cash_advance_amount ?? current.cash_advance_amount,
-          submission_date: dbProfile?.submission_date || current.submission_date,
-          role: dbProfile?.role || 'user',
+          full_name:
+            dbProfile?.full_name ||
+            u.user_metadata?.full_name ||
+            u.email?.split('@')[0] ||
+            'Pengguna',
+          role,
+          company_name: dbProfile?.company_name || 'PT. Nama Perusahaan',
+          department: dbProfile?.department || 'Divisi Operasional',
+          project_name: dbProfile?.project_name || 'Head Office / Proyek 1',
+          city: dbProfile?.city || 'Jakarta',
+          verifier_name: dbProfile?.verifier_name || 'Pemeriksa 1',
+          approver_name: dbProfile?.approver_name || 'Pimpinan 1',
+          cash_advance_amount:
+            dbProfile?.cash_advance_amount !== undefined
+              ? Number(dbProfile.cash_advance_amount)
+              : 5000000,
         };
-        set({ user: merged, session: data.session, isDemoMode: false });
-        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
+
+        set({ user: newProf, session: data.session, isDemoMode: false });
+        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProf));
+
+        // Update di daftar all users
+        const users = await get().getAllUsers();
+        const updated = [newProf, ...users.filter((usr) => usr.email !== newProf.email)];
+        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updated));
       }
       return {};
     } catch (err: any) {
@@ -289,18 +308,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  resetPasswordForEmail: async (email: string) => {
+  resetPasswordForEmail: async (email) => {
     try {
       set({ isLoading: true });
-      const redirectTo =
-        Platform.OS === 'web' && typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/login`
-          : undefined;
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
+        redirectTo: Platform.OS === 'web' && typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/reset-password`
+          : undefined,
       });
-
       if (error) {
         return { error: error.message };
       }
@@ -314,69 +329,88 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     try {
+      set({ isLoading: true });
       await supabase.auth.signOut();
-    } catch {}
-    if (!isSSR) {
-      try {
-        await AsyncStorage.removeItem(PROFILE_STORAGE_KEY);
-      } catch {}
+      await AsyncStorage.removeItem(PROFILE_STORAGE_KEY);
+      set({
+        user: null,
+        session: null,
+        isDemoMode: false,
+        impersonatingUser: null,
+      });
+    } catch (e) {
+      console.warn('Sign out note:', e);
+    } finally {
+      set({ isLoading: false });
     }
-    set({ user: null, session: null, isDemoMode: false, impersonatingUser: null });
   },
 
-  updateProfile: async (data: Partial<UserProfile>) => {
-    const current = get().user || DEFAULT_PROFILE;
-    const updated: UserProfile = { ...current, ...data };
-    set({ user: updated });
+  updateProfile: async (data) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
 
-    if (!isSSR) {
-      try {
-        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updated));
-      } catch {}
-    }
+    const updatedUser: UserProfile = { ...currentUser, ...data };
+    set({ user: updatedUser });
+    await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedUser));
 
-    const session = get().session;
-    if (session?.user?.id) {
+    // Update di DB Supabase jika ada sesi aktif
+    if (get().session?.user?.id) {
       try {
         await supabase
           .from('profiles')
           .update({
-            full_name: updated.full_name,
-            company_name: updated.company_name,
-            department: updated.department,
-            project_name: updated.project_name,
-            city: updated.city,
-            verifier_name: updated.verifier_name,
-            approver_name: updated.approver_name,
-            cash_advance_amount: updated.cash_advance_amount,
+            full_name: updatedUser.full_name,
+            company_name: updatedUser.company_name,
+            department: updatedUser.department,
+            project_name: updatedUser.project_name,
+            city: updatedUser.city,
+            verifier_name: updatedUser.verifier_name,
+            approver_name: updatedUser.approver_name,
+            cash_advance_amount: updatedUser.cash_advance_amount,
           })
-          .eq('id', session.user.id);
+          .eq('id', get().session.user.id);
       } catch (err) {
-        console.warn('Could not sync profile update to cloud:', err);
+        console.warn('Update profile db note:', err);
       }
     }
+
+    // Update di list local all users
+    try {
+      const all = await get().getAllUsers();
+      const updatedList = all.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedList));
+    } catch {}
   },
 
   getAllUsers: async () => {
-    if (isSSR) return SEED_USERS;
-
-    // 1. Coba ambil dari database Supabase profiles
     try {
-      const { data, error } = await supabase.from('profiles').select('*');
-      if (!error && data && data.length > 0) {
-        const formatted: UserProfile[] = data.map((d: any) => ({
+      // Coba ambil dari Supabase profiles jika koneksi aktif
+      const { data: dbUsers, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && dbUsers && dbUsers.length > 0) {
+        const mappedUsers: UserProfile[] = dbUsers.map((p: any) => ({
           ...DEFAULT_PROFILE,
-          ...d,
+          id: p.id,
+          email: p.email || `${p.full_name.toLowerCase().replace(/\s+/g, '')}@company.com`,
+          full_name: p.full_name || 'Pengguna',
+          company_name: p.company_name || 'PT. Nama Perusahaan',
+          department: p.department || 'Divisi Operasional',
+          project_name: p.project_name || 'Head Office / Proyek 1',
+          city: p.city || 'Jakarta',
+          verifier_name: p.verifier_name || 'Pemeriksa 1',
+          approver_name: p.approver_name || 'Pimpinan 1',
+          cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 5000000,
+          role: p.role || 'user',
+          created_at: p.created_at,
         }));
-        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(formatted));
-        return formatted;
+        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(mappedUsers));
+        return mappedUsers;
       }
-    } catch (err) {
-      console.warn('Supabase fetch profiles notice:', err);
-    }
 
-    // 2. Ambil dari local storage
-    try {
+      // Fallback ke local storage
       const raw = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
       if (raw) {
         return JSON.parse(raw);
@@ -400,6 +434,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       project_name: userData.project_name || 'Head Office / Proyek 1',
       city: userData.city || 'Jakarta',
       cash_advance_amount: userData.cash_advance_amount ?? 5000000,
+      role: userData.role || 'user',
       created_at: new Date().toISOString(),
     };
 
@@ -424,6 +459,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal menambahkan user.' };
+    }
+  },
+
+  updateUserRole: async (userId: string, role: 'admin' | 'user') => {
+    try {
+      // 1. Update in Supabase
+      try {
+        await supabase.from('profiles').update({ role }).eq('id', userId);
+      } catch {}
+
+      // 2. Update in LocalStorage
+      const users = await get().getAllUsers();
+      const updated = users.map((u) => (u.id === userId ? { ...u, role } : u));
+      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updated));
+
+      // Jika user yang diupdate adalah currentUser
+      if (get().user?.id === userId) {
+        const updatedSelf = { ...get().user!, role };
+        set({ user: updatedSelf });
+        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedSelf));
+      }
+
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Gagal mengubah role.' };
     }
   },
 
