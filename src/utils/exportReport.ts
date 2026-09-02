@@ -608,18 +608,14 @@ export async function exportGoogleSpreadsheetReport(
     fileName ||
     `Rekap_Klaim_${(profile?.company_name || 'SKA').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
-  const csv = generateCompanyExpenseReportCSV(transactions, profile);
-
-  // 1. Download berkas CSV cadangan yang bersih
-  downloadFile(csv, `${name}.csv`, 'text/csv;charset=utf-8;');
-
-  // 2. Salin tabel ke clipboard (bisa langsung paste ke Google Sheets)
+  // 1. Salin tabel berformat ke clipboard (jika user ingin paste di tempat lain)
   await copyFormattedTableToClipboard(transactions, profile);
 
-  // 3. Coba upload ke Google Drive langsung jika ada token
+  // 2. Buat file Google Spreadsheet langsung di Google Drive
+  const csv = generateCompanyExpenseReportCSV(transactions, profile);
   const cloudRes = await cloudExportToGDrive(csv, name);
 
-  // 4. Buka URL Google Sheets
+  // 3. Buka URL Google Sheets di tab baru
   const targetUrl = cloudRes.isDirectCloud ? cloudRes.spreadsheetUrl : 'https://sheets.new';
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.open(targetUrl, '_blank');
@@ -630,8 +626,8 @@ export async function exportGoogleSpreadsheetReport(
   return {
     success: true,
     message: cloudRes.isDirectCloud
-      ? 'Berhasil dibuat di Google Drive Anda!'
-      : 'Google Spreadsheet dibuka! Tabel otomatis tersalin ke Clipboard (tekan Ctrl+V / Paste) atau gunakan File > Import file CSV yang baru terunduh.',
+      ? 'Google Spreadsheet berhasil dibuat langsung di Google Drive Anda!'
+      : 'Google Spreadsheet dibuka! Tabel otomatis tersalin ke Clipboard (tekan Ctrl+V / Paste).',
   };
 }
 

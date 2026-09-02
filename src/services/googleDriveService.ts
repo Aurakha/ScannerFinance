@@ -315,6 +315,20 @@ export async function exportToGoogleSpreadsheet(
         const spreadsheetUrl =
           data.webViewLink || `https://docs.google.com/spreadsheets/d/${data.id}/edit`;
 
+        try {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              role: 'writer',
+              type: 'anyone',
+            }),
+          });
+        } catch {}
+
         console.log('✅ Spreadsheet berhasil dibuat di Google Drive:', data.name);
         return {
           fileId: data.id,
