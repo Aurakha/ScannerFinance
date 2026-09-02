@@ -124,8 +124,14 @@ export async function processReceiptImage(
     throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
-  // Model Gemini 3.6 Flash (model resmi terbaru Google)
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
+  // Model candidate fallback sequence untuk antisipasi lonjakan trafik / model 503
+  const CANDIDATE_MODELS = [
+    'gemini-3.5-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite',
+  ];
 
   const systemPrompt = `
 Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, dll.).
@@ -200,35 +206,71 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestPayload),
-  });
+  let parsed: any = null;
+  let lastErrorMsg = '';
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API Error details:', errorText);
-    throw new Error(`Gemini API Error (${response.status}): Periksa kembali kuota atau koneksi internet Anda.`);
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
+      
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 20000) : null;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload),
+        signal: controller ? controller.signal : undefined,
+      });
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`Model ${modelName} returned status ${response.status}:`, errorText);
+        lastErrorMsg = `Gemini (${modelName}) ${response.status}: ${errorText.slice(0, 100)}`;
+        continue;
+      }
+
+      const jsonResponse = await response.json();
+      const parts = jsonResponse?.candidates?.[0]?.content?.parts || [];
+      const textPart = parts.find((p: any) => p.text && !p.thought) || parts[0];
+      const rawText = textPart?.text;
+
+      if (!rawText) {
+        console.warn(`Model ${modelName} returned no text candidate.`);
+        continue;
+      }
+
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          parsed = JSON.parse(cleaned);
+        }
+      }
+
+      if (parsed) {
+        // Berhasil mendapatkan hasil dari model ini
+        break;
+      }
+    } catch (modelErr: any) {
+      console.warn(`Attempt with ${modelName} failed:`, modelErr);
+      lastErrorMsg = modelErr.message || String(modelErr);
+    }
   }
 
-  const jsonResponse = await response.json();
-  const parts = jsonResponse?.candidates?.[0]?.content?.parts || [];
-  const textPart = parts.find((p: any) => p.text && !p.thought) || parts[0];
-  const rawText = textPart?.text;
-
-  if (!rawText) {
-    throw new Error('Gemini API tidak memberikan balasan data.');
-  }
-
-  let parsed: any;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch (err) {
-    const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-    parsed = JSON.parse(cleaned);
+  if (!parsed) {
+    throw new Error(
+      lastErrorMsg ||
+        'Gagal memproses struk dengan AI. Silakan periksa koneksi internet atau gunakan kunci Gemini API pribadi Anda.'
+    );
   }
 
   if (parsed.is_receipt === false) {

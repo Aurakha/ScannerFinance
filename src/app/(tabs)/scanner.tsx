@@ -18,7 +18,7 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { processReceiptImage } from '@/services/receiptService';
+import { processReceiptImage, getSampleDemoReceipt } from '@/services/receiptService';
 import { ReceiptScanResult } from '@/types';
 
 export default function ScannerScreen() {
@@ -31,6 +31,30 @@ export default function ScannerScreen() {
   const { addTransaction, categories } = useTransactionStore();
   const { user, geminiApiKey } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+
+  const handleTakePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Izin Kamera Ditolak', 'Mohon izinkan akses kamera pada pengaturan perangkat Anda untuk mengambil foto struk.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.85,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        processImage(result.assets[0].uri, result.assets[0].base64 || undefined);
+      }
+    } catch (err: any) {
+      console.warn('Take photo error:', err);
+      Alert.alert('Gagal Mengambil Foto', err.message || 'Tidak dapat membuka kamera.');
+    }
+  };
 
   const handlePickImage = async () => {
     try {
@@ -48,6 +72,12 @@ export default function ScannerScreen() {
       console.warn('Pick image error:', err);
       Alert.alert('Gagal Memilih Gambar', err.message || 'Tidak dapat membuka galeri file.');
     }
+  };
+
+  const handleSelectDemo = () => {
+    const demo = getSampleDemoReceipt(0);
+    setScanResult(demo);
+    setShowVerifyModal(true);
   };
 
   const processImage = async (imageUri: string, base64Data?: string) => {
@@ -135,7 +165,7 @@ export default function ScannerScreen() {
         />
 
         {/* Primary Drag & Dropzone Card */}
-        <TouchableOpacity
+        <View
           style={[
             styles.dropzoneCard,
             {
@@ -143,27 +173,37 @@ export default function ScannerScreen() {
               borderColor: 'rgba(88, 101, 242, 0.4)',
             },
           ]}
-          onPress={handlePickImage}
-          activeOpacity={0.85}
         >
           <View style={styles.uploadGlowCircle}>
-            <Ionicons name="cloud-upload" size={44} color="#FFFFFF" />
+            <Ionicons name="scan-circle" size={44} color="#FFFFFF" />
           </View>
 
-          <Text style={[styles.dropzoneTitle, { color: theme.text }]}>Pilih Foto Struk / Nota</Text>
+          <Text style={[styles.dropzoneTitle, { color: theme.text }]}>Ekstrak Struk Belanja Otomatis</Text>
           <Text style={[styles.dropzoneSubtitle, { color: theme.textSecondary }]}>
-            Klik di sini untuk mengunggah foto struk belanja dari galeri atau komputer Anda
+            Foto langsung menggunakan kamera ponsel atau pilih gambar struk dari galeri/penyimpanan perangkat Anda
           </Text>
 
-          <View style={styles.selectButton}>
-            <Ionicons name="image-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.selectButtonText}>Pilih Gambar</Text>
+          <View style={styles.buttonActionGroup}>
+            <TouchableOpacity style={styles.cameraPrimaryBtn} onPress={handleTakePhoto} activeOpacity={0.85}>
+              <Ionicons name="camera" size={18} color="#FFFFFF" />
+              <Text style={styles.actionBtnText}>Buka Kamera</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.gallerySecondaryBtn} onPress={handlePickImage} activeOpacity={0.85}>
+              <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
+              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>Pilih dari Galeri</Text>
+            </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={styles.demoTestBtn} onPress={handleSelectDemo} activeOpacity={0.8}>
+            <Ionicons name="sparkles" size={14} color="#F0B232" />
+            <Text style={styles.demoTestText}>Coba Demo Ekstraksi Instan (Tanpa Foto)</Text>
+          </TouchableOpacity>
 
           <Text style={[styles.formatHint, { color: theme.textMuted }]}>
-            Format: JPG, PNG, WebP (Nota cetak kasir, tulisan tangan, atau bukti m-Banking)
+            Mendukung: Nota kasir toko, struk GoFood/ShopeeFood/Grab, nota bensin, tulisan tangan, & invoice PDF/JPG
           </Text>
-        </TouchableOpacity>
+        </View>
 
         {/* Card Panduan Cara Menggunakan Sistem */}
         <View
@@ -315,20 +355,65 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 12,
   },
-  selectButton: {
+  buttonActionGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Palette.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-    borderRadius: 12,
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
+    width: '100%',
     marginBottom: 12,
   },
-  selectButtonText: {
+  cameraPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Palette.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    gap: 6,
+    shadowColor: Palette.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  gallerySecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(88, 101, 242, 0.4)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    gap: 6,
+  },
+  actionBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
+  },
+  demoTestBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(240, 178, 50, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(240, 178, 50, 0.3)',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    gap: 6,
+    marginBottom: 12,
+  },
+  demoTestText: {
+    color: '#F0B232',
+    fontSize: 11,
+    fontWeight: '700',
   },
   formatHint: {
     fontSize: 10,
