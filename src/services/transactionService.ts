@@ -12,50 +12,8 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 let inMemoryTransactions: Transaction[] | null = null;
 let inMemoryCategories: Category[] | null = null;
 
-// Dummy seed data awal
-const SEED_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'tx-seed-1',
-    user_id: 'local-user',
-    category_id: 'cat-belanja',
-    category: DEFAULT_CATEGORIES.find((c) => c.id === 'cat-belanja'),
-    merchant_name: 'Indomaret Point Kemang',
-    transaction_date: new Date().toISOString(),
-    total_amount: 73500,
-    subtotal: 78500,
-    tax_amount: 0,
-    discount_amount: 5000,
-    payment_method: 'qris',
-    notes: 'Belanja mingguan snack & susu',
-    items: [
-      { item_name: 'Susu UHT Ultra Milk 1L', quantity: 1, unit_price: 21500, total_price: 21500 },
-      { item_name: 'Roti Gandum Sari Roti', quantity: 1, unit_price: 19000, total_price: 19000 },
-      { item_name: 'Minyak Goreng Sania 2L', quantity: 1, unit_price: 34000, total_price: 34000 },
-    ],
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'tx-seed-2',
-    user_id: 'local-user',
-    category_id: 'cat-makanan',
-    category: DEFAULT_CATEGORIES.find((c) => c.id === 'cat-makanan'),
-    merchant_name: 'ShopeeFood - Bakmi Jogja',
-    transaction_date: new Date().toISOString(),
-    total_amount: 70500,
-    subtotal: 68000,
-    tax_amount: 0,
-    discount_amount: 12000,
-    shipping_fee: 8000,
-    admin_fee: 6500,
-    payment_method: 'e-wallet',
-    notes: 'No. Pesanan: 3223849468528128954',
-    items: [
-      { item_name: 'Bakmi Godog', quantity: 1, unit_price: 34000, total_price: 34000 },
-      { item_name: 'Bakmi Goreng', quantity: 1, unit_price: 34000, total_price: 34000 },
-    ],
-    created_at: new Date().toISOString(),
-  },
-];
+// Tidak ada dummy seed data — fresh dari 0
+const SEED_TRANSACTIONS: Transaction[] = [];
 
 /**
  * Otomatis mengunggah data transaksi lokal yang belum masuk ke Supabase
