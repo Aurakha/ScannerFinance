@@ -48,6 +48,29 @@ export default function TransactionDetailScreen() {
   const [editDiscountAmount, setEditDiscountAmount] = useState('0');
   const [editNotes, setEditNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  const receiptUrl = transaction?.receipt_image_url;
+  const isGoogleDrive = receiptUrl?.includes('drive.google.com') ?? false;
+
+  const directImageUrl = React.useMemo(() => {
+    if (!receiptUrl) return undefined;
+    if (receiptUrl.startsWith('data:image') || receiptUrl.startsWith('blob:') || receiptUrl.startsWith('file:')) {
+      return receiptUrl;
+    }
+    const driveMatch = receiptUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || receiptUrl.match(/id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+      const fileId = driveMatch[1];
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    return receiptUrl;
+  }, [receiptUrl]);
+
+  React.useEffect(() => {
+    if (!transaction && !isDeleting) {
+      router.replace('/(tabs)/transactions');
+    }
+  }, [transaction, isDeleting]);
 
   if (!transaction || isDeleting) {
     return (
@@ -88,8 +111,6 @@ export default function TransactionDetailScreen() {
 
   const categoryColor = category?.color || Palette.primary;
   const items = transaction.items || [];
-  const receiptUrl = transaction.receipt_image_url;
-  const isGoogleDrive = receiptUrl?.includes('drive.google.com');
 
   const openEditModal = () => {
     setEditMerchantName(transaction.merchant_name || '');
@@ -206,7 +227,10 @@ export default function TransactionDetailScreen() {
     try {
       setIsDeleting(true);
       setShowDeleteModal(false);
-      await removeTransaction(transaction.id);
+      const targetId = transaction?.id || id;
+      if (targetId) {
+        await removeTransaction(targetId);
+      }
       router.replace('/(tabs)/transactions');
     } catch (err: any) {
       setIsDeleting(false);
@@ -228,21 +252,6 @@ export default function TransactionDetailScreen() {
       });
     }
   };
-
-  const directImageUrl = React.useMemo(() => {
-    if (!receiptUrl) return undefined;
-    if (receiptUrl.startsWith('data:image') || receiptUrl.startsWith('blob:') || receiptUrl.startsWith('file:')) {
-      return receiptUrl;
-    }
-    const driveMatch = receiptUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || receiptUrl.match(/id=([a-zA-Z0-9_-]+)/);
-    if (driveMatch && driveMatch[1]) {
-      const fileId = driveMatch[1];
-      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-    }
-    return receiptUrl;
-  }, [receiptUrl]);
-
-  const [imageLoadError, setImageLoadError] = React.useState(false);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
