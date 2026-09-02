@@ -140,9 +140,7 @@ export default function TransactionsScreen() {
   const handleExportExcel = () => {
     try {
       setIsExportingExcel(true);
-      const monthLabel = formatMonthLabel(selectedMonth);
-      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${monthLabel.replace(/\s+/g, '_')}.xls`;
-      exportExcelReport(filteredTransactions, user || undefined, fileName);
+      exportExcelReport(filteredTransactions, user || undefined);
       setTimeout(() => setIsExportingExcel(false), 800);
       if (Platform.OS === 'web') {
         // Otomatis terunduh
@@ -164,12 +162,10 @@ export default function TransactionsScreen() {
 
     try {
       setIsExportingSheet(true);
-      const monthLabel = formatMonthLabel(selectedMonth);
-      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${monthLabel.replace(/\s+/g, '_')}`;
       const result = await exportGoogleSpreadsheetReport(
         filteredTransactions,
         user || undefined,
-        fileName,
+        undefined,
         targetTab
       );
       setIsExportingSheet(false);
