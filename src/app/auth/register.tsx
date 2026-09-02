@@ -279,19 +279,6 @@ export default function RegisterScreen() {
               <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
               <Text style={styles.primaryButtonText}>Menuju Halaman Masuk (Login)</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.secondaryModalBtn, { backgroundColor: theme.cardHover, borderColor: theme.border }]}
-              onPress={() => {
-                setShowSuccessModal(false);
-                router.replace('/(tabs)');
-              }}
-            >
-              <Ionicons name="apps-outline" size={18} color={theme.text} />
-              <Text style={[styles.secondaryModalBtnText, { color: theme.text }]}>
-                Buka Dashboard Sekarang
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
