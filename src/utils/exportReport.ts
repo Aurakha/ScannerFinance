@@ -122,15 +122,15 @@ export function generateCompanyExpenseReportXLS(
 
         rowsHTML += `
           <tr style="height: 28px;">
-            <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-            <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-            <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">${it.item_name}</td>
-            <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${qtyStr}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${bVal ? `x:num="${bVal}"` : ''}>${bVal}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${itTotal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${itTotal}</td>
+            <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+            <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+            <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap;">${it.item_name}</td>
+            <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${qtyStr}</td>
+            <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${bVal ? `x:num="${bVal}"` : ''}>${bVal}</td>
+            <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
+            <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
+            <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
+            <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${itTotal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${itTotal}</td>
           </tr>
         `;
         rowNo++;
@@ -162,15 +162,15 @@ export function generateCompanyExpenseReportXLS(
 
       rowsHTML += `
         <tr style="height: 28px;">
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">${tx.merchant_name}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${bVal ? `x:num="${bVal}"` : ''}>${bVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${total}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${total}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+          <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap;">${tx.merchant_name}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${bVal ? `x:num="${bVal}"` : ''}>${bVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${total}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${total}</td>
         </tr>
       `;
       rowNo++;
@@ -205,15 +205,15 @@ export function generateCompanyExpenseReportXLS(
 
       rowsHTML += `
         <tr style="height: 28px;">
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap; color: #DC2626;">Diskon / Potongan Promo (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${bVal ? `x:num="${negVal}"` : ''}>${bVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${cVal ? `x:num="${negVal}"` : ''}>${cVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${dVal ? `x:num="${negVal}"` : ''}>${dVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${fVal ? `x:num="${negVal}"` : ''}>${fVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" x:num="${negVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${negVal}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+          <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap; color: #DC2626;">Diskon / Potongan Promo (${tx.merchant_name})</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${bVal ? `x:num="${negVal}"` : ''}>${bVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${cVal ? `x:num="${negVal}"` : ''}>${cVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${dVal ? `x:num="${negVal}"` : ''}>${dVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${fVal ? `x:num="${negVal}"` : ''}>${fVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" x:num="${negVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${negVal}</td>
         </tr>
       `;
       rowNo++;
@@ -228,15 +228,15 @@ export function generateCompanyExpenseReportXLS(
 
       rowsHTML += `
         <tr style="height: 28px;">
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Biaya Layanan / Admin (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}">${feeVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${feeVal}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+          <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap;">Biaya Layanan / Admin (${tx.merchant_name})</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}">${feeVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${feeVal}</td>
         </tr>
       `;
       rowNo++;
@@ -251,15 +251,15 @@ export function generateCompanyExpenseReportXLS(
 
       rowsHTML += `
         <tr style="height: 28px;">
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Ongkos Kirim (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}">${shipVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${shipVal}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+          <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap;">Ongkos Kirim (${tx.merchant_name})</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}">${shipVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${shipVal}</td>
         </tr>
       `;
       rowNo++;
@@ -274,15 +274,15 @@ export function generateCompanyExpenseReportXLS(
 
       rowsHTML += `
         <tr style="height: 28px;">
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Pajak / PPN (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}">${taxVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${taxVal}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
+          <td align="left" valign="middle" style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 390px; white-space: nowrap;">Pajak / PPN (${tx.merchant_name})</td>
+          <td align="center" valign="middle" style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}">${taxVal}</td>
+          <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${taxVal}</td>
         </tr>
       `;
       rowNo++;
@@ -325,63 +325,63 @@ export function generateCompanyExpenseReportXLS(
 <body>
   <table>
     <colgroup>
-      <col width="140" style="width: 140px;" />
-      <col width="60" style="width: 60px;" />
-      <col width="460" style="width: 460px;" />
-      <col width="160" style="width: 160px;" />
-      <col width="140" style="width: 140px;" />
-      <col width="140" style="width: 140px;" />
-      <col width="140" style="width: 140px;" />
-      <col width="140" style="width: 140px;" />
-      <col width="150" style="width: 150px;" />
+      <col width="115" style="width: 115px;" />
+      <col width="50" style="width: 50px;" />
+      <col width="390" style="width: 390px;" />
+      <col width="120" style="width: 120px;" />
+      <col width="125" style="width: 125px;" />
+      <col width="125" style="width: 125px;" />
+      <col width="125" style="width: 125px;" />
+      <col width="125" style="width: 125px;" />
+      <col width="135" style="width: 135px;" />
     </colgroup>
 
     <!-- Metadata Section -->
     <tr style="height: 24px;">
-      <td style="font-weight: bold; width: 140px; white-space: nowrap;">Nama Perusahaan</td>
-      <td style="text-align: center; font-weight: bold; width: 60px; white-space: nowrap;">:</td>
-      <td colspan="7" style="font-weight: bold; width: 460px; white-space: nowrap;">${companyName}</td>
+      <td style="font-weight: bold; width: 115px; white-space: nowrap;">Nama Perusahaan</td>
+      <td align="center" style="text-align: center; font-weight: bold; width: 50px; white-space: nowrap;">:</td>
+      <td colspan="7" style="font-weight: bold; width: 390px; white-space: nowrap;">${companyName}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Nama</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
       <td colspan="7" style="white-space: nowrap;">${employeeName}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Dept/Divisi</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
       <td colspan="7" style="white-space: nowrap;">${department}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Tanggal</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
       <td colspan="7" style="white-space: nowrap;">${reportDate}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Project</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
       <td colspan="7" style="white-space: nowrap;">${projectName}</td>
     </tr>
     <tr style="height: 16px;"><td colspan="9"></td></tr>
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
     <tr style="height: 34px;">
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 140px; white-space: nowrap; padding: 6px 10px;">TANGGAL</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 60px; white-space: nowrap; padding: 6px 6px;">NO</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 460px; white-space: nowrap; padding: 6px 12px;">KETERANGAN</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 160px; white-space: nowrap; padding: 6px 10px;">JUMLAH ITEM</td>
-      <td class="th-header" style="background-color: #FEF08A; width: 140px; white-space: nowrap;">Operational</td>
-      <td class="th-header" style="background-color: #BBF7D0; width: 140px; white-space: nowrap;">Pantry</td>
-      <td class="th-header" style="background-color: #FBCFE8; width: 140px; white-space: nowrap;">Fasilitas</td>
-      <td class="th-header" style="background-color: #BAE6FD; width: 140px; white-space: nowrap;">Lain-Lain</td>
-      <td class="th-header" style="background-color: #E2E8F0; width: 150px; white-space: nowrap;">TOTAL</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 115px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">TANGGAL</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 50px; white-space: nowrap; padding: 6px 6px; text-align: center; vertical-align: middle;">NO</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 390px; white-space: nowrap; padding: 6px 12px; text-align: center; vertical-align: middle;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 120px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">JUMLAH ITEM</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Operational</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BBF7D0; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Pantry</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FBCFE8; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Fasilitas</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BAE6FD; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Lain-Lain</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #E2E8F0; width: 135px; white-space: nowrap; text-align: center; vertical-align: middle;">TOTAL</td>
     </tr>
     <tr style="height: 26px;">
-      <td class="th-header" style="background-color: #FEF08A; font-size: 9.5pt; white-space: nowrap;">(Rp) - B</td>
-      <td class="th-header" style="background-color: #BBF7D0; font-size: 9.5pt; white-space: nowrap;">(Rp) - C</td>
-      <td class="th-header" style="background-color: #FBCFE8; font-size: 9.5pt; white-space: nowrap;">(Rp) - D</td>
-      <td class="th-header" style="background-color: #BAE6FD; font-size: 9.5pt; white-space: nowrap;">(Rp) - F</td>
-      <td class="th-header" style="background-color: #E2E8F0; font-size: 9.5pt; white-space: nowrap;">(Rp) - G</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - B</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BBF7D0; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - C</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FBCFE8; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - D</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BAE6FD; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - F</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #E2E8F0; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - G</td>
     </tr>
 
     <!-- Data Rows -->
@@ -389,51 +389,51 @@ export function generateCompanyExpenseReportXLS(
 
     <!-- TOTAL Row with SUM formulas -->
     <tr style="height: 30px; font-weight: bold; background-color: #F8FAFC;">
-      <td colspan="4" style="border: 1px solid #000000; text-align: center; font-weight: bold; vertical-align: middle; white-space: nowrap;">TOTAL</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumOperational}" x:fmla="=SUM(E${startDataRow}:E${endDataRow})">${sumOperational}</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumPantry}" x:fmla="=SUM(F${startDataRow}:F${endDataRow})">${sumPantry}</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumFasilitas}" x:fmla="=SUM(G${startDataRow}:G${endDataRow})">${sumFasilitas}</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumLainLain}" x:fmla="=SUM(H${startDataRow}:H${endDataRow})">${sumLainLain}</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=SUM(I${startDataRow}:I${endDataRow})">${grandTotal}</td>
+      <td colspan="4" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; vertical-align: middle; white-space: nowrap;">TOTAL</td>
+      <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumOperational}" x:fmla="=SUM(E${startDataRow}:E${endDataRow})">${sumOperational}</td>
+      <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumPantry}" x:fmla="=SUM(F${startDataRow}:F${endDataRow})">${sumPantry}</td>
+      <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumFasilitas}" x:fmla="=SUM(G${startDataRow}:G${endDataRow})">${sumFasilitas}</td>
+      <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumLainLain}" x:fmla="=SUM(H${startDataRow}:H${endDataRow})">${sumLainLain}</td>
+      <td align="right" valign="middle" style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=SUM(I${startDataRow}:I${endDataRow})">${grandTotal}</td>
     </tr>
     <tr style="height: 18px;"><td colspan="9"></td></tr>
 
     <!-- Summary Box with Formulas -->
     <tr style="height: 24px;">
-      <td colspan="3" style="font-weight: bold; white-space: nowrap;">Total Pengeluaran (f)</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
-      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=I${totalRowIndex}">${grandTotal}</td>
+      <td colspan="3" align="left" style="font-weight: bold; white-space: nowrap;">Total Pengeluaran (f)</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="right" style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=I${totalRowIndex}">${grandTotal}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="3" style="white-space: nowrap;">Jumlah Cash Advance</td>
-      <td style="text-align: center; white-space: nowrap;">:</td>
-      <td style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${cashAdvance}">${cashAdvance}</td>
+      <td colspan="3" align="left" style="white-space: nowrap;">Jumlah Cash Advance</td>
+      <td align="center" style="text-align: center; white-space: nowrap;">:</td>
+      <td align="right" style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${cashAdvance}">${cashAdvance}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="3" style="white-space: nowrap;">Jumlah yang diklaim</td>
-      <td style="text-align: center; white-space: nowrap;">:</td>
-      <td style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=E${summaryStartRow}">${grandTotal}</td>
+      <td colspan="3" align="left" style="white-space: nowrap;">Jumlah yang diklaim</td>
+      <td align="center" style="text-align: center; white-space: nowrap;">:</td>
+      <td align="right" style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=E${summaryStartRow}">${grandTotal}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="3" style="font-weight: bold; white-space: nowrap;">Jumlah pengembalian dana</td>
-      <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
-      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${refund}" x:fmla="=(E${summaryStartRow + 1}-E${summaryStartRow + 2})">${refund}</td>
+      <td colspan="3" align="left" style="font-weight: bold; white-space: nowrap;">Jumlah pengembalian dana</td>
+      <td align="center" style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
+      <td align="right" style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${refund}" x:fmla="=(E${summaryStartRow + 1}-E${summaryStartRow + 2})">${refund}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;"><td colspan="9"></td></tr>
 
     <!-- Signatures Section -->
     <tr style="height: 24px;">
-      <td colspan="4" style="font-weight: bold; white-space: nowrap;">${city}, ${reportDate}</td>
+      <td colspan="4" align="left" style="font-weight: bold; white-space: nowrap;">${city}, ${reportDate}</td>
       <td colspan="5"></td>
     </tr>
     <tr style="height: 26px;">
-      <td colspan="2" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Dibuat oleh,</td>
-      <td colspan="2" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Diperiksa</td>
-      <td colspan="3" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Diperiksa & Diketahui oleh,</td>
+      <td colspan="2" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Dibuat oleh,</td>
+      <td colspan="2" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Diperiksa</td>
+      <td colspan="3" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; background-color: #F8FAFC; vertical-align: middle; white-space: nowrap;">Diperiksa & Diketahui oleh,</td>
       <td colspan="2"></td>
     </tr>
     <tr style="height: 60px;">
@@ -443,9 +443,9 @@ export function generateCompanyExpenseReportXLS(
       <td colspan="2"></td>
     </tr>
     <tr style="height: 28px;">
-      <td colspan="2" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${employeeName}</td>
-      <td colspan="2" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${verifierName}</td>
-      <td colspan="3" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${approverName}</td>
+      <td colspan="2" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${employeeName}</td>
+      <td colspan="2" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${verifierName}</td>
+      <td colspan="3" align="center" valign="middle" style="border: 1px solid #000000; text-align: center; font-weight: bold; text-decoration: underline; vertical-align: middle; white-space: nowrap;">${approverName}</td>
       <td colspan="2"></td>
     </tr>
   </table>
