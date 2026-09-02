@@ -156,11 +156,16 @@ export async function processReceiptImages(
 
   const systemPrompt = `
 Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online di Indonesia (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, SPBU Pertamina, Restoran, Nota Manual Toko, dll.).
-Pengguna dapat mengunggah 1 hingga 5 foto sekaligus.
+Pengguna mengunggah ${validBase64.length} foto struk belanja.
 
-Petunjuk Pemrosesan Foto:
-- Skenario A (1 Struk Panjang / Berkelanjutan): Jika foto-foto yang diunggah merupakan lanjutan (halaman atas, tengah, bawah) dari struk pesanan/toko yang sama, gabungkan seluruh daftar barang yang dibeli, serta jumlahkan/hitung subtotal, diskon, ongkir, biaya admin/layanan, dan total akhir menjadi TEPAT SATU objek transaksi di dalam array "receipts".
-- Skenario B (Beberapa Struk Berbeda): Jika foto-foto tersebut berasal dari struk/transaksi/toko yang berbeda satu sama lain, ekstrak setiap transaksi secara terpisah sebagai elemen tersendiri di dalam array "receipts".
+PERATURAN UTAMA ANALISIS FOTO:
+1. DETEKSI STRUK BERBEDA (STANDAR UTAMA):
+   - Periksa setiap foto dengan saksama. Jika foto-foto tersebut adalah struk/nota yang BERBEDA (misal: beda toko, beda tanggal/jam, nomor nota berbeda, atau struk fisik terpisah):
+   -> ANDA WAJIB MENGHASILKAN 1 OBJEK TRANSAKSI TERSENDIRI UNTUK SETIAP STRUK di dalam array "receipts"!
+   -> Contoh: Jika pengguna mengunggah ${validBase64.length} foto struk yang berbeda toko/waktu, maka array "receipts" HARUS BERISI ${validBase64.length} TRANSAKSI LENGKAP! JANGAN PERNAH MENGGABUNGKAN STRUK YANG BERBEDA!
+
+2. DETEKSI STRUK SAMBUNGAN (1 STRUK PANJANG):
+   - HANYA JIKA 2 atau lebih foto jelas-jelas merupakan bagian lanjutan fisik dari SATU struk belanja yang sama (nama toko persis sama, jam persis sama, nomor pesanan sama), barulah Anda satukan rincian item barangnya menjadi 1 objek.
 
 Aturan Pembagian Kategori Form SKA:
 - "Pantry": makanan, minuman, snack, beras, gula, kopi, teh, air galon, konsumsi kantor/karyawan.
@@ -309,10 +314,9 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
     ]);
   } catch {}
 
-  const primaryPhotoUri = driveLink || targetImages[0]?.uri;
-
-  return rawReceipts.map((rc: any) => {
+  return rawReceipts.map((rc: any, idx: number) => {
     const finalTotal = Number(rc.total_amount) || Number(rc.subtotal) || 0;
+    const photoForThis = (idx === 0 && driveLink) ? driveLink : (targetImages[idx]?.uri || targetImages[0]?.uri);
     return {
       merchant_name: rc.merchant_name || 'Toko Belanja',
       transaction_date: rc.transaction_date || new Date().toISOString(),
@@ -332,7 +336,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
       })),
       confidence_score: rc.confidence_score || 0.95,
       notes: rc.notes || '',
-      receipt_image_uri: primaryPhotoUri,
+      receipt_image_uri: photoForThis,
     };
   });
 }

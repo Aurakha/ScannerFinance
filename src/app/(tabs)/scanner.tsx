@@ -331,12 +331,17 @@ export default function ScannerScreen() {
 
       {/* Verification & Edit Modal */}
       <ReceiptVerifyModal
+        key={`receipt_verify_${queueIndex}_${scanResult?.transaction_date || ''}`}
         visible={showVerifyModal}
         scanData={scanResult}
         categories={categories}
+        queueIndex={queueIndex}
+        queueTotal={receiptQueue.length}
         onClose={() => {
           setShowVerifyModal(false);
           setScanResult(null);
+          setReceiptQueue([]);
+          setQueueIndex(0);
         }}
         onConfirmSave={handleSaveVerifiedTransaction}
       />

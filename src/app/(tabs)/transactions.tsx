@@ -440,33 +440,41 @@ export default function TransactionsScreen() {
             />
           </TouchableOpacity>
 
-          {/* Tombol Urutan Transaksi (Terbaru vs Paling Lama Masuk) */}
+          {/* Tombol Tampilkan Semua Data & Urutan Transaksi */}
           <TouchableOpacity
             style={[
               styles.sortOrderBtn,
               {
-                backgroundColor: sortOrder === 'oldest' ? `${Palette.primary}18` : theme.card,
-                borderColor: sortOrder === 'oldest' ? Palette.primary : theme.border,
+                backgroundColor: selectedMonth === 'all' ? `${Palette.primary}22` : theme.card,
+                borderColor: selectedMonth === 'all' ? Palette.primary : theme.border,
               },
             ]}
-            onPress={() => setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'))}
+            onPress={() => {
+              if (selectedMonth !== 'all') {
+                setSelectedMonth('all');
+              } else {
+                setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'));
+              }
+            }}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'}
+              name={selectedMonth !== 'all' ? 'layers-outline' : (sortOrder === 'newest' ? 'arrow-down' : 'arrow-up')}
               size={13}
-              color={sortOrder === 'oldest' ? Palette.primary : theme.textSecondary}
+              color={selectedMonth === 'all' ? Palette.primary : theme.textSecondary}
             />
             <Text
               style={[
                 styles.sortOrderBtnText,
                 {
-                  color: sortOrder === 'oldest' ? Palette.primary : theme.text,
-                  fontWeight: sortOrder === 'oldest' ? '700' : '600',
+                  color: selectedMonth === 'all' ? Palette.primary : theme.text,
+                  fontWeight: selectedMonth === 'all' ? '700' : '600',
                 },
               ]}
             >
-              {sortOrder === 'newest' ? 'Terbaru ➔ Terlama' : 'Paling Lama ➔ Terbaru'}
+              {selectedMonth !== 'all'
+                ? 'Tampilkan Semua Data'
+                : (sortOrder === 'newest' ? 'Semua Data (Terbaru ➔ Terlama)' : 'Semua Data (Paling Lama ➔ Terbaru)')}
             </Text>
           </TouchableOpacity>
 

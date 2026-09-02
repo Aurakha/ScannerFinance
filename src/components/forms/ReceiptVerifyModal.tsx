@@ -23,6 +23,8 @@ interface ReceiptVerifyModalProps {
   visible: boolean;
   scanData: ReceiptScanResult | null;
   categories?: Category[];
+  queueIndex?: number;
+  queueTotal?: number;
   onClose: () => void;
   onConfirmSave: (verifiedData: {
     merchant_name: string;
@@ -54,6 +56,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   visible,
   scanData,
   categories = DEFAULT_CATEGORIES,
+  queueIndex,
+  queueTotal,
   onClose,
   onConfirmSave,
 }) => {
@@ -116,11 +120,40 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     scanData.receipt_image_uri || null
   );
 
+  // Selalu sinkronkan ulang seluruh field formulir saat scanData berganti (misal saat giliran struk ke-2, 3, dst.)
   useEffect(() => {
     if (scanData) {
+      setMerchantName(scanData.merchant_name || 'Toko Belanja');
+      const d = scanData.transaction_date ? new Date(scanData.transaction_date) : new Date();
+      setTransactionDate(d.toISOString().slice(0, 10));
+      setTransactionTime(d.toTimeString().slice(0, 5));
+      setPaymentMethod(scanData.payment_method || 'e-wallet');
+
+      const sug = (scanData.suggested_category || '').toLowerCase();
+      const found = categories.find(
+        (c) =>
+          c.name.toLowerCase() === sug ||
+          c.id.toLowerCase() === sug ||
+          sug.includes(c.name.toLowerCase()) ||
+          c.name.toLowerCase().includes(sug)
+      );
+      setSelectedCategoryId(found ? found.id : categories[0]?.id || 'cat-operational');
+
+      setItems((scanData.items || []).map((it) => ({
+        item_name: it.item_name,
+        quantity: it.quantity || 1,
+        unit_price: it.unit_price || 0,
+        total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
+      })));
+      setAdminFee(String(scanData.admin_fee || 0));
+      setShippingFee(String(scanData.shipping_fee || 0));
+      setTaxAmount(String(scanData.tax_amount || 0));
+      setDiscountAmount(String(scanData.discount_amount || 0));
+      setTotalAmount(String(scanData.total_amount || scanData.subtotal || 0));
+      setNotes(scanData.notes || '');
       setAttachedPhotoUri(scanData.receipt_image_uri || null);
     }
-  }, [scanData]);
+  }, [scanData, categories]);
 
   const handlePickAttachment = async () => {
     if (Platform.OS === 'web') {
@@ -241,11 +274,22 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           {/* Header Bar */}
           <View style={styles.header}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.title} numberOfLines={1}>
-                Konfirmasi Hasil Ekstraksi
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={styles.title} numberOfLines={1}>
+                  Konfirmasi Hasil Ekstraksi
+                </Text>
+                {queueTotal !== undefined && queueTotal > 1 && (
+                  <View style={styles.queueBadge}>
+                    <Text style={styles.queueBadgeText}>
+                      Struk {((queueIndex || 0) + 1)} dari {queueTotal}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.subtitle} numberOfLines={1}>
-                Verifikasi tanggal, jam, dan item
+                {queueTotal !== undefined && queueTotal > 1
+                  ? `Memeriksa struk ke-${(queueIndex || 0) + 1}. Simpan untuk lanjut.`
+                  : 'Verifikasi tanggal, jam, dan item transaksi'}
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -581,8 +625,16 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Simpan</Text>
+              <Ionicons
+                name={queueTotal && queueTotal > 1 && (queueIndex || 0) + 1 < queueTotal ? "arrow-forward-circle" : "checkmark-circle"}
+                size={17}
+                color="#FFFFFF"
+              />
+              <Text style={styles.saveBtnText}>
+                {queueTotal && queueTotal > 1 && (queueIndex || 0) + 1 < queueTotal
+                  ? `Simpan & Lanjut ke Struk ${(queueIndex || 0) + 2}`
+                  : 'Simpan Transaksi'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -773,6 +825,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: Palette.darkText,
+  },
+  queueBadge: {
+    backgroundColor: 'rgba(88, 101, 242, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(88, 101, 242, 0.5)',
+  },
+  queueBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Palette.primaryLight,
   },
   subtitle: {
     fontSize: 11,
