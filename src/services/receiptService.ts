@@ -102,13 +102,16 @@ export async function processReceiptImage(
     }
   })();
 
+  // Prioritaskan kunci dari env/config terbaru, abaikan jika userGeminiApiKey adalah kunci lama yang bocor
+  const isLeakedKey = (k?: string) => !k || k.includes('AIzaSyCaeDUdeVYLjE6VnrRN3Qtj_3TZ5qa6rXM');
+  
   const effectiveApiKey =
-    userGeminiApiKey ||
     process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
+    (!isLeakedKey(userGeminiApiKey) ? userGeminiApiKey : '') ||
     DEFAULT_GEMINI_API_KEY;
 
-  if (!effectiveApiKey) {
-    throw new Error('Kunci Gemini API Key belum terpasang.');
+  if (!effectiveApiKey || isLeakedKey(effectiveApiKey)) {
+    throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
   // Model Gemini 3.6 Flash (model resmi terbaru Google)
