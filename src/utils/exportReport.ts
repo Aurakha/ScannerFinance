@@ -312,15 +312,15 @@ export function generateCompanyExpenseReportXLS(
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
     <tr style="height: 32px;">
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 130px;">TANGGAL</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 45px;">NO</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 480px;">KETERANGAN</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px;">JUMLAH ITEM</td>
-      <td class="th-header" style="background-color: #FEF08A; width: 135px;">Operational</td>
-      <td class="th-header" style="background-color: #BBF7D0; width: 135px;">Pantry</td>
-      <td class="th-header" style="background-color: #FBCFE8; width: 135px;">Fasilitas</td>
-      <td class="th-header" style="background-color: #BAE6FD; width: 135px;">Lain-Lain</td>
-      <td class="th-header" style="background-color: #E2E8F0; width: 145px;">TOTAL</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 130px; white-space: nowrap;">TANGGAL</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 45px; white-space: nowrap;">NO</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 480px; white-space: nowrap;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;KETERANGAN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px; white-space: nowrap;">JUMLAH ITEM</td>
+      <td class="th-header" style="background-color: #FEF08A; width: 135px; white-space: nowrap;">Operational</td>
+      <td class="th-header" style="background-color: #BBF7D0; width: 135px; white-space: nowrap;">Pantry</td>
+      <td class="th-header" style="background-color: #FBCFE8; width: 135px; white-space: nowrap;">Fasilitas</td>
+      <td class="th-header" style="background-color: #BAE6FD; width: 135px; white-space: nowrap;">Lain-Lain</td>
+      <td class="th-header" style="background-color: #E2E8F0; width: 145px; white-space: nowrap;">TOTAL</td>
     </tr>
     <tr style="height: 26px;">
       <td class="th-header" style="background-color: #FEF08A; font-size: 9.5pt;">(Rp) - B</td>
