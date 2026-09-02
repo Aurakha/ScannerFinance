@@ -88,16 +88,13 @@ export async function processReceiptImage(
     throw new Error('Gagal membaca data gambar. Pastikan file gambar dapat diakses.');
   }
 
-  // Upload ke Google Drive di latar belakang jika token aktif
+  // Upload ke Google Drive di latar belakang jika token/refresh token aktif
   let driveLink: string | undefined;
   try {
-    const gdriveSettings = await getGoogleDriveSettings();
-    if (gdriveSettings.isEnabled && gdriveSettings.accessToken) {
-      const fileName = `Struk_${Date.now()}.jpg`;
-      const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
-      if (driveRes?.webViewLink) {
-        driveLink = driveRes.webViewLink;
-      }
+    const fileName = `Struk_${Date.now()}.jpg`;
+    const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
+    if (driveRes?.webViewLink) {
+      driveLink = driveRes.webViewLink;
     }
   } catch (gdriveErr) {
     console.warn('Google Drive auto-upload notice:', gdriveErr);
@@ -107,14 +104,14 @@ export async function processReceiptImage(
     userGeminiApiKey ||
     process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
     DEFAULT_GEMINI_API_KEY ||
-    'AIzaSyCaeDUdeVYLjE6VnrRN3Qtj_3TZ5qa6rXM';
+    '';
 
   if (!effectiveApiKey) {
     throw new Error('Kunci Gemini API Key belum terpasang.');
   }
 
-  // Model Gemini 3.6 Flash
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
+  // Model Gemini 1.5 Flash (atau 2.0 Flash)
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveApiKey}`;
 
   const systemPrompt = `
 Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, dll.).
