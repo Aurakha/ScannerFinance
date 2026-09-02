@@ -268,6 +268,95 @@ export async function deleteTransaction(id: string): Promise<boolean> {
   return true;
 }
 
+export async function updateTransaction(
+  id: string,
+  updatedFields: Partial<Transaction>
+): Promise<Transaction | null> {
+  if (isSSR) {
+    if (inMemoryTransactions) {
+      inMemoryTransactions = inMemoryTransactions.map((t) =>
+        t.id === id ? { ...t, ...updatedFields } : t
+      );
+      return inMemoryTransactions.find((t) => t.id === id) || null;
+    }
+    return null;
+  }
+
+  try {
+    let sbCategoryId: string | null = null;
+    if (
+      updatedFields.category_id &&
+      updatedFields.category_id.includes('-') &&
+      updatedFields.category_id.length === 36
+    ) {
+      sbCategoryId = updatedFields.category_id;
+    } else if (updatedFields.category?.name) {
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('id')
+        .ilike('name', updatedFields.category.name)
+        .limit(1)
+        .single();
+      if (catData?.id) {
+        sbCategoryId = catData.id;
+      }
+    }
+
+    const payload: any = {};
+    if (updatedFields.merchant_name !== undefined) payload.merchant_name = updatedFields.merchant_name;
+    if (updatedFields.transaction_date !== undefined) payload.transaction_date = updatedFields.transaction_date;
+    if (updatedFields.total_amount !== undefined) payload.total_amount = updatedFields.total_amount;
+    if (updatedFields.subtotal !== undefined) payload.subtotal = updatedFields.subtotal;
+    if (updatedFields.tax_amount !== undefined) payload.tax_amount = updatedFields.tax_amount;
+    if (updatedFields.discount_amount !== undefined) payload.discount_amount = updatedFields.discount_amount;
+    if (updatedFields.shipping_fee !== undefined) payload.shipping_fee = updatedFields.shipping_fee;
+    if (updatedFields.admin_fee !== undefined) payload.admin_fee = updatedFields.admin_fee;
+    if (updatedFields.payment_method !== undefined) payload.payment_method = updatedFields.payment_method;
+    if (updatedFields.notes !== undefined) payload.notes = updatedFields.notes;
+    if (sbCategoryId) payload.category_id = sbCategoryId;
+
+    await supabase.from('transactions').update(payload).eq('id', id);
+
+    // Update rincian items jika disertakan
+    if (updatedFields.items) {
+      await supabase.from('transaction_items').delete().eq('transaction_id', id);
+      if (updatedFields.items.length > 0) {
+        const itemsToInsert = updatedFields.items.map((it) => ({
+          transaction_id: id,
+          item_name: it.item_name,
+          quantity: it.quantity || 1,
+          unit_price: it.unit_price || 0,
+          total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
+        }));
+        await supabase.from('transaction_items').insert(itemsToInsert);
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase update notice:', err);
+  }
+
+  // Update offline storage cache
+  const current = await getTransactions();
+  const index = current.findIndex((t) => t.id === id);
+  if (index !== -1) {
+    let resolvedCategory = updatedFields.category || current[index].category;
+    if (!resolvedCategory && updatedFields.category_id) {
+      resolvedCategory = DEFAULT_CATEGORIES.find((c) => c.id === updatedFields.category_id);
+    }
+    const updatedTx: Transaction = {
+      ...current[index],
+      ...updatedFields,
+      category: resolvedCategory,
+    };
+    current[index] = updatedTx;
+    try {
+      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(current));
+    } catch {}
+    return updatedTx;
+  }
+  return null;
+}
+
 export async function getCategories(): Promise<Category[]> {
   if (isSSR) {
     return inMemoryCategories || DEFAULT_CATEGORIES;

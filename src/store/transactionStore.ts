@@ -7,6 +7,7 @@ import {
   getCategories,
   getTransactions,
   saveTransaction,
+  updateTransaction as apiUpdateTransaction,
 } from '@/services/transactionService';
 
 interface TransactionState {
@@ -19,6 +20,7 @@ interface TransactionState {
   searchQuery: string;
   loadData: (targetUserId?: string) => Promise<void>;
   addTransaction: (tx: Omit<Transaction, 'id' | 'created_at'>) => Promise<Transaction>;
+  updateTransaction: (id: string, updatedFields: Partial<Transaction>) => Promise<Transaction | null>;
   removeTransaction: (id: string) => Promise<void>;
   setBudgetLimit: (limit: number) => void;
   setActiveFilter: (filter: string) => void;
@@ -61,6 +63,17 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     const stats = calculateMonthlyStats(updatedList, get().budgetLimit);
     set({ transactions: updatedList, stats });
     return saved;
+  },
+
+  updateTransaction: async (id, updatedFields) => {
+    const updated = await apiUpdateTransaction(id, updatedFields);
+    if (updated) {
+      const updatedList = get().transactions.map((t) => (t.id === id ? updated : t));
+      const stats = calculateMonthlyStats(updatedList, get().budgetLimit);
+      set({ transactions: updatedList, stats });
+      return updated;
+    }
+    return null;
   },
 
   removeTransaction: async (id: string) => {
