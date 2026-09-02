@@ -2,6 +2,7 @@ import { Transaction, UserProfile } from '@/types';
 import { formatDateShort, formatRupiah } from './formatters';
 import { Platform, Linking } from 'react-native';
 import { exportToGoogleSpreadsheet as cloudExportToGDrive } from '@/services/googleDriveService';
+import * as XLSX from 'xlsx';
 
 export interface CompanyReportOptions {
   profile?: UserProfile;
@@ -325,22 +326,22 @@ export function generateCompanyExpenseReportXLS(
 <body>
   <table>
     <colgroup>
-      <col width="115" style="width: 115px;" />
-      <col width="50" style="width: 50px;" />
-      <col width="390" style="width: 390px;" />
-      <col width="120" style="width: 120px;" />
-      <col width="125" style="width: 125px;" />
-      <col width="125" style="width: 125px;" />
-      <col width="125" style="width: 125px;" />
-      <col width="125" style="width: 125px;" />
-      <col width="135" style="width: 135px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="60" style="width: 60px;" />
+      <col width="420" style="width: 420px;" />
+      <col width="150" style="width: 150px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="150" style="width: 150px;" />
     </colgroup>
 
     <!-- Metadata Section -->
     <tr style="height: 24px;">
-      <td style="font-weight: bold; width: 115px; white-space: nowrap;">Nama Perusahaan</td>
-      <td align="center" style="text-align: center; font-weight: bold; width: 50px; white-space: nowrap;">:</td>
-      <td colspan="7" style="font-weight: bold; width: 390px; white-space: nowrap;">${companyName}</td>
+      <td style="font-weight: bold; width: 140px; white-space: nowrap;">Nama Perusahaan</td>
+      <td align="center" style="text-align: center; font-weight: bold; width: 60px; white-space: nowrap;">:</td>
+      <td colspan="7" style="font-weight: bold; width: 420px; white-space: nowrap;">${companyName}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Nama</td>
@@ -366,15 +367,15 @@ export function generateCompanyExpenseReportXLS(
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
     <tr style="height: 34px;">
-      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 115px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">TANGGAL</td>
-      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 50px; white-space: nowrap; padding: 6px 6px; text-align: center; vertical-align: middle;">NO</td>
-      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 390px; white-space: nowrap; padding: 6px 12px; text-align: center; vertical-align: middle;">KETERANGAN</td>
-      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 120px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">JUMLAH ITEM</td>
-      <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Operational</td>
-      <td class="th-header" align="center" valign="middle" style="background-color: #BBF7D0; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Pantry</td>
-      <td class="th-header" align="center" valign="middle" style="background-color: #FBCFE8; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Fasilitas</td>
-      <td class="th-header" align="center" valign="middle" style="background-color: #BAE6FD; width: 125px; white-space: nowrap; text-align: center; vertical-align: middle;">Lain-Lain</td>
-      <td class="th-header" align="center" valign="middle" style="background-color: #E2E8F0; width: 135px; white-space: nowrap; text-align: center; vertical-align: middle;">TOTAL</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 140px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">TANGGAL</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 60px; white-space: nowrap; padding: 6px 6px; text-align: center; vertical-align: middle;">NO</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 420px; white-space: nowrap; padding: 6px 12px; text-align: center; vertical-align: middle;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 150px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">JUMLAH ITEM</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Operational</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BBF7D0; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Pantry</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #FBCFE8; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Fasilitas</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #BAE6FD; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Lain-Lain</td>
+      <td class="th-header" align="center" valign="middle" style="background-color: #E2E8F0; width: 150px; white-space: nowrap; text-align: center; vertical-align: middle;">TOTAL</td>
     </tr>
     <tr style="height: 26px;">
       <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; font-size: 9.5pt; white-space: nowrap; text-align: center; vertical-align: middle;">(Rp) - B</td>
@@ -781,12 +782,12 @@ export async function copyFormattedTableToClipboard(
 }
 
 /**
- * Memicu download berkas (Excel .xls atau CSV) di browser
+ * Memicu download berkas (Excel .xlsx / .xls atau CSV) di browser
  */
 export function downloadFile(
-  content: string,
+  content: any,
   fileName: string,
-  mimeType = 'application/vnd.ms-excel;charset=utf-8;'
+  mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ) {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const blob = new Blob([content], { type: mimeType });
@@ -826,7 +827,369 @@ export function generateReportFileName(profile?: UserProfile): string {
 }
 
 /**
- * Fungsi Ekspor 1: Download File Excel (.xls)
+ * Mengonversi seluruh data transaksi dan rincian item ke format Microsoft Excel murni (.xlsx binary)
+ * Menggunakan format OpenXML standar sehingga tidak memicu Protected View Rp 0 di Excel
+ * dan seluruh formula rumus adaptif tetap reaktif saat diedit.
+ */
+export function generateCompanyExpenseReportXLSXBinary(
+  transactions: Transaction[],
+  profile?: UserProfile
+): Uint8Array {
+  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
+  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
+  const department = profile?.department || 'Operation';
+  const reportDate = profile?.submission_date || '1 Agustus 2026';
+  const projectName = profile?.project_name || 'Head Office';
+  const city = profile?.city || 'Tangerang';
+  const verifierName = profile?.verifier_name || 'Yunitha';
+  const approverName = profile?.approver_name || 'Dwi Hartanto';
+  const cashAdvance = Number(profile?.cash_advance_amount) || 7117500;
+
+  const sortedTx = [...transactions].sort(
+    (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
+  );
+
+  const wb = XLSX.utils.book_new();
+  const ws: XLSX.WorkSheet = {};
+
+  const setCell = (r: number, c: number, cell: XLSX.CellObject) => {
+    const ref = XLSX.utils.encode_cell({ r, c });
+    ws[ref] = cell;
+  };
+
+  const idrFormat = '"Rp "#,##0;("Rp "#,##0);"-"';
+
+  // Metadata (Rows 0 to 4)
+  setCell(0, 0, { t: 's', v: 'Nama Perusahaan' });
+  setCell(0, 1, { t: 's', v: ':' });
+  setCell(0, 2, { t: 's', v: companyName });
+
+  setCell(1, 0, { t: 's', v: 'Nama' });
+  setCell(1, 1, { t: 's', v: ':' });
+  setCell(1, 2, { t: 's', v: employeeName });
+
+  setCell(2, 0, { t: 's', v: 'Dept/Divisi' });
+  setCell(2, 1, { t: 's', v: ':' });
+  setCell(2, 2, { t: 's', v: department });
+
+  setCell(3, 0, { t: 's', v: 'Tanggal' });
+  setCell(3, 1, { t: 's', v: ':' });
+  setCell(3, 2, { t: 's', v: reportDate });
+
+  setCell(4, 0, { t: 's', v: 'Project' });
+  setCell(4, 1, { t: 's', v: ':' });
+  setCell(4, 2, { t: 's', v: projectName });
+
+  // Table Headers (Row 6)
+  setCell(6, 0, { t: 's', v: 'TANGGAL' });
+  setCell(6, 1, { t: 's', v: 'NO' });
+  setCell(6, 2, { t: 's', v: 'KETERANGAN' });
+  setCell(6, 3, { t: 's', v: 'JUMLAH ITEM' });
+  setCell(6, 4, { t: 's', v: 'Operational' });
+  setCell(6, 5, { t: 's', v: 'Pantry' });
+  setCell(6, 6, { t: 's', v: 'Fasilitas' });
+  setCell(6, 7, { t: 's', v: 'Lain-Lain' });
+  setCell(6, 8, { t: 's', v: 'TOTAL' });
+
+  // Subheaders (Row 7)
+  setCell(7, 4, { t: 's', v: '(Rp) - B' });
+  setCell(7, 5, { t: 's', v: '(Rp) - C' });
+  setCell(7, 6, { t: 's', v: '(Rp) - D' });
+  setCell(7, 7, { t: 's', v: '(Rp) - F' });
+  setCell(7, 8, { t: 's', v: '(Rp) - G' });
+
+  let rIdx = 8;
+  let rowNo = 1;
+  let sumOperational = 0;
+  let sumPantry = 0;
+  let sumFasilitas = 0;
+  let sumLainLain = 0;
+  let grandTotal = 0;
+
+  sortedTx.forEach((tx) => {
+    const txDateStr = formatDateShort(tx.transaction_date);
+    const catCol = categorizeColumn(tx.category?.name || '');
+
+    if (tx.items && tx.items.length > 0) {
+      tx.items.forEach((it) => {
+        const itTotal = Number(it.total_price) || (Number(it.quantity) || 1) * (Number(it.unit_price) || 0);
+        grandTotal += itTotal;
+        const qtyStr = it.quantity ? `${it.quantity} Pcs` : '1 Pcs';
+
+        setCell(rIdx, 0, { t: 's', v: txDateStr });
+        setCell(rIdx, 1, { t: 'n', v: rowNo });
+        setCell(rIdx, 2, { t: 's', v: it.item_name });
+        setCell(rIdx, 3, { t: 's', v: qtyStr });
+
+        let colIdx = 4;
+        if (catCol === 'operational') {
+          colIdx = 4;
+          sumOperational += itTotal;
+        } else if (catCol === 'pantry') {
+          colIdx = 5;
+          sumPantry += itTotal;
+        } else if (catCol === 'fasilitas') {
+          colIdx = 6;
+          sumFasilitas += itTotal;
+        } else {
+          colIdx = 7;
+          sumLainLain += itTotal;
+        }
+        setCell(rIdx, colIdx, { t: 'n', v: itTotal, z: idrFormat });
+
+        const excelRow = rIdx + 1;
+        setCell(rIdx, 8, {
+          t: 'n',
+          v: itTotal,
+          f: `SUM(E${excelRow}:H${excelRow})`,
+          z: idrFormat,
+        });
+
+        rIdx++;
+        rowNo++;
+      });
+    } else {
+      const total = Number(tx.total_amount) || 0;
+      grandTotal += total;
+
+      setCell(rIdx, 0, { t: 's', v: txDateStr });
+      setCell(rIdx, 1, { t: 'n', v: rowNo });
+      setCell(rIdx, 2, { t: 's', v: tx.merchant_name });
+      setCell(rIdx, 3, { t: 's', v: '1x' });
+
+      let colIdx = 4;
+      if (catCol === 'operational') {
+        colIdx = 4;
+        sumOperational += total;
+      } else if (catCol === 'pantry') {
+        colIdx = 5;
+        sumPantry += total;
+      } else if (catCol === 'fasilitas') {
+        colIdx = 6;
+        sumFasilitas += total;
+      } else {
+        colIdx = 7;
+        sumLainLain += total;
+      }
+      setCell(rIdx, colIdx, { t: 'n', v: total, z: idrFormat });
+
+      const excelRow = rIdx + 1;
+      setCell(rIdx, 8, {
+        t: 'n',
+        v: total,
+        f: `SUM(E${excelRow}:H${excelRow})`,
+        z: idrFormat,
+      });
+
+      rIdx++;
+      rowNo++;
+    }
+
+    // Diskon
+    if (tx.discount_amount && Number(tx.discount_amount) > 0) {
+      const discVal = Number(tx.discount_amount);
+      const negVal = -discVal;
+      grandTotal += negVal;
+
+      setCell(rIdx, 0, { t: 's', v: txDateStr });
+      setCell(rIdx, 1, { t: 'n', v: rowNo });
+      setCell(rIdx, 2, { t: 's', v: `Diskon / Potongan Promo (${tx.merchant_name})` });
+      setCell(rIdx, 3, { t: 's', v: '1x' });
+
+      let colIdx = 4;
+      if (catCol === 'operational') {
+        colIdx = 4;
+        sumOperational += negVal;
+      } else if (catCol === 'pantry') {
+        colIdx = 5;
+        sumPantry += negVal;
+      } else if (catCol === 'fasilitas') {
+        colIdx = 6;
+        sumFasilitas += negVal;
+      } else {
+        colIdx = 7;
+        sumLainLain += negVal;
+      }
+      setCell(rIdx, colIdx, { t: 'n', v: negVal, z: idrFormat });
+
+      const excelRow = rIdx + 1;
+      setCell(rIdx, 8, {
+        t: 'n',
+        v: negVal,
+        f: `SUM(E${excelRow}:H${excelRow})`,
+        z: idrFormat,
+      });
+
+      rIdx++;
+      rowNo++;
+    }
+
+    // Biaya Layanan / Admin
+    if (tx.admin_fee && Number(tx.admin_fee) > 0) {
+      const feeVal = Number(tx.admin_fee);
+      grandTotal += feeVal;
+      sumLainLain += feeVal;
+
+      setCell(rIdx, 0, { t: 's', v: txDateStr });
+      setCell(rIdx, 1, { t: 'n', v: rowNo });
+      setCell(rIdx, 2, { t: 's', v: `Biaya Layanan / Admin (${tx.merchant_name})` });
+      setCell(rIdx, 3, { t: 's', v: '1x' });
+      setCell(rIdx, 7, { t: 'n', v: feeVal, z: idrFormat });
+
+      const excelRow = rIdx + 1;
+      setCell(rIdx, 8, {
+        t: 'n',
+        v: feeVal,
+        f: `SUM(E${excelRow}:H${excelRow})`,
+        z: idrFormat,
+      });
+
+      rIdx++;
+      rowNo++;
+    }
+
+    // Ongkos Kirim
+    if (tx.shipping_fee && Number(tx.shipping_fee) > 0) {
+      const shipVal = Number(tx.shipping_fee);
+      grandTotal += shipVal;
+      sumOperational += shipVal;
+
+      setCell(rIdx, 0, { t: 's', v: txDateStr });
+      setCell(rIdx, 1, { t: 'n', v: rowNo });
+      setCell(rIdx, 2, { t: 's', v: `Ongkos Kirim (${tx.merchant_name})` });
+      setCell(rIdx, 3, { t: 's', v: '1x' });
+      setCell(rIdx, 4, { t: 'n', v: shipVal, z: idrFormat });
+
+      const excelRow = rIdx + 1;
+      setCell(rIdx, 8, {
+        t: 'n',
+        v: shipVal,
+        f: `SUM(E${excelRow}:H${excelRow})`,
+        z: idrFormat,
+      });
+
+      rIdx++;
+      rowNo++;
+    }
+
+    // Pajak / PPN
+    if (tx.tax_amount && Number(tx.tax_amount) > 0) {
+      const taxVal = Number(tx.tax_amount);
+      grandTotal += taxVal;
+      sumLainLain += taxVal;
+
+      setCell(rIdx, 0, { t: 's', v: txDateStr });
+      setCell(rIdx, 1, { t: 'n', v: rowNo });
+      setCell(rIdx, 2, { t: 's', v: `Pajak / PPN (${tx.merchant_name})` });
+      setCell(rIdx, 3, { t: 's', v: '1x' });
+      setCell(rIdx, 7, { t: 'n', v: taxVal, z: idrFormat });
+
+      const excelRow = rIdx + 1;
+      setCell(rIdx, 8, {
+        t: 'n',
+        v: taxVal,
+        f: `SUM(E${excelRow}:H${excelRow})`,
+        z: idrFormat,
+      });
+
+      rIdx++;
+      rowNo++;
+    }
+  });
+
+  const startDataRow = 9;
+  const endDataRow = rIdx; // 1-based index
+  const totalRow = rIdx + 1;
+
+  // Row TOTAL (rIdx)
+  setCell(rIdx, 0, { t: 's', v: 'TOTAL' });
+  setCell(rIdx, 4, { t: 'n', v: sumOperational, f: `SUM(E${startDataRow}:E${endDataRow})`, z: idrFormat });
+  setCell(rIdx, 5, { t: 'n', v: sumPantry, f: `SUM(F${startDataRow}:F${endDataRow})`, z: idrFormat });
+  setCell(rIdx, 6, { t: 'n', v: sumFasilitas, f: `SUM(G${startDataRow}:G${endDataRow})`, z: idrFormat });
+  setCell(rIdx, 7, { t: 'n', v: sumLainLain, f: `SUM(H${startDataRow}:H${endDataRow})`, z: idrFormat });
+  setCell(rIdx, 8, { t: 'n', v: grandTotal, f: `SUM(I${startDataRow}:I${endDataRow})`, z: idrFormat });
+  rIdx += 2; // skip 1 row
+
+  // Summary section
+  const summaryRow1 = rIdx + 1; // 1-based
+  setCell(rIdx, 0, { t: 's', v: 'Total Pengeluaran (f)' });
+  setCell(rIdx, 3, { t: 's', v: ':' });
+  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `I${totalRow}`, z: idrFormat });
+  rIdx++;
+
+  const summaryRow2 = rIdx + 1; // 1-based
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah Cash Advance' });
+  setCell(rIdx, 3, { t: 's', v: ':' });
+  setCell(rIdx, 4, { t: 'n', v: cashAdvance, z: idrFormat });
+  rIdx++;
+
+  const summaryRow3 = rIdx + 1; // 1-based
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah yang diklaim' });
+  setCell(rIdx, 3, { t: 's', v: ':' });
+  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `E${summaryRow1}`, z: idrFormat });
+  rIdx++;
+
+  const refund = cashAdvance - grandTotal;
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah pengembalian dana' });
+  setCell(rIdx, 3, { t: 's', v: ':' });
+  setCell(rIdx, 4, { t: 'n', v: refund, f: `E${summaryRow2}-E${summaryRow3}`, z: idrFormat });
+  rIdx += 2;
+
+  // Signatures
+  setCell(rIdx, 0, { t: 's', v: `${city}, ${reportDate}` });
+  rIdx++;
+
+  setCell(rIdx, 0, { t: 's', v: 'Dibuat oleh,' });
+  setCell(rIdx, 2, { t: 's', v: 'Diperiksa' });
+  setCell(rIdx, 4, { t: 's', v: 'Diperiksa & Diketahui oleh,' });
+  rIdx += 3;
+
+  setCell(rIdx, 0, { t: 's', v: employeeName });
+  setCell(rIdx, 2, { t: 's', v: verifierName });
+  setCell(rIdx, 4, { t: 's', v: approverName });
+
+  // Range and Merges
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rIdx, c: 8 } });
+
+  // Column widths (lega dan tidak terpotong):
+  ws['!cols'] = [
+    { wch: 15 }, // A: TANGGAL
+    { wch: 7 },  // B: NO
+    { wch: 52 }, // C: KETERANGAN
+    { wch: 17 }, // D: JUMLAH ITEM
+    { wch: 16 }, // E: Operational
+    { wch: 16 }, // F: Pantry
+    { wch: 16 }, // G: Fasilitas
+    { wch: 16 }, // H: Lain-Lain
+    { wch: 17 }, // I: TOTAL
+  ];
+
+  // Merges:
+  const totalR = totalRow - 1;
+  ws['!merges'] = [
+    // Header Row merges
+    { s: { r: 6, c: 0 }, e: { r: 7, c: 0 } }, // TANGGAL
+    { s: { r: 6, c: 1 }, e: { r: 7, c: 1 } }, // NO
+    { s: { r: 6, c: 2 }, e: { r: 7, c: 2 } }, // KETERANGAN
+    { s: { r: 6, c: 3 }, e: { r: 7, c: 3 } }, // JUMLAH ITEM
+    // Total Row merge
+    { s: { r: totalR, c: 0 }, e: { r: totalR, c: 3 } }, // TOTAL (A..D)
+    // Signatures merges
+    { s: { r: rIdx - 4, c: 0 }, e: { r: rIdx - 4, c: 1 } },
+    { s: { r: rIdx - 4, c: 2 }, e: { r: rIdx - 4, c: 3 } },
+    { s: { r: rIdx - 4, c: 4 }, e: { r: rIdx - 4, c: 6 } },
+    { s: { r: rIdx, c: 0 }, e: { r: rIdx, c: 1 } },
+    { s: { r: rIdx, c: 2 }, e: { r: rIdx, c: 3 } },
+    { s: { r: rIdx, c: 4 }, e: { r: rIdx, c: 6 } },
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Expense Report');
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Uint8Array(wbout);
+}
+
+/**
+ * Fungsi Ekspor 1: Download File Excel (.xlsx) murni
  */
 export function exportExcelReport(
   transactions: Transaction[],
@@ -834,9 +1197,13 @@ export function exportExcelReport(
   fileName?: string
 ) {
   const baseName = fileName || generateReportFileName(profile);
-  const name = baseName.endsWith('.xls') ? baseName : `${baseName}.xls`;
-  const xlsContent = generateCompanyExpenseReportXLS(transactions, profile);
-  downloadFile(xlsContent, name, 'application/vnd.ms-excel;charset=utf-8;');
+  const name = baseName.replace(/\.xlsx?$/i, '') + '.xlsx';
+  const xlsxBinary = generateCompanyExpenseReportXLSXBinary(transactions, profile);
+  downloadFile(
+    xlsxBinary,
+    name,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
 }
 
 /**
