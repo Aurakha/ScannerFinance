@@ -73,45 +73,54 @@ module.exports = async function handler(req, res) {
     }
     const cleanMime = mimeType || 'image/jpeg';
 
-    // 2. Cari atau buat folder "ScanFinance Receipts"
+    // 2. Cari atau buat folder "ScanFinance" -> subfolder "Foto Struk"
     let folderId = null;
     try {
-      const searchRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
-          "name='ScanFinance Receipts' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-        )}&fields=files(id,name)`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        if (searchData.files && searchData.files.length > 0) {
-          folderId = searchData.files[0].id;
+      const getOrCreateFolder = async (name, parentId = null) => {
+        let q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        if (parentId) {
+          q += ` and '${parentId}' in parents`;
         }
-      }
-
-      if (!folderId) {
-        const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        const sRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.files && sData.files.length > 0) {
+            return sData.files[0].id;
+          }
+        }
+        const createPayload = {
+          name,
+          mimeType: 'application/vnd.google-apps.folder',
+        };
+        if (parentId) {
+          createPayload.parents = [parentId];
+        }
+        const cRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: 'ScanFinance Receipts',
-            mimeType: 'application/vnd.google-apps.folder',
-          }),
+          body: JSON.stringify(createPayload),
         });
-        if (createFolderRes.ok) {
-          const folderData = await createFolderRes.json();
-          folderId = folderData.id;
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          return cData.id;
         }
-      }
-    } catch (e) {
-      console.warn('Folder find/create error:', e);
+        return null;
+      };
+
+      const rootId = await getOrCreateFolder('ScanFinance');
+      folderId = await getOrCreateFolder('Foto Struk', rootId);
+    } catch (fErr) {
+      console.warn('Folder find/create notice:', fErr);
     }
 
     // 3. Upload gambar via Multipart
-    const boundary = '-------uploadboundary' + Date.now();
+    const boundary = '-------receiptboundary' + Date.now();
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
 

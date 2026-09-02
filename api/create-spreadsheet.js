@@ -61,9 +61,66 @@ module.exports = async function handler(req, res) {
     }
 
     const token = tokenData.access_token;
-    const sheetName = title || `Rekapitulasi_Pengeluaran_${Date.now()}`;
+    
+    let sheetName = title;
+    if (!sheetName) {
+      const today = new Date();
+      const day = today.getDate();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const month = monthNames[today.getMonth()];
+      const year = String(today.getFullYear()).slice(-2);
+      const timeSuffix = `${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+      const uName = (req.body?.userName || 'user').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      sheetName = `${day}-${month}-${year}_${uName}_${timeSuffix}`;
+    }
 
-    // 2. Upload XLS ke Google Drive dan convert otomatis ke Google Spreadsheet (lengkap dengan warna & border)
+    // 2. Cari atau buat folder "ScanFinance" -> subfolder "Spreadsheet"
+    let folderId = null;
+    try {
+      const getOrCreateFolder = async (name, parentId = null) => {
+        let q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        if (parentId) {
+          q += ` and '${parentId}' in parents`;
+        }
+        const sRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.files && sData.files.length > 0) {
+            return sData.files[0].id;
+          }
+        }
+        const createPayload = {
+          name,
+          mimeType: 'application/vnd.google-apps.folder',
+        };
+        if (parentId) {
+          createPayload.parents = [parentId];
+        }
+        const cRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(createPayload),
+        });
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          return cData.id;
+        }
+        return null;
+      };
+
+      const rootId = await getOrCreateFolder('ScanFinance');
+      folderId = await getOrCreateFolder('Spreadsheet', rootId);
+    } catch (fErr) {
+      console.warn('Folder find/create notice:', fErr);
+    }
+
+    // 3. Upload XLS ke Google Drive dan convert otomatis ke Google Spreadsheet (lengkap dengan warna & border)
     const boundary = '-------sheetsboundary' + Date.now();
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
@@ -71,6 +128,7 @@ module.exports = async function handler(req, res) {
     const metadata = {
       name: sheetName,
       mimeType: 'application/vnd.google-apps.spreadsheet',
+      parents: folderId ? [folderId] : undefined,
     };
 
     const isXls = Boolean(xlsContent) || contentToUpload.includes('<table') || contentToUpload.includes('<html');

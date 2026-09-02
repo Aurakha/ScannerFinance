@@ -811,6 +811,20 @@ export function downloadCSV(content: string, fileName = 'Settlement_SKA_Agustus_
 }
 
 /**
+ * Helper untuk membuat nama file seragam dengan foto struk: tanggal_namaUser_jam
+ */
+export function generateReportFileName(profile?: UserProfile): string {
+  const today = new Date();
+  const day = today.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const month = monthNames[today.getMonth()];
+  const year = String(today.getFullYear()).slice(-2);
+  const timeSuffix = `${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+  const cleanName = (profile?.full_name || 'user').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+  return `${day}-${month}-${year}_${cleanName}_${timeSuffix}`;
+}
+
+/**
  * Fungsi Ekspor 1: Download File Excel (.xls)
  */
 export function exportExcelReport(
@@ -818,9 +832,8 @@ export function exportExcelReport(
   profile?: UserProfile,
   fileName?: string
 ) {
-  const name =
-    fileName ||
-    `Rekap_Klaim_${(profile?.company_name || 'SKA').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xls`;
+  const baseName = fileName || generateReportFileName(profile);
+  const name = baseName.endsWith('.xls') ? baseName : `${baseName}.xls`;
   const xlsContent = generateCompanyExpenseReportXLS(transactions, profile);
   downloadFile(xlsContent, name, 'application/vnd.ms-excel;charset=utf-8;');
 }
@@ -834,9 +847,7 @@ export async function exportGoogleSpreadsheetReport(
   fileName?: string,
   targetWindow?: any
 ): Promise<{ success: boolean; message: string; spreadsheetUrl: string }> {
-  const name =
-    fileName ||
-    `Rekap_Klaim_${(profile?.company_name || 'SKA').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+  const name = fileName || generateReportFileName(profile);
 
   // 1. Salin tabel berformat ke clipboard (jika user ingin paste di tempat lain)
   try {
