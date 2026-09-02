@@ -165,7 +165,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
           <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">${tx.merchant_name}</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1 Paket</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${bVal ? `x:num="${bVal}"` : ''}>${bVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
@@ -208,7 +208,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
           <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap; color: #DC2626;">Diskon / Potongan Promo (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1 Promo</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${bVal ? `x:num="${negVal}"` : ''}>${bVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${cVal ? `x:num="${negVal}"` : ''}>${cVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${dVal ? `x:num="${negVal}"` : ''}>${dVal}</td>
@@ -231,7 +231,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
           <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Biaya Layanan / Admin (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1 Trx</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -254,7 +254,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
           <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Ongkos Kirim (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1 Trx</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}">${shipVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -277,7 +277,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">${rowNo}</td>
           <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px; white-space: nowrap;">Pajak / PPN (${tx.merchant_name})</td>
-          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">-</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px; white-space: nowrap;">1x</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -630,7 +630,7 @@ export function generateCompanyExpenseReportCSV(
           escapeCSV(txDateStr),
           escapeCSV(rowNo),
           escapeCSV(`Diskon / Potongan Promo (${tx.merchant_name})`),
-          escapeCSV('1 Promo'),
+          escapeCSV('1x'),
           escapeCSV(bVal),
           escapeCSV(cVal),
           escapeCSV(dVal),
@@ -652,7 +652,7 @@ export function generateCompanyExpenseReportCSV(
           escapeCSV(txDateStr),
           escapeCSV(rowNo),
           escapeCSV(`Biaya Layanan / Admin (${tx.merchant_name})`),
-          escapeCSV('1 Trx'),
+          escapeCSV('1x'),
           escapeCSV(''),
           escapeCSV(''),
           escapeCSV(''),
@@ -674,7 +674,7 @@ export function generateCompanyExpenseReportCSV(
           escapeCSV(txDateStr),
           escapeCSV(rowNo),
           escapeCSV(`Ongkos Kirim (${tx.merchant_name})`),
-          escapeCSV('1 Trx'),
+          escapeCSV('1x'),
           escapeCSV(shipVal),
           escapeCSV(''),
           escapeCSV(''),
@@ -696,7 +696,7 @@ export function generateCompanyExpenseReportCSV(
           escapeCSV(txDateStr),
           escapeCSV(rowNo),
           escapeCSV(`Pajak / PPN (${tx.merchant_name})`),
-          escapeCSV('-'),
+          escapeCSV('1x'),
           escapeCSV(''),
           escapeCSV(''),
           escapeCSV(''),
