@@ -18,13 +18,15 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { processReceiptImage, getSampleDemoReceipt } from '@/services/receiptService';
+import { processReceiptImages } from '@/services/receiptService';
 import { ReceiptScanResult } from '@/types';
 
 export default function ScannerScreen() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
+  const [receiptQueue, setReceiptQueue] = useState<ReceiptScanResult[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
 
@@ -48,7 +50,7 @@ export default function ScannerScreen() {
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        processImage(result.assets[0].uri, result.assets[0].base64 || undefined);
+        processImages([{ uri: result.assets[0].uri, base64: result.assets[0].base64 || undefined }]);
       }
     } catch (err: any) {
       console.warn('Take photo error:', err);
@@ -60,13 +62,18 @@ export default function ScannerScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: false,
+        allowsMultipleSelection: true,
+        selectionLimit: 5,
         quality: 0.85,
         base64: true,
       });
 
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        processImage(result.assets[0].uri, result.assets[0].base64 || undefined);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const inputItems = result.assets.map((a) => ({
+          uri: a.uri,
+          base64: a.base64 || undefined,
+        }));
+        processImages(inputItems);
       }
     } catch (err: any) {
       console.warn('Pick image error:', err);
@@ -74,20 +81,45 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleSelectDemo = () => {
-    const demo = getSampleDemoReceipt(0);
-    setScanResult(demo);
+  const handleSelectManualInput = () => {
+    const blank: ReceiptScanResult = {
+      merchant_name: '',
+      transaction_date: new Date().toISOString(),
+      suggested_category: 'Operational',
+      payment_method: 'cash',
+      subtotal: 0,
+      shipping_fee: 0,
+      admin_fee: 0,
+      tax_amount: 0,
+      discount_amount: 0,
+      total_amount: 0,
+      confidence_score: 1.0,
+      notes: '',
+      items: [],
+      receipt_image_uri: undefined,
+    };
+    setReceiptQueue([]);
+    setQueueIndex(0);
+    setScanResult(blank);
+    setCapturedImageUri(null);
     setShowVerifyModal(true);
   };
 
-  const processImage = async (imageUri: string, base64Data?: string) => {
+  const processImages = async (inputItems: Array<{ uri: string; base64?: string }>) => {
     try {
-      setCapturedImageUri(imageUri);
+      setCapturedImageUri(inputItems[0].uri);
       setIsProcessing(true);
       const userName = user?.full_name || user?.email?.split('@')[0] || 'user';
-      const parsedData = await processReceiptImage(imageUri, geminiApiKey, base64Data, userName);
+      const results = await processReceiptImages(inputItems, geminiApiKey, userName);
       setIsProcessing(false);
-      setScanResult(parsedData);
+
+      if (!results || results.length === 0) {
+        throw new Error('AI tidak menemukan rincian transaksi dari foto yang diunggah.');
+      }
+
+      setReceiptQueue(results);
+      setQueueIndex(0);
+      setScanResult(results[0]);
       setShowVerifyModal(true);
     } catch (err: any) {
       setIsProcessing(false);
@@ -101,7 +133,7 @@ export default function ScannerScreen() {
   const handleSaveVerifiedTransaction = async (verifiedData: any) => {
     try {
       const cat = categories.find((c) => c.id === verifiedData.category_id);
-      const finalReceiptUrl = scanResult?.receipt_image_uri || capturedImageUri || undefined;
+      const finalReceiptUrl = verifiedData.receipt_image_uri || scanResult?.receipt_image_uri || capturedImageUri || undefined;
 
       await addTransaction({
         user_id: 'active-user',
@@ -121,8 +153,22 @@ export default function ScannerScreen() {
         items: verifiedData.items,
       });
 
+      // Jika masih ada struk berikutnya dalam antrean (multi-struk batch)
+      if (receiptQueue.length > 1 && queueIndex + 1 < receiptQueue.length) {
+        const nextIdx = queueIndex + 1;
+        setQueueIndex(nextIdx);
+        setScanResult(receiptQueue[nextIdx]);
+        Alert.alert(
+          'Struk Disimpan! 📄',
+          `Struk ${queueIndex + 1} berhasil disimpan. Melanjutkan ke struk ${nextIdx + 1} dari ${receiptQueue.length}.`
+        );
+        return;
+      }
+
       setShowVerifyModal(false);
       setScanResult(null);
+      setReceiptQueue([]);
+      setQueueIndex(0);
       setCapturedImageUri(null);
 
       Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan foto struk belanja telah tersimpan rapi.', [
@@ -149,7 +195,7 @@ export default function ScannerScreen() {
       >
         <Header
           title="Unggah & Ekstrak Struk"
-          subtitle="AI mengekstrak toko, item, ongkir, & biaya admin"
+          subtitle="AI membaca 1-5 foto, struk panjang, ongkir, & admin"
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -158,13 +204,13 @@ export default function ScannerScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? Palette.amber : Palette.primary}
+                color={mode === 'dark' ? '#FEE75C' : Palette.primary}
               />
             </TouchableOpacity>
           }
         />
 
-        {/* Primary Drag & Dropzone Card */}
+        {/* Card Upload Area Utama */}
         <View
           style={[
             styles.dropzoneCard,
@@ -180,7 +226,7 @@ export default function ScannerScreen() {
 
           <Text style={[styles.dropzoneTitle, { color: theme.text }]}>Ekstrak Struk Belanja Otomatis</Text>
           <Text style={[styles.dropzoneSubtitle, { color: theme.textSecondary }]}>
-            Foto langsung menggunakan kamera ponsel atau pilih gambar struk dari galeri/penyimpanan perangkat Anda
+            Foto langsung atau pilih hingga 5 foto struk dari galeri (mendukung struk panjang bersambung / multi-struk)
           </Text>
 
           <View style={styles.buttonActionGroup}>
@@ -191,13 +237,13 @@ export default function ScannerScreen() {
 
             <TouchableOpacity style={styles.gallerySecondaryBtn} onPress={handlePickImage} activeOpacity={0.85}>
               <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
-              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>Pilih dari Galeri</Text>
+              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>Pilih dari Galeri (1-5 Foto)</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.demoTestBtn} onPress={handleSelectDemo} activeOpacity={0.8}>
-            <Ionicons name="sparkles" size={14} color="#F0B232" />
-            <Text style={styles.demoTestText}>Coba Demo Ekstraksi Instan (Tanpa Foto)</Text>
+          <TouchableOpacity style={styles.demoTestBtn} onPress={handleSelectManualInput} activeOpacity={0.8}>
+            <Ionicons name="create-outline" size={15} color="#F0B232" />
+            <Text style={styles.demoTestText}>Input Manual (Formulir Kosong / Struk Sulit Terbaca)</Text>
           </TouchableOpacity>
 
           <Text style={[styles.formatHint, { color: theme.textMuted }]}>

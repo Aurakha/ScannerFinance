@@ -37,11 +37,13 @@ function getCurrentMonthKey(): string {
 }
 
 function formatMonthLabel(monthKey: string): string {
+  if (monthKey === 'all') return 'Semua Waktu';
   const [year, month] = monthKey.split('-').map(Number);
   return `${MONTH_NAMES_FULL[month - 1]} ${year}`;
 }
 
 function getMonthNameOnly(monthKey: string): string {
+  if (monthKey === 'all') return 'Semua Data';
   const [, month] = monthKey.split('-').map(Number);
   return MONTH_NAMES_FULL[month - 1];
 }
@@ -72,7 +74,8 @@ export default function TransactionsScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [calendarPickerYear, setCalendarPickerYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
+  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   React.useEffect(() => {
     loadData(user?.id);
@@ -81,19 +84,18 @@ export default function TransactionsScreen() {
   // Selected category helper
   const selectedCategory = categories.find((c) => c.id === activeFilter);
 
-  // 6 bulan terakhir (misal: April, Mei, Juni, Juli, Agustus, September)
+  // Pilihan bulan (Semua Data + 6 bulan terakhir)
   const recent6Months = useMemo(() => {
     const now = new Date();
-    const list: string[] = [];
+    const list: string[] = ['all'];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       list.push(key);
     }
-    // Jika user memilih bulan dari kalender di luar 6 bulan ini, masukkan agar tetap aktif
+    // Jika user memilih bulan dari kalender di luar daftar ini, masukkan agar tetap aktif
     if (!list.includes(selectedMonth)) {
       list.push(selectedMonth);
-      list.sort();
     }
     return list;
   }, [selectedMonth]);
@@ -115,13 +117,15 @@ export default function TransactionsScreen() {
 
   // Filter transactions by month, category, and search
   const filteredTransactions = transactions.filter((t) => {
-    // Month filter
-    try {
-      const d = new Date(t.transaction_date);
-      const txMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (txMonth !== selectedMonth) return false;
-    } catch {
-      return false;
+    // Month filter (abaikan jika user memilih 'all')
+    if (selectedMonth !== 'all') {
+      try {
+        const d = new Date(t.transaction_date);
+        const txMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (txMonth !== selectedMonth) return false;
+      } catch {
+        return false;
+      }
     }
 
     const resolvedCat =
@@ -148,7 +152,16 @@ export default function TransactionsScreen() {
     return matchCategory && matchSearch;
   });
 
-  const totalFilteredAmount = filteredTransactions.reduce(
+  // Urutkan transaksi: 'newest' (terbaru ke terlama) atau 'oldest' (paling lama ke paling baru masuk)
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => {
+      const timeA = new Date(a.transaction_date || a.created_at || 0).getTime();
+      const timeB = new Date(b.transaction_date || b.created_at || 0).getTime();
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+  }, [filteredTransactions, sortOrder]);
+
+  const totalFilteredAmount = sortedTransactions.reduce(
     (sum, t) => sum + Number(t.total_amount || 0),
     0
   );
@@ -226,7 +239,7 @@ export default function TransactionsScreen() {
         {/* Header */}
         <Header
           title="Riwayat Transaksi"
-          subtitle={`${filteredTransactions.length} transaksi tercatat`}
+          subtitle={`${sortedTransactions.length} transaksi tercatat`}
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -260,7 +273,7 @@ export default function TransactionsScreen() {
               const isSelected = mKey === selectedMonth;
               const monthName = getMonthNameOnly(mKey);
               const [y] = mKey.split('-');
-              const isDiffYear = Number(y) !== new Date().getFullYear();
+              const isDiffYear = mKey !== 'all' && Number(y) !== new Date().getFullYear();
 
               return (
                 <TouchableOpacity
@@ -388,7 +401,7 @@ export default function TransactionsScreen() {
           ) : null}
         </View>
 
-        {/* Compact Category Filter Trigger (Tidak Muncul Semua secara Default) */}
+        {/* Compact Category Filter Trigger & Sort Order Trigger */}
         <View style={styles.filterControlRow}>
           <TouchableOpacity
             style={[
@@ -427,13 +440,43 @@ export default function TransactionsScreen() {
             />
           </TouchableOpacity>
 
+          {/* Tombol Urutan Transaksi (Terbaru vs Paling Lama Masuk) */}
+          <TouchableOpacity
+            style={[
+              styles.sortOrderBtn,
+              {
+                backgroundColor: sortOrder === 'oldest' ? `${Palette.primary}18` : theme.card,
+                borderColor: sortOrder === 'oldest' ? Palette.primary : theme.border,
+              },
+            ]}
+            onPress={() => setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'))}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'}
+              size={13}
+              color={sortOrder === 'oldest' ? Palette.primary : theme.textSecondary}
+            />
+            <Text
+              style={[
+                styles.sortOrderBtnText,
+                {
+                  color: sortOrder === 'oldest' ? Palette.primary : theme.text,
+                  fontWeight: sortOrder === 'oldest' ? '700' : '600',
+                },
+              ]}
+            >
+              {sortOrder === 'newest' ? 'Terbaru ➔ Terlama' : 'Paling Lama ➔ Terbaru'}
+            </Text>
+          </TouchableOpacity>
+
           {activeFilter !== 'all' && (
             <TouchableOpacity
               style={[styles.resetFilterBtn, { backgroundColor: theme.cardHover }]}
               onPress={() => setActiveFilter('all')}
             >
               <Ionicons name="close-circle" size={15} color={theme.textMuted} />
-              <Text style={[styles.resetFilterText, { color: theme.textSecondary }]}>Reset Filter</Text>
+              <Text style={[styles.resetFilterText, { color: theme.textSecondary }]}>Reset</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -441,7 +484,7 @@ export default function TransactionsScreen() {
         {/* Subtotal Summary Header */}
         <View style={styles.totalHeader}>
           <Text style={[styles.totalCountText, { color: theme.textMuted }]}>
-            Total Tercatat:
+            Total Tercatat ({selectedMonth === 'all' ? 'Semua Waktu' : formatMonthLabel(selectedMonth)}):
           </Text>
           <Text style={[styles.totalAmountText, { color: theme.text }]}>
             {formatRupiah(totalFilteredAmount)}
@@ -454,7 +497,7 @@ export default function TransactionsScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {filteredTransactions.length === 0 ? (
+          {sortedTransactions.length === 0 ? (
             <View
               style={[
                 styles.emptyState,
@@ -468,11 +511,13 @@ export default function TransactionsScreen() {
               <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
                 {searchQuery
                   ? 'Coba gunakan kata kunci pencarian yang lain'
+                  : selectedMonth === 'all'
+                  ? 'Belum ada transaksi tersimpan di sistem'
                   : `Belum ada transaksi di bulan ${formatMonthLabel(selectedMonth)}`}
               </Text>
             </View>
           ) : (
-            filteredTransactions.map((tx) => (
+            sortedTransactions.map((tx) => (
               <TransactionCard
                 key={tx.id}
                 transaction={tx}
@@ -905,6 +950,18 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   categoryFilterBtnText: {
+    fontSize: 12,
+  },
+  sortOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 6,
+  },
+  sortOrderBtnText: {
     fontSize: 12,
   },
   resetFilterBtn: {

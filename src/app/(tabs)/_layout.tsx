@@ -65,7 +65,7 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.floatingContainer}>
               <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar }]}>
-                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
+                <Ionicons name="cloud-upload" size={26} color="#FFFFFF" />
               </View>
             </View>
           ),
@@ -112,22 +112,22 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    top: -22,
+    top: -26,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanButtonCenter: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 3.5,
     shadowColor: Palette.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 9,
   },
 });

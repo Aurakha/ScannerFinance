@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { Category, PaymentMethod, ReceiptScanResult, TransactionItem } from '@/types';
@@ -35,6 +37,7 @@ interface ReceiptVerifyModalProps {
     total_amount: number;
     notes: string;
     items: TransactionItem[];
+    receipt_image_uri?: string;
   }) => void;
 }
 
@@ -109,6 +112,68 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     return String(scanData.total_amount || scanData.subtotal || 0);
   });
 
+  const [attachedPhotoUri, setAttachedPhotoUri] = useState<string | null>(
+    scanData.receipt_image_uri || null
+  );
+
+  useEffect(() => {
+    if (scanData) {
+      setAttachedPhotoUri(scanData.receipt_image_uri || null);
+    }
+  }, [scanData]);
+
+  const handlePickAttachment = async () => {
+    if (Platform.OS === 'web') {
+      try {
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.85,
+        });
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          setAttachedPhotoUri(res.assets[0].uri);
+        }
+      } catch (e: any) {
+        Alert.alert('Gagal Memilih Foto', e.message || 'Tidak dapat membuka file.');
+      }
+      return;
+    }
+
+    Alert.alert('Lampirkan Foto Struk', 'Pilih sumber foto bukti transaksi:', [
+      {
+        text: 'Kamera',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (!perm.granted) {
+              Alert.alert('Izin Kamera Ditolak', 'Mohon izinkan akses kamera pada pengaturan perangkat.');
+              return;
+            }
+            const res = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+            if (!res.canceled && res.assets?.[0]?.uri) {
+              setAttachedPhotoUri(res.assets[0].uri);
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err.message);
+          }
+        },
+      },
+      {
+        text: 'Galeri Foto',
+        onPress: async () => {
+          try {
+            const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
+            if (!res.canceled && res.assets?.[0]?.uri) {
+              setAttachedPhotoUri(res.assets[0].uri);
+            }
+          } catch (err: any) {
+            Alert.alert('Error', err.message);
+          }
+        },
+      },
+      { text: 'Batal', style: 'cancel' },
+    ]);
+  };
+
   // Hitung subtotal item
   const itemsSubtotal = items.reduce((sum, it) => sum + (Number(it.total_price) || 0), 0);
 
@@ -162,6 +227,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       total_amount: finalTotal,
       notes: notes,
       items: items,
+      receipt_image_uri: attachedPhotoUri || scanData.receipt_image_uri || undefined,
     });
   };
 
@@ -462,6 +528,49 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 placeholderTextColor={Palette.darkTextMuted}
                 multiline
               />
+            </View>
+
+            {/* Lampiran Foto Struk / Bukti */}
+            <View style={styles.fieldGroup}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={styles.fieldLabel}>Foto / Lampiran Struk</Text>
+                <TouchableOpacity
+                  style={styles.attachPhotoBtn}
+                  onPress={handlePickAttachment}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="camera" size={13} color={Palette.primary} />
+                  <Text style={styles.attachPhotoBtnText}>
+                    {attachedPhotoUri ? 'Ganti Foto' : '+ Lampirkan Foto'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {attachedPhotoUri ? (
+                <View style={styles.photoPreviewCard}>
+                  <Image source={{ uri: attachedPhotoUri }} style={styles.photoThumb} resizeMode="cover" />
+                  <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                    <Text style={styles.photoThumbTitle} numberOfLines={1}>
+                      Foto Struk Terlampir
+                    </Text>
+                    <Text style={styles.photoThumbSub}>Tersimpan ke arsip Google Drive & transaksi</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setAttachedPhotoUri(null)} style={styles.removePhotoBtn}>
+                    <Ionicons name="trash-outline" size={16} color={Palette.coral} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.emptyPhotoBox}
+                  onPress={handlePickAttachment}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="image-outline" size={22} color={Palette.darkTextMuted} />
+                  <Text style={styles.emptyPhotoText}>
+                    Belum ada foto. Klik di sini untuk melampirkan foto struk fisik / bukti pembayaran
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
 
@@ -1059,5 +1168,65 @@ const styles = StyleSheet.create({
   },
   popupOptionName: {
     fontSize: 13,
+  },
+  attachPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+  },
+  attachPhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  photoPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 8,
+  },
+  photoThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#000',
+  },
+  photoThumbTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  photoThumbSub: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginTop: 2,
+  },
+  removePhotoBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  emptyPhotoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  emptyPhotoText: {
+    flex: 1,
+    fontSize: 11,
+    color: Palette.darkTextMuted,
+    lineHeight: 16,
   },
 });

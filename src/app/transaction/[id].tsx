@@ -553,10 +553,11 @@ export default function TransactionDetailScreen() {
       </ScrollView>
 
       {/* MODAL EDIT TRANSAKSI LENGKAP */}
-      <Modal visible={isEditModalVisible} animationType="slide" transparent>
-        <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
-          {/* Modal Header */}
-          <View style={[styles.modalNav, { borderBottomColor: theme.border, backgroundColor: theme.card }]}>
+      <Modal visible={isEditModalVisible} animationType="fade" transparent onRequestClose={() => setIsEditModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCardContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={[styles.modalNav, { borderBottomColor: theme.border, backgroundColor: theme.card }]}>
             <TouchableOpacity
               onPress={() => setIsEditModalVisible(false)}
               style={[styles.navBtn, { backgroundColor: theme.cardHover }]}
@@ -872,7 +873,8 @@ export default function TransactionDetailScreen() {
               )}
             </TouchableOpacity>
           </ScrollView>
-        </SafeAreaView>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -1182,9 +1184,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
-  // Modal Edit Styles
-  modalSafeArea: {
+  // Modal Edit Styles (Centered Card Dialog matching ReceiptVerifyModal)
+  modalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCardContainer: {
+    width: '100%',
+    maxWidth: 580,
+    maxHeight: '90%',
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalNav: {
     flexDirection: 'row',

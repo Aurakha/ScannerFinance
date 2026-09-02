@@ -77,19 +77,40 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 /**
  * Memproses gambar struk via Google Gemini 3.6 Flash dengan pembacaan otomatis Ongkir, Biaya Layanan/Admin, Diskon, & Total
  */
-export async function processReceiptImage(
-  imageUri: string,
-  userGeminiApiKey?: string,
-  rawBase64?: string,
-  userName?: string
-): Promise<ReceiptScanResult> {
-  const base64Data = rawBase64 || (await convertUriToBase64(imageUri));
+export interface ReceiptInputItem {
+  uri: string;
+  base64?: string;
+}
 
-  if (!base64Data) {
+/**
+ * Memproses 1 hingga 5 foto struk sekaligus via Google Gemini Flash
+ * Mendukung struk panjang (sambungan foto) dan batch struk berbeda
+ */
+export async function processReceiptImages(
+  images: ReceiptInputItem[],
+  userGeminiApiKey?: string,
+  userName?: string
+): Promise<ReceiptScanResult[]> {
+  if (!images || images.length === 0) {
+    throw new Error('Tidak ada foto struk yang dipilih.');
+  }
+
+  // Maksimal 5 foto sekaligus
+  const targetImages = images.slice(0, 5);
+
+  // Konversi semua gambar ke base64
+  const base64List = await Promise.all(
+    targetImages.map(async (img) => {
+      return img.base64 || (await convertUriToBase64(img.uri));
+    })
+  );
+
+  const validBase64 = base64List.filter((b): b is string => Boolean(b && b.length > 20));
+  if (validBase64.length === 0) {
     throw new Error('Gagal membaca data foto struk belanja.');
   }
 
-  // Generate nama file: tanggal_namaUser (contoh: 2-Sep-26_raka2.jpg atau 10-Agt-26_raka2_1523.jpg)
+  // Generate nama file: tanggal_namaUser (contoh: 2-Sep-26_raka2.jpg)
   const today = new Date();
   const day = today.getDate();
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -99,11 +120,11 @@ export async function processReceiptImage(
   const cleanName = (userName || 'user').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
   const fileName = `${day}-${month}-${year}_${cleanName}_${timeSuffix}.jpg`;
 
-  // Upload ke Google Drive di latar belakang (non-blocking)
+  // Upload foto utama ke Google Drive di latar belakang (non-blocking)
   let driveLink: string | undefined;
   const driveUploadPromise = (async () => {
     try {
-      const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
+      const driveRes = await uploadReceiptToGoogleDrive(validBase64[0], fileName);
       if (driveRes?.webViewLink) {
         driveLink = driveRes.webViewLink;
       }
@@ -134,69 +155,58 @@ export async function processReceiptImage(
   ];
 
   const systemPrompt = `
-Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, dll.).
-Tugas Anda mengekstrak data dari gambar transaksi ini:
+Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online di Indonesia (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, SPBU Pertamina, Restoran, Nota Manual Toko, dll.).
+Pengguna dapat mengunggah 1 hingga 5 foto sekaligus.
 
-1. Validasi:
-   - Jika BUKAN dokumen transaksi/struk belanja, kembalikan:
-     {"is_receipt": false, "rejection_reason": "Gambar bukan struk belanja atau bukti transaksi."}
+Petunjuk Pemrosesan Foto:
+- Skenario A (1 Struk Panjang / Berkelanjutan): Jika foto-foto yang diunggah merupakan lanjutan (halaman atas, tengah, bawah) dari struk pesanan/toko yang sama, gabungkan seluruh daftar barang yang dibeli, serta jumlahkan/hitung subtotal, diskon, ongkir, biaya admin/layanan, dan total akhir menjadi TEPAT SATU objek transaksi di dalam array "receipts".
+- Skenario B (Beberapa Struk Berbeda): Jika foto-foto tersebut berasal dari struk/transaksi/toko yang berbeda satu sama lain, ekstrak setiap transaksi secara terpisah sebagai elemen tersendiri di dalam array "receipts".
 
-2. Ekstraksi Field:
-   - merchant_name: Nama toko/restoran/platform (contoh: "ShopeeFood", "Bakmi Jogja", "Indomaret", "GrabFood", "Gojek", "SPBU Pertamina").
-   - transaction_date: Tanggal & jam transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Contoh di struk "19 Agt 2026 16:49" -> "2026-08-19T16:49:00".
-   - suggested_category: "Operational" | "Pantry" | "Fasilitas" | "Lain-Lain". (Aturan: makanan/minuman/snack/kopi/beras/gula/air -> "Pantry"; sapu/pel/pembersih lantai/sabun/tissue/toilet/wifi/pakan ikan -> "Fasilitas"; bensin/transport/kendaraan -> "Operational"; reimburse/meeting/jasa/lainnya -> "Lain-Lain").
-   - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer". (Misal jika ShopeePay/GoPay/OVO -> "e-wallet").
-   
-   - items: Daftar HANYA barang/menu makanan/produk yang dibeli (contoh: Bakmi Godog x1 @34.000, Bakmi Goreng x1 @34.000). JANGAN memasukkan ongkir/biaya admin ke dalam list items barang.
-   
-   - subtotal: Subtotal pesanan menu/barang sebelum diskon & biaya tambahan (contoh: 68000).
-   
-   - shipping_fee: Biaya pengiriman / ongkos kirim / delivery fee jika ada (contoh: jika tertera "Biaya Pengiriman Rp8.000", isi 8000; jika tidak ada, isi 0).
-   
-   - admin_fee: JUMLAH TOTAL seluruh biaya layanan aplikasi, biaya penanganan, biaya admin kasir, dan biaya lain-lain jika ada (contoh: jika tertera "Biaya Layanan Rp3.500" dan "Biaya Lain-lain Rp3.000", maka admin_fee = 3500 + 3000 = 6500; jika tidak ada, isi 0).
-   
-   - discount_amount: Potongan voucher / diskon promo (contoh: jika tertera "Voucher Diskon -Rp12.000", isi 12000; jika tidak ada, isi 0).
-   
-   - tax_amount: Pajak PPN/PB1 jika tertera (jika ada nilai PPN seperti 6.875, isi 6875; jika tidak ada, isi 0).
-   
-   - total_amount: Total nominal yang sesungguhnya dibayarkan pelanggan (contoh: jika Total akhir Rp 70.500, maka total_amount = 70500).
-   
-   - notes: Catatan seperti nomor pesanan (contoh: "No. Pesanan: 3223849468528128954").
+Aturan Pembagian Kategori Form SKA:
+- "Pantry": makanan, minuman, snack, beras, gula, kopi, teh, air galon, konsumsi kantor/karyawan.
+- "Fasilitas": sapu, pel, pembersih lantai, sabun cuci, tissue, pakan ikan, wifi/internet, perlengkapan gedung/kantor.
+- "Operational": bensin pertamina/shell, biaya parkir, tol, grab, gojek, ekspedisi kurir/cargo, operasional lapangan.
+- "Lain-Lain": reimburse meeting, jasa teknisi/perbaikan, perlengkapan darurat, dan biaya operasional lainnya.
 
 Format Output JSON Wajib:
 {
   "is_receipt": true,
-  "merchant_name": "ShopeeFood",
-  "transaction_date": "2026-08-19T16:49:00",
-  "suggested_category": "Pantry",
-  "payment_method": "e-wallet",
-  "subtotal": 68000,
-  "shipping_fee": 8000,
-  "admin_fee": 6500,
-  "tax_amount": 0,
-  "discount_amount": 12000,
-  "total_amount": 70500,
-  "items": [
-    {"item_name": "Bakmi Godog", "quantity": 1, "unit_price": 34000, "total_price": 34000},
-    {"item_name": "Bakmi Goreng", "quantity": 1, "unit_price": 34000, "total_price": 34000}
-  ],
-  "confidence_score": 0.99,
-  "notes": "No. Pesanan: 3223849468528128954"
+  "receipts": [
+    {
+      "merchant_name": "ShopeeFood",
+      "transaction_date": "2026-08-19T16:49:00",
+      "suggested_category": "Pantry",
+      "payment_method": "e-wallet",
+      "subtotal": 68000,
+      "shipping_fee": 8000,
+      "admin_fee": 6500,
+      "tax_amount": 0,
+      "discount_amount": 12000,
+      "total_amount": 70500,
+      "items": [
+        {"item_name": "Bakmi Godog", "quantity": 1, "unit_price": 34000, "total_price": 34000}
+      ],
+      "confidence_score": 0.99,
+      "notes": "No. Pesanan jika ada"
+    }
+  ]
 }
-Perhatian: Kembalikan JSON murni tanpa markdown.
+Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transaksi, kembalikan {"is_receipt": false, "rejection_reason": "Gambar bukan struk belanja atau bukti transaksi."}.
 `;
+
+  const imageParts = validBase64.map((b64) => ({
+    inline_data: {
+      mime_type: 'image/jpeg',
+      data: b64,
+    },
+  }));
 
   const requestPayload = {
     contents: [
       {
         parts: [
           { text: systemPrompt },
-          {
-            inline_data: {
-              mime_type: 'image/jpeg',
-              data: base64Data,
-            },
-          },
+          ...imageParts,
         ],
       },
     ],
@@ -214,7 +224,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 20000) : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -280,7 +290,16 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
     );
   }
 
-  const finalTotal = Number(parsed.total_amount) || Number(parsed.subtotal) || 0;
+  let rawReceipts: any[] = [];
+  if (Array.isArray(parsed.receipts) && parsed.receipts.length > 0) {
+    rawReceipts = parsed.receipts;
+  } else if (parsed.merchant_name || parsed.total_amount !== undefined) {
+    rawReceipts = [parsed];
+  } else if (Array.isArray(parsed) && parsed.length > 0) {
+    rawReceipts = parsed;
+  } else {
+    throw new Error('AI tidak menemukan rincian transaksi pada gambar yang diunggah.');
+  }
 
   // Tunggu sejenak jika upload Drive selesai cepat (maksimal 3 detik agar tidak lambat)
   try {
@@ -290,27 +309,49 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
     ]);
   } catch {}
 
-  return {
-    merchant_name: parsed.merchant_name || 'Toko Belanja',
-    transaction_date: parsed.transaction_date || new Date().toISOString(),
-    suggested_category: parsed.suggested_category || 'Belanja Bulanan',
-    payment_method: parsed.payment_method || 'cash',
-    subtotal: Number(parsed.subtotal) || finalTotal,
-    shipping_fee: Number(parsed.shipping_fee) || 0,
-    admin_fee: Number(parsed.admin_fee) || 0,
-    tax_amount: Number(parsed.tax_amount) || 0,
-    discount_amount: Number(parsed.discount_amount) || 0,
-    total_amount: finalTotal,
-    items: (parsed.items || []).map((it: any) => ({
-      item_name: it.item_name || 'Item',
-      quantity: Number(it.quantity) || 1,
-      unit_price: Number(it.unit_price) || 0,
-      total_price: Number(it.total_price) || (Number(it.quantity) || 1) * (Number(it.unit_price) || 0),
-    })),
-    confidence_score: parsed.confidence_score || 0.95,
-    notes: parsed.notes || '',
-    receipt_image_uri: driveLink || imageUri,
-  };
+  const primaryPhotoUri = driveLink || targetImages[0]?.uri;
+
+  return rawReceipts.map((rc: any) => {
+    const finalTotal = Number(rc.total_amount) || Number(rc.subtotal) || 0;
+    return {
+      merchant_name: rc.merchant_name || 'Toko Belanja',
+      transaction_date: rc.transaction_date || new Date().toISOString(),
+      suggested_category: rc.suggested_category || 'Pantry',
+      payment_method: rc.payment_method || 'cash',
+      subtotal: Number(rc.subtotal) || finalTotal,
+      shipping_fee: Number(rc.shipping_fee) || 0,
+      admin_fee: Number(rc.admin_fee) || 0,
+      tax_amount: Number(rc.tax_amount) || 0,
+      discount_amount: Number(rc.discount_amount) || 0,
+      total_amount: finalTotal,
+      items: (rc.items || []).map((it: any) => ({
+        item_name: it.item_name || 'Item',
+        quantity: Number(it.quantity) || 1,
+        unit_price: Number(it.unit_price) || 0,
+        total_price: Number(it.total_price) || (Number(it.quantity) || 1) * (Number(it.unit_price) || 0),
+      })),
+      confidence_score: rc.confidence_score || 0.95,
+      notes: rc.notes || '',
+      receipt_image_uri: primaryPhotoUri,
+    };
+  });
+}
+
+/**
+ * Wrapper single-receipt untuk kompatibilitas fungsi pemanggil yang lama
+ */
+export async function processReceiptImage(
+  imageUri: string,
+  userGeminiApiKey?: string,
+  rawBase64?: string,
+  userName?: string
+): Promise<ReceiptScanResult> {
+  const results = await processReceiptImages(
+    [{ uri: imageUri, base64: rawBase64 }],
+    userGeminiApiKey,
+    userName
+  );
+  return results[0];
 }
 
 export function getSampleDemoReceipt(index = 0): ReceiptScanResult {
