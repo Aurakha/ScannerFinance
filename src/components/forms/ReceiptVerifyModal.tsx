@@ -68,8 +68,15 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     initialDate.toTimeString().slice(0, 5)
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(() => {
-    const found = categories.find((c) => c.name === scanData.suggested_category);
-    return found ? found.id : categories[0]?.id || 'cat-makanan';
+    const sug = (scanData.suggested_category || '').toLowerCase();
+    const found = categories.find(
+      (c) =>
+        c.name.toLowerCase() === sug ||
+        c.id.toLowerCase() === sug ||
+        sug.includes(c.name.toLowerCase()) ||
+        c.name.toLowerCase().includes(sug)
+    );
+    return found ? found.id : categories[0]?.id || 'cat-operational';
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     scanData.payment_method || 'e-wallet'
@@ -260,29 +267,29 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             {/* Payment Method Selector */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Metode Pembayaran</Text>
-              <View style={styles.paymentGrid}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
                 {PAYMENT_METHODS.map((pm) => {
                   const isSelected = paymentMethod === pm.value;
                   return (
                     <TouchableOpacity
                       key={pm.value}
                       style={[
-                        styles.paymentButton,
+                        styles.categoryChip,
                         isSelected && {
                           borderColor: Palette.primary,
-                          backgroundColor: 'rgba(88, 101, 242, 0.15)',
+                          backgroundColor: 'rgba(88, 101, 242, 0.2)',
                         },
                       ]}
                       onPress={() => setPaymentMethod(pm.value)}
                     >
                       <Ionicons
                         name={pm.icon as any}
-                        size={15}
+                        size={14}
                         color={isSelected ? Palette.primary : Palette.darkTextSecondary}
                       />
                       <Text
                         style={[
-                          styles.paymentButtonText,
+                          styles.categoryChipText,
                           isSelected && { color: Palette.primary, fontWeight: '700' },
                         ]}
                       >
@@ -291,7 +298,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             </View>
 
             {/* Item Breakdown List */}

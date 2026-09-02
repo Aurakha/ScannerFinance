@@ -138,7 +138,7 @@ Tugas Anda mengekstrak data dari gambar transaksi ini:
 2. Ekstraksi Field:
    - merchant_name: Nama toko/restoran/platform (contoh: "ShopeeFood", "Bakmi Jogja", "Indomaret", "GrabFood", "Gojek", "SPBU Pertamina").
    - transaction_date: Tanggal & jam transaksi format ISO (YYYY-MM-DDTHH:mm:ss). Contoh di struk "19 Agt 2026 16:49" -> "2026-08-19T16:49:00".
-   - suggested_category: "Makanan & Minuman" | "Belanja Bulanan" | "Transportasi" | "Tagihan & Utilitas" | "Hiburan & Rekreasi" | "Kesehatan & Medis" | "Pendidikan & Buku" | "Lainnya".
+   - suggested_category: "Operational" | "Pantry" | "Fasilitas" | "Lain-Lain". (Aturan: makanan/minuman/snack/kopi/beras/gula/air -> "Pantry"; sapu/pel/pembersih lantai/sabun/tissue/toilet/wifi/pakan ikan -> "Fasilitas"; bensin/transport/kendaraan -> "Operational"; reimburse/meeting/jasa/lainnya -> "Lain-Lain").
    - payment_method: "cash" | "qris" | "debit" | "credit" | "e-wallet" | "transfer". (Misal jika ShopeePay/GoPay/OVO -> "e-wallet").
    
    - items: Daftar HANYA barang/menu makanan/produk yang dibeli (contoh: Bakmi Godog x1 @34.000, Bakmi Goreng x1 @34.000). JANGAN memasukkan ongkir/biaya admin ke dalam list items barang.
@@ -162,7 +162,7 @@ Format Output JSON Wajib:
   "is_receipt": true,
   "merchant_name": "ShopeeFood",
   "transaction_date": "2026-08-19T16:49:00",
-  "suggested_category": "Makanan & Minuman",
+  "suggested_category": "Pantry",
   "payment_method": "e-wallet",
   "subtotal": 68000,
   "shipping_fee": 8000,

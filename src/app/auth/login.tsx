@@ -301,7 +301,7 @@ export default function LoginScreen() {
               {isSendingReset ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.primaryButtonText}>Kirim Link Reset Kata Sandi ✉️</Text>
+                <Text style={styles.primaryButtonText}>Kirim Link Reset Kata Sandi</Text>
               )}
             </TouchableOpacity>
           </View>

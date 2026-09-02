@@ -254,7 +254,7 @@ export default function TransactionsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spreadsheetBannerTitle, { color: theme.text }]}>
-                Rekap Formulir SKA Resmi 📋
+                Rekap Formulir SKA Resmi
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
                 {user?.company_name || 'PT. San Kawan Abadi'} • {formatMonthLabel(selectedMonth)}
