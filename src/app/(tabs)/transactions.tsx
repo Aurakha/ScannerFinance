@@ -328,7 +328,7 @@ export default function TransactionsScreen() {
               ) : (
                 <>
                   <Ionicons name="download-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.openSpreadsheetBtnText}>Excel (.xlsx)</Text>
+                  <Text style={styles.openSpreadsheetBtnText}>Excel (.xls)</Text>
                 </>
               )}
             </TouchableOpacity>

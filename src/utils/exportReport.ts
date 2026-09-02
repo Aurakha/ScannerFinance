@@ -1189,7 +1189,7 @@ export function generateCompanyExpenseReportXLSXBinary(
 }
 
 /**
- * Fungsi Ekspor 1: Download File Excel (.xlsx) murni
+ * Fungsi Ekspor 1: Download File Excel (.xls)
  */
 export function exportExcelReport(
   transactions: Transaction[],
@@ -1197,13 +1197,9 @@ export function exportExcelReport(
   fileName?: string
 ) {
   const baseName = fileName || generateReportFileName(profile);
-  const name = baseName.replace(/\.xlsx?$/i, '') + '.xlsx';
-  const xlsxBinary = generateCompanyExpenseReportXLSXBinary(transactions, profile);
-  downloadFile(
-    xlsxBinary,
-    name,
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  );
+  const name = baseName.endsWith('.xls') ? baseName : `${baseName.replace(/\.xlsx?$/i, '')}.xls`;
+  const xlsContent = generateCompanyExpenseReportXLS(transactions, profile);
+  downloadFile(xlsContent, name, 'application/vnd.ms-excel;charset=utf-8;');
 }
 
 /**
