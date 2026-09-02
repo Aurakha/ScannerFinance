@@ -285,21 +285,27 @@ export async function uploadReceiptToGoogleDrive(
  * Membuat dan mengekspor laporan rekapitulasi langsung ke Google Spreadsheet di Google Drive
  */
 export async function exportToGoogleSpreadsheet(
-  csvContent: string,
+  content: string,
   sheetTitle = 'Rekapitulasi_Pengeluaran_ScanFinance'
 ): Promise<{ fileId?: string; spreadsheetUrl: string; isDirectCloud: boolean }> {
-  // 1. Coba lewat Vercel Serverless API jika di Web (bebas CORS & langsung jadi)
+  const isXls = content.includes('<table') || content.includes('<html');
+
+  // 1. Coba lewat Vercel Serverless API jika di Web (bebas CORS & langsung berformat rapi)
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
       const apiRes = await fetch('/api/create-spreadsheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvContent, title: sheetTitle }),
+        body: JSON.stringify({
+          xlsContent: isXls ? content : undefined,
+          csvContent: !isXls ? content : undefined,
+          title: sheetTitle,
+        }),
       });
       if (apiRes.ok) {
         const result = await apiRes.json();
         if (result.success && result.spreadsheetUrl) {
-          console.log('✅ Spreadsheet berhasil dibuat via Serverless API:', result.name);
+          console.log('✅ Spreadsheet berformat berhasil dibuat via Serverless API:', result.name);
           return {
             fileId: result.fileId,
             spreadsheetUrl: result.spreadsheetUrl,
@@ -331,13 +337,15 @@ export async function exportToGoogleSpreadsheet(
         metadata.parents = [settings.folderId];
       }
 
+      const uploadMime = isXls ? 'application/vnd.ms-excel; charset=UTF-8' : 'text/csv; charset=UTF-8';
+
       const multipartRequestBody =
         delimiter +
         'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
         JSON.stringify(metadata) +
         delimiter +
-        'Content-Type: text/csv; charset=UTF-8\r\n\r\n' +
-        csvContent +
+        `Content-Type: ${uploadMime}\r\n\r\n` +
+        content +
         closeDelimiter;
 
       const response = await fetch(

@@ -20,10 +20,11 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { csvContent, title } = req.body || {};
+  const { xlsContent, csvContent, title } = req.body || {};
+  const contentToUpload = xlsContent || csvContent;
 
-  if (!csvContent) {
-    return res.status(400).json({ error: 'csvContent is required' });
+  if (!contentToUpload) {
+    return res.status(400).json({ error: 'xlsContent or csvContent is required' });
   }
 
   const clientId =
@@ -62,7 +63,7 @@ module.exports = async function handler(req, res) {
     const token = tokenData.access_token;
     const sheetName = title || `Rekapitulasi_Pengeluaran_${Date.now()}`;
 
-    // 2. Upload CSV ke Google Drive dan convert otomatis ke Google Spreadsheet
+    // 2. Upload XLS ke Google Drive dan convert otomatis ke Google Spreadsheet (lengkap dengan warna & border)
     const boundary = '-------sheetsboundary' + Date.now();
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
@@ -72,13 +73,16 @@ module.exports = async function handler(req, res) {
       mimeType: 'application/vnd.google-apps.spreadsheet',
     };
 
+    const isXls = Boolean(xlsContent) || contentToUpload.includes('<table') || contentToUpload.includes('<html');
+    const uploadMime = isXls ? 'application/vnd.ms-excel; charset=UTF-8' : 'text/csv; charset=UTF-8';
+
     const multipartRequestBody =
       delimiter +
       'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
       JSON.stringify(metadata) +
       delimiter +
-      'Content-Type: text/csv; charset=UTF-8\r\n\r\n' +
-      csvContent +
+      `Content-Type: ${uploadMime}\r\n\r\n` +
+      contentToUpload +
       closeDelimiter;
 
     const driveRes = await fetch(

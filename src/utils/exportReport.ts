@@ -738,9 +738,9 @@ export async function exportGoogleSpreadsheetReport(
     await copyFormattedTableToClipboard(transactions, profile);
   } catch {}
 
-  // 2. Buat file Google Spreadsheet langsung di Google Drive
-  const csv = generateCompanyExpenseReportCSV(transactions, profile);
-  const cloudRes = await cloudExportToGDrive(csv, name);
+  // 2. Buat file Google Spreadsheet langsung di Google Drive dengan format & desain tabel Excel lengkap
+  const formattedContent = generateCompanyExpenseReportXLS(transactions, profile);
+  const cloudRes = await cloudExportToGDrive(formattedContent, name);
 
   // 3. Buka URL Google Sheets di tab browser
   const targetUrl = cloudRes.isDirectCloud ? cloudRes.spreadsheetUrl : 'https://sheets.new';
