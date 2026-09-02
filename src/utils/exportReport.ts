@@ -123,7 +123,7 @@ export function generateCompanyExpenseReportXLS(
           <tr style="height: 28px;">
             <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
             <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
-            <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">${it.item_name}</td>
+            <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px;">${it.item_name}</td>
             <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${qtyStr}</td>
             <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${bVal}</td>
             <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${cVal}</td>
@@ -161,7 +161,7 @@ export function generateCompanyExpenseReportXLS(
         <tr style="height: 28px;">
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">${tx.merchant_name}</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px;">${tx.merchant_name}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">1 Paket</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${bVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${cVal}</td>
@@ -182,7 +182,7 @@ export function generateCompanyExpenseReportXLS(
         <tr style="height: 28px;">
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Biaya Layanan / Admin (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px;">Biaya Layanan / Admin (${tx.merchant_name})</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">1 Trx</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -203,7 +203,7 @@ export function generateCompanyExpenseReportXLS(
         <tr style="height: 28px;">
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Ongkos Kirim (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px;">Ongkos Kirim (${tx.merchant_name})</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">1 Trx</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${shipVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -224,7 +224,7 @@ export function generateCompanyExpenseReportXLS(
         <tr style="height: 28px;">
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
-          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Pajak / PPN (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px; width: 480px;">Pajak / PPN (${tx.merchant_name})</td>
           <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">-</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
@@ -270,49 +270,51 @@ export function generateCompanyExpenseReportXLS(
 </head>
 <body>
   <table>
-    <col width="120" />
-    <col width="45" />
-    <col width="460" />
-    <col width="115" />
-    <col width="135" />
-    <col width="135" />
-    <col width="135" />
-    <col width="135" />
-    <col width="145" />
+    <colgroup>
+      <col width="130" style="width: 130px;" />
+      <col width="45" style="width: 45px;" />
+      <col width="480" style="width: 480px;" />
+      <col width="115" style="width: 115px;" />
+      <col width="135" style="width: 135px;" />
+      <col width="135" style="width: 135px;" />
+      <col width="135" style="width: 135px;" />
+      <col width="135" style="width: 135px;" />
+      <col width="145" style="width: 145px;" />
+    </colgroup>
 
     <!-- Metadata Section -->
     <tr style="height: 24px;">
-      <td colspan="2" style="font-weight: bold;">Nama Perusahaan</td>
-      <td style="text-align: center; font-weight: bold; width: 25px;">:</td>
-      <td colspan="6" style="font-weight: bold;">${companyName}</td>
+      <td style="font-weight: bold; width: 130px;">Nama Perusahaan</td>
+      <td style="text-align: center; font-weight: bold; width: 45px;">:</td>
+      <td colspan="7" style="font-weight: bold; width: 480px;">${companyName}</td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="2" style="font-weight: bold;">Nama</td>
+      <td style="font-weight: bold;">Nama</td>
       <td style="text-align: center; font-weight: bold;">:</td>
-      <td colspan="6">${employeeName}</td>
+      <td colspan="7">${employeeName}</td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="2" style="font-weight: bold;">Dept/Divisi</td>
+      <td style="font-weight: bold;">Dept/Divisi</td>
       <td style="text-align: center; font-weight: bold;">:</td>
-      <td colspan="6">${department}</td>
+      <td colspan="7">${department}</td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="2" style="font-weight: bold;">Tanggal</td>
+      <td style="font-weight: bold;">Tanggal</td>
       <td style="text-align: center; font-weight: bold;">:</td>
-      <td colspan="6">${reportDate}</td>
+      <td colspan="7">${reportDate}</td>
     </tr>
     <tr style="height: 24px;">
-      <td colspan="2" style="font-weight: bold;">Project</td>
+      <td style="font-weight: bold;">Project</td>
       <td style="text-align: center; font-weight: bold;">:</td>
-      <td colspan="6">${projectName}</td>
+      <td colspan="7">${projectName}</td>
     </tr>
     <tr style="height: 16px;"><td colspan="9"></td></tr>
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
     <tr style="height: 32px;">
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 120px;">TANGGAL</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 130px;">TANGGAL</td>
       <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 45px;">NO</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 460px;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 480px;">KETERANGAN</td>
       <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px;">JUMLAH ITEM</td>
       <td class="th-header" style="background-color: #FEF08A; width: 135px;">Operational</td>
       <td class="th-header" style="background-color: #BBF7D0; width: 135px;">Pantry</td>
