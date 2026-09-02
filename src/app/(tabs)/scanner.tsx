@@ -130,58 +130,69 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleSaveVerifiedTransaction = async (verifiedData: any) => {
+  const handleSaveBatchTransactions = async (batchData: any[]) => {
     try {
-      const cat = categories.find((c) => c.id === verifiedData.category_id);
-      const finalReceiptUrl = verifiedData.receipt_image_uri || scanResult?.receipt_image_uri || capturedImageUri || undefined;
+      setIsProcessing(true);
+      for (const verifiedData of batchData) {
+        const cat = categories.find((c) => c.id === verifiedData.category_id);
+        const finalReceiptUrl = verifiedData.receipt_image_uri || capturedImageUri || undefined;
 
-      await addTransaction({
-        user_id: 'active-user',
-        category_id: verifiedData.category_id,
-        category: cat,
-        merchant_name: verifiedData.merchant_name,
-        transaction_date: verifiedData.transaction_date,
-        total_amount: verifiedData.total_amount,
-        subtotal: verifiedData.subtotal,
-        tax_amount: verifiedData.tax_amount,
-        discount_amount: verifiedData.discount_amount,
-        shipping_fee: verifiedData.shipping_fee,
-        admin_fee: verifiedData.admin_fee,
-        payment_method: verifiedData.payment_method,
-        notes: verifiedData.notes,
-        receipt_image_url: finalReceiptUrl,
-        items: verifiedData.items,
-      });
+        let finalIso = new Date().toISOString();
+        try {
+          if (verifiedData.transaction_date && verifiedData.transaction_time) {
+            finalIso = new Date(`${verifiedData.transaction_date}T${verifiedData.transaction_time}:00`).toISOString();
+          } else if (verifiedData.transaction_date) {
+            finalIso = new Date(verifiedData.transaction_date).toISOString();
+          }
+        } catch {
+          finalIso = new Date().toISOString();
+        }
 
-      // Jika masih ada struk berikutnya dalam antrean (multi-struk batch)
-      if (receiptQueue.length > 1 && queueIndex + 1 < receiptQueue.length) {
-        const nextIdx = queueIndex + 1;
-        setQueueIndex(nextIdx);
-        setScanResult(receiptQueue[nextIdx]);
-        Alert.alert(
-          'Struk Disimpan! 📄',
-          `Struk ${queueIndex + 1} berhasil disimpan. Melanjutkan ke struk ${nextIdx + 1} dari ${receiptQueue.length}.`
-        );
-        return;
+        await addTransaction({
+          user_id: 'active-user',
+          category_id: verifiedData.category_id,
+          category: cat,
+          merchant_name: verifiedData.merchant_name,
+          transaction_date: finalIso,
+          total_amount: Number(verifiedData.total_amount) || 0,
+          subtotal: Number(verifiedData.subtotal) || Number(verifiedData.total_amount) || 0,
+          tax_amount: Number(verifiedData.tax_amount) || 0,
+          discount_amount: Number(verifiedData.discount_amount) || 0,
+          shipping_fee: Number(verifiedData.shipping_fee) || 0,
+          admin_fee: Number(verifiedData.admin_fee) || 0,
+          payment_method: verifiedData.payment_method || 'e-wallet',
+          notes: verifiedData.notes || '',
+          receipt_image_url: finalReceiptUrl,
+          items: verifiedData.items || [],
+        });
       }
 
+      setIsProcessing(false);
       setShowVerifyModal(false);
       setScanResult(null);
       setReceiptQueue([]);
       setQueueIndex(0);
       setCapturedImageUri(null);
 
-      Alert.alert('Berhasil Disimpan! 🎉', 'Transaksi dan foto struk belanja telah tersimpan rapi.', [
-        {
-          text: 'Lihat Riwayat & Spreadsheet',
-          onPress: () => router.push('/(tabs)/transactions'),
-        },
-        {
-          text: 'OK',
-          onPress: () => router.push('/(tabs)'),
-        },
-      ]);
+      const count = batchData.length;
+      Alert.alert(
+        'Berhasil Disimpan! 🎉',
+        count > 1
+          ? `Seluruh ${count} transaksi struk belanja telah berhasil disimpan rapi ke sistem.`
+          : 'Transaksi dan bukti struk belanja telah berhasil disimpan.',
+        [
+          {
+            text: 'Lihat Riwayat & Spreadsheet',
+            onPress: () => router.push('/(tabs)/transactions'),
+          },
+          {
+            text: 'OK',
+            onPress: () => router.push('/(tabs)'),
+          },
+        ]
+      );
     } catch (err: any) {
+      setIsProcessing(false);
       Alert.alert('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan transaksi.');
     }
   };
@@ -331,19 +342,18 @@ export default function ScannerScreen() {
 
       {/* Verification & Edit Modal */}
       <ReceiptVerifyModal
-        key={`receipt_verify_${queueIndex}_${scanResult?.transaction_date || ''}`}
         visible={showVerifyModal}
         scanData={scanResult}
+        scanBatch={receiptQueue.length > 0 ? receiptQueue : (scanResult ? [scanResult] : [])}
         categories={categories}
-        queueIndex={queueIndex}
-        queueTotal={receiptQueue.length}
         onClose={() => {
           setShowVerifyModal(false);
           setScanResult(null);
           setReceiptQueue([]);
           setQueueIndex(0);
         }}
-        onConfirmSave={handleSaveVerifiedTransaction}
+        onConfirmSave={(singleData) => handleSaveBatchTransactions([singleData])}
+        onConfirmSaveBatch={handleSaveBatchTransactions}
       />
     </SafeAreaView>
   );

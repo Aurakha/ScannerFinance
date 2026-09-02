@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,28 +20,33 @@ import { Category, PaymentMethod, ReceiptScanResult, TransactionItem } from '@/t
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 import { formatRupiah } from '@/utils/formatters';
 
+export interface VerifiedReceiptDraft {
+  merchant_name: string;
+  transaction_date: string;
+  transaction_time: string;
+  category_id: string;
+  payment_method: PaymentMethod;
+  subtotal: number;
+  tax_amount: number;
+  discount_amount: number;
+  shipping_fee: number;
+  admin_fee: number;
+  total_amount: number;
+  notes: string;
+  items: TransactionItem[];
+  receipt_image_uri?: string;
+}
+
 interface ReceiptVerifyModalProps {
   visible: boolean;
-  scanData: ReceiptScanResult | null;
+  scanData?: ReceiptScanResult | null;
+  scanBatch?: ReceiptScanResult[];
   categories?: Category[];
   queueIndex?: number;
   queueTotal?: number;
   onClose: () => void;
-  onConfirmSave: (verifiedData: {
-    merchant_name: string;
-    transaction_date: string;
-    category_id: string;
-    payment_method: PaymentMethod;
-    subtotal: number;
-    tax_amount: number;
-    discount_amount: number;
-    shipping_fee?: number;
-    admin_fee?: number;
-    total_amount: number;
-    notes: string;
-    items: TransactionItem[];
-    receipt_image_uri?: string;
-  }) => void;
+  onConfirmSave?: (verifiedData: any) => void;
+  onConfirmSaveBatch?: (batchData: VerifiedReceiptDraft[]) => void;
 }
 
 const PAYMENT_METHODS: Array<{ label: string; value: PaymentMethod; icon: string }> = [
@@ -56,110 +61,89 @@ const PAYMENT_METHODS: Array<{ label: string; value: PaymentMethod; icon: string
 export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   visible,
   scanData,
+  scanBatch,
   categories = DEFAULT_CATEGORIES,
-  queueIndex,
-  queueTotal,
   onClose,
   onConfirmSave,
+  onConfirmSaveBatch,
 }) => {
-  if (!scanData) return null;
-
   const { width } = useWindowDimensions();
   const isDesktop = width >= 860;
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-
-  const initialDate = scanData.transaction_date
-    ? new Date(scanData.transaction_date)
-    : new Date();
-
-  const [merchantName, setMerchantName] = useState(scanData.merchant_name || 'Toko Belanja');
-  const [transactionDate, setTransactionDate] = useState(
-    initialDate.toISOString().slice(0, 10)
-  );
-  const [transactionTime, setTransactionTime] = useState(
-    initialDate.toTimeString().slice(0, 5)
-  );
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(() => {
-    const sug = (scanData.suggested_category || '').toLowerCase();
-    const found = categories.find(
-      (c) =>
-        c.name.toLowerCase() === sug ||
-        c.id.toLowerCase() === sug ||
-        sug.includes(c.name.toLowerCase()) ||
-        c.name.toLowerCase().includes(sug)
-    );
-    return found ? found.id : categories[0]?.id || 'cat-operational';
-  });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    scanData.payment_method || 'e-wallet'
-  );
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
-
-  const currentCategory = categories.find((c) => c.id === selectedCategoryId) || categories[0];
-  const currentPayment = PAYMENT_METHODS.find((p) => p.value === paymentMethod) || PAYMENT_METHODS[0];
-
-  const [items, setItems] = useState<TransactionItem[]>(() => {
-    return (scanData.items || []).map((it) => ({
-      item_name: it.item_name,
-      quantity: it.quantity || 1,
-      unit_price: it.unit_price || 0,
-      total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
-    }));
-  });
-
-  // Biaya-biaya rincian otomatis dari AI
-  const [adminFee, setAdminFee] = useState<string>(String(scanData.admin_fee || 0));
-  const [shippingFee, setShippingFee] = useState<string>(String(scanData.shipping_fee || 0));
-  const [taxAmount, setTaxAmount] = useState<string>(String(scanData.tax_amount || 0));
-  const [discountAmount, setDiscountAmount] = useState<string>(String(scanData.discount_amount || 0));
-  const [notes, setNotes] = useState<string>(scanData.notes || '');
   const [showExtraFees, setShowExtraFees] = useState(false);
 
-  // Total Belanja: Selalu mengunci nilai TOTAL AKHIR yang tertera di struk
-  const [totalAmount, setTotalAmount] = useState<string>(() => {
-    return String(scanData.total_amount || scanData.subtotal || 0);
-  });
+  // Kumpulkan list struk yang akan diverifikasi (mendukung multi-struk batch)
+  const initialList = useMemo(() => {
+    if (scanBatch && scanBatch.length > 0) return scanBatch;
+    if (scanData) return [scanData];
+    return [];
+  }, [scanBatch, scanData]);
 
-  const [attachedPhotoUri, setAttachedPhotoUri] = useState<string | null>(
-    scanData.receipt_image_uri || null
-  );
-  const activeReceiptPhoto = attachedPhotoUri || scanData.receipt_image_uri || null;
+  const [drafts, setDrafts] = useState<VerifiedReceiptDraft[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  // Selalu sinkronkan ulang seluruh field formulir saat scanData berganti (misal saat giliran struk ke-2, 3, dst.)
+  // Inisialisasi draft saat dialog dibuka atau batch berubah
   useEffect(() => {
-    if (scanData) {
-      setMerchantName(scanData.merchant_name || 'Toko Belanja');
-      const d = scanData.transaction_date ? new Date(scanData.transaction_date) : new Date();
-      setTransactionDate(d.toISOString().slice(0, 10));
-      setTransactionTime(d.toTimeString().slice(0, 5));
-      setPaymentMethod(scanData.payment_method || 'e-wallet');
+    if (initialList.length > 0) {
+      const formatted: VerifiedReceiptDraft[] = initialList.map((item) => {
+        const d = item.transaction_date ? new Date(item.transaction_date) : new Date();
+        const validDate = isNaN(d.getTime()) ? new Date() : d;
+        const sug = (item.suggested_category || '').toLowerCase();
+        const found = categories.find(
+          (c) =>
+            c.name.toLowerCase() === sug ||
+            c.id.toLowerCase() === sug ||
+            sug.includes(c.name.toLowerCase()) ||
+            c.name.toLowerCase().includes(sug)
+        );
 
-      const sug = (scanData.suggested_category || '').toLowerCase();
-      const found = categories.find(
-        (c) =>
-          c.name.toLowerCase() === sug ||
-          c.id.toLowerCase() === sug ||
-          sug.includes(c.name.toLowerCase()) ||
-          c.name.toLowerCase().includes(sug)
-      );
-      setSelectedCategoryId(found ? found.id : categories[0]?.id || 'cat-operational');
-
-      setItems((scanData.items || []).map((it) => ({
-        item_name: it.item_name,
-        quantity: it.quantity || 1,
-        unit_price: it.unit_price || 0,
-        total_price: it.total_price || (it.quantity || 1) * (it.unit_price || 0),
-      })));
-      setAdminFee(String(scanData.admin_fee || 0));
-      setShippingFee(String(scanData.shipping_fee || 0));
-      setTaxAmount(String(scanData.tax_amount || 0));
-      setDiscountAmount(String(scanData.discount_amount || 0));
-      setTotalAmount(String(scanData.total_amount || scanData.subtotal || 0));
-      setNotes(scanData.notes || '');
-      setAttachedPhotoUri(scanData.receipt_image_uri || null);
+        return {
+          merchant_name: item.merchant_name || 'Toko Belanja',
+          transaction_date: validDate.toISOString().slice(0, 10),
+          transaction_time: validDate.toTimeString().slice(0, 5),
+          category_id: found ? found.id : categories[0]?.id || 'cat-operational',
+          payment_method: (item.payment_method as PaymentMethod) || 'e-wallet',
+          items: (item.items || []).map((it) => ({
+            item_name: it.item_name || 'Item',
+            quantity: Number(it.quantity) || 1,
+            unit_price: Number(it.unit_price) || 0,
+            total_price: Number(it.total_price) || (Number(it.quantity) || 1) * (Number(it.unit_price) || 0),
+          })),
+          admin_fee: Number(item.admin_fee) || 0,
+          shipping_fee: Number(item.shipping_fee) || 0,
+          tax_amount: Number(item.tax_amount) || 0,
+          discount_amount: Number(item.discount_amount) || 0,
+          total_amount: Number(item.total_amount) || Number(item.subtotal) || 0,
+          subtotal: Number(item.subtotal) || Number(item.total_amount) || 0,
+          notes: item.notes || '',
+          receipt_image_uri: item.receipt_image_uri || undefined,
+        };
+      });
+      setDrafts(formatted);
+      setActiveIndex(0);
     }
-  }, [scanData, categories]);
+  }, [initialList, categories]);
+
+  const currentDraft = drafts[activeIndex] || drafts[0];
+  if (!currentDraft && (!scanData && (!scanBatch || scanBatch.length === 0))) return null;
+  if (!currentDraft) return null;
+
+  const currentCategory = categories.find((c) => c.id === currentDraft.category_id) || categories[0];
+  const currentPayment = PAYMENT_METHODS.find((p) => p.value === currentDraft.payment_method) || PAYMENT_METHODS[0];
+  const activeReceiptPhoto = currentDraft.receipt_image_uri || null;
+  const itemsSubtotal = (currentDraft.items || []).reduce((sum, it) => sum + (Number(it.total_price) || 0), 0);
+
+  // Update data struk yang sedang aktif di state batch (perubahan tersimpan otomatis)
+  const updateCurrentDraft = (fields: Partial<VerifiedReceiptDraft>) => {
+    setDrafts((prev) => {
+      const copy = [...prev];
+      if (!copy[activeIndex]) return prev;
+      copy[activeIndex] = { ...copy[activeIndex], ...fields };
+      return copy;
+    });
+  };
 
   const handlePickAttachment = async () => {
     if (Platform.OS === 'web') {
@@ -169,7 +153,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           quality: 0.85,
         });
         if (!res.canceled && res.assets?.[0]?.uri) {
-          setAttachedPhotoUri(res.assets[0].uri);
+          updateCurrentDraft({ receipt_image_uri: res.assets[0].uri });
         }
       } catch (e: any) {
         Alert.alert('Gagal Memilih Foto', e.message || 'Tidak dapat membuka file.');
@@ -189,7 +173,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             }
             const res = await ImagePicker.launchCameraAsync({ quality: 0.85 });
             if (!res.canceled && res.assets?.[0]?.uri) {
-              setAttachedPhotoUri(res.assets[0].uri);
+              updateCurrentDraft({ receipt_image_uri: res.assets[0].uri });
             }
           } catch (err: any) {
             Alert.alert('Error', err.message);
@@ -202,7 +186,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           try {
             const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
             if (!res.canceled && res.assets?.[0]?.uri) {
-              setAttachedPhotoUri(res.assets[0].uri);
+              updateCurrentDraft({ receipt_image_uri: res.assets[0].uri });
             }
           } catch (err: any) {
             Alert.alert('Error', err.message);
@@ -213,17 +197,20 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
     ]);
   };
 
-  // Hitung subtotal item
-  const itemsSubtotal = items.reduce((sum, it) => sum + (Number(it.total_price) || 0), 0);
-
   const handleAddItem = () => {
-    const newItem = { item_name: 'Item Baru', quantity: 1, unit_price: 10000, total_price: 10000 };
-    const updated = [...items, newItem];
-    setItems(updated);
+    const newItem: TransactionItem = {
+      item_name: 'Item Baru',
+      quantity: 1,
+      unit_price: 10000,
+      total_price: 10000,
+    };
+    const updated = [...(currentDraft.items || []), newItem];
+    const newSubtotal = updated.reduce((s, i) => s + (i.total_price || 0), 0);
+    updateCurrentDraft({ items: updated, subtotal: newSubtotal });
   };
 
   const handleUpdateItem = (index: number, field: keyof TransactionItem, value: any) => {
-    const updated = [...items];
+    const updated = [...(currentDraft.items || [])];
     const item = { ...updated[index], [field]: value };
     if (field === 'quantity' || field === 'unit_price') {
       const q = field === 'quantity' ? Number(value) : item.quantity;
@@ -231,43 +218,31 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
       item.total_price = (q || 1) * (p || 0);
     }
     updated[index] = item;
-    setItems(updated);
+    const newSubtotal = updated.reduce((s, i) => s + (i.total_price || 0), 0);
+    updateCurrentDraft({ items: updated, subtotal: newSubtotal });
   };
 
   const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    const updated = (currentDraft.items || []).filter((_, i) => i !== index);
+    const newSubtotal = updated.reduce((s, i) => s + (i.total_price || 0), 0);
+    updateCurrentDraft({ items: updated, subtotal: newSubtotal });
   };
 
-  const handleSave = () => {
-    if (!merchantName.trim()) {
-      Alert.alert('Perhatian', 'Nama toko/merchant tidak boleh kosong.');
-      return;
+  // Simpan seluruh data batch transaksi sekaligus
+  const handleSaveBatchFinal = () => {
+    for (let i = 0; i < drafts.length; i++) {
+      if (!drafts[i].merchant_name.trim()) {
+        setActiveIndex(i);
+        Alert.alert('Perhatian', `Nama toko pada Struk ${i + 1} tidak boleh kosong.`);
+        return;
+      }
     }
 
-    let finalIso = new Date().toISOString();
-    try {
-      finalIso = new Date(`${transactionDate}T${transactionTime}:00`).toISOString();
-    } catch {
-      finalIso = new Date().toISOString();
+    if (onConfirmSaveBatch) {
+      onConfirmSaveBatch(drafts);
+    } else if (onConfirmSave) {
+      onConfirmSave(drafts[0]);
     }
-
-    const finalTotal = Number(totalAmount) || Number(scanData.total_amount) || itemsSubtotal || 0;
-
-    onConfirmSave({
-      merchant_name: merchantName,
-      transaction_date: finalIso,
-      category_id: selectedCategoryId,
-      payment_method: paymentMethod,
-      subtotal: itemsSubtotal > 0 ? itemsSubtotal : finalTotal,
-      shipping_fee: Number(shippingFee) || 0,
-      admin_fee: Number(adminFee) || 0,
-      tax_amount: Number(taxAmount) || 0,
-      discount_amount: Number(discountAmount) || 0,
-      total_amount: finalTotal,
-      notes: notes,
-      items: items,
-      receipt_image_uri: attachedPhotoUri || scanData.receipt_image_uri || undefined,
-    });
   };
 
   return (
@@ -284,22 +259,34 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 <Text style={styles.title} numberOfLines={1}>
                   Konfirmasi Hasil Ekstraksi
                 </Text>
-                {queueTotal !== undefined && queueTotal > 1 && (
+                {drafts.length > 1 && (
                   <View style={styles.queueBadge}>
                     <Text style={styles.queueBadgeText}>
-                      Struk {((queueIndex || 0) + 1)} dari {queueTotal}
+                      Struk {activeIndex + 1} dari {drafts.length}
                     </Text>
                   </View>
                 )}
               </View>
               <Text style={styles.subtitle} numberOfLines={1}>
-                {queueTotal !== undefined && queueTotal > 1
-                  ? `Memeriksa struk ke-${(queueIndex || 0) + 1}. Simpan untuk lanjut.`
-                  : 'Verifikasi tanggal, jam, dan item transaksi'}
+                {drafts.length > 1
+                  ? `Memeriksa struk ke-${activeIndex + 1}. Anda bisa bolak-balik memeriksa struk sebelum menyimpan.`
+                  : 'Verifikasi tanggal, jam, dan rincian transaksi'}
               </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {/* Tombol Cepat Simpan Semua jika lebih dari 1 struk */}
+              {drafts.length > 1 && (
+                <TouchableOpacity
+                  style={styles.headerSaveAllBtn}
+                  onPress={handleSaveBatchFinal}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="checkmark-done" size={14} color="#FFFFFF" />
+                  <Text style={styles.headerSaveAllBtnText}>Simpan Semua ({drafts.length})</Text>
+                </TouchableOpacity>
+              )}
+
               {activeReceiptPhoto && (
                 <TouchableOpacity
                   style={styles.headerPreviewBtn}
@@ -316,18 +303,56 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             </View>
           </View>
 
-          {/* Body Container: Split 2 columns on Desktop, single column on Mobile */}
+          {/* TAB BAR NAVIGASI STRUK (Bisa bolak-balik struk 1 sampai terakhir kapan saja) */}
+          {drafts.length > 1 && (
+            <View style={styles.stepperBar}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.stepperScroll}
+              >
+                {drafts.map((d, idx) => {
+                  const isCur = idx === activeIndex;
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.stepperPill,
+                        isCur && styles.stepperPillActive,
+                      ]}
+                      onPress={() => setActiveIndex(idx)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.stepperNumber, isCur && styles.stepperNumberActive]}>
+                        <Text style={[styles.stepperNumberText, isCur && styles.stepperNumberTextActive]}>
+                          {idx + 1}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.stepperLabel, isCur && styles.stepperLabelActive]}
+                        numberOfLines={1}
+                      >
+                        {d.merchant_name || `Struk ${idx + 1}`}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Body Container: 2 Kolom Berdampingan di Desktop, 1 Kolom di HP */}
           <View style={[styles.bodyLayout, isDesktop && styles.bodyLayoutDesktop]}>
-            {/* LEFT COLUMN: Receipt Image Viewer on Desktop */}
+            {/* KOLOM KIRI: Tampilan Foto Struk di Layar Desktop */}
             {isDesktop && (
               <View style={styles.desktopPreviewPane}>
                 <View style={styles.previewPaneHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Ionicons name="receipt-outline" size={15} color={Palette.primary} />
                     <Text style={styles.previewPaneTitle}>Foto Bukti Struk</Text>
-                    {queueTotal !== undefined && queueTotal > 1 && (
+                    {drafts.length > 1 && (
                       <View style={styles.previewPaneBadge}>
-                        <Text style={styles.previewPaneBadgeText}>Struk {(queueIndex || 0) + 1}</Text>
+                        <Text style={styles.previewPaneBadgeText}>Struk {activeIndex + 1}</Text>
                       </View>
                     )}
                   </View>
@@ -381,13 +406,14 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
             )}
 
-            {/* RIGHT COLUMN (or full width on mobile): Form and Actions */}
+            {/* KOLOM KANAN: Formulir Data & Tombol Aksi */}
             <View style={[styles.formPane, isDesktop && styles.formPaneDesktop]}>
               <ScrollView
                 style={styles.scrollArea}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
+                {/* Banner Mobile Cepat Buka Foto */}
                 {!isDesktop && activeReceiptPhoto && (
                   <TouchableOpacity
                     style={styles.mobilePreviewBanner}
@@ -396,400 +422,428 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                   >
                     <Ionicons name="image" size={15} color={Palette.primary} />
                     <Text style={styles.mobilePreviewBannerText}>
-                      Lihat Foto Struk Ini ({queueTotal && queueTotal > 1 ? `Struk ${(queueIndex || 0) + 1}` : 'Bukti Belanja'})
+                      Lihat Foto Struk Ini ({drafts.length > 1 ? `Struk ${activeIndex + 1}` : 'Bukti Belanja'})
                     </Text>
                     <Ionicons name="chevron-forward" size={15} color={Palette.primary} />
                   </TouchableOpacity>
                 )}
-            {/* Merchant Name Input */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Nama Toko / Merchant / Penjual</Text>
-              <TextInput
-                style={styles.input}
-                value={merchantName}
-                onChangeText={setMerchantName}
-                placeholder="Misal: ShopeeFood, Indomaret, Superindo"
-                placeholderTextColor={Palette.darkTextMuted}
-              />
-            </View>
 
-            {/* Tanggal & Waktu Transaksi Grid */}
-            <View style={styles.dateTimeRow}>
-              <View style={[styles.fieldGroup, { flex: 1.1 }]}>
-                <Text style={styles.fieldLabel}>Tanggal Transaksi</Text>
-                <View style={styles.inputWithIcon}>
-                  <Ionicons name="calendar-outline" size={15} color={Palette.primary} />
+                {/* Merchant Name Input */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Nama Toko / Merchant / Penjual</Text>
                   <TextInput
-                    style={styles.innerInput}
-                    value={transactionDate}
-                    onChangeText={setTransactionDate}
-                    placeholder="YYYY-MM-DD"
+                    style={styles.input}
+                    value={currentDraft.merchant_name}
+                    onChangeText={(val) => updateCurrentDraft({ merchant_name: val })}
+                    placeholder="Misal: ShopeeFood, Indomaret, Superindo"
                     placeholderTextColor={Palette.darkTextMuted}
                   />
                 </View>
-              </View>
 
-              <View style={[styles.fieldGroup, { flex: 0.9 }]}>
-                <Text style={styles.fieldLabel}>Waktu (Jam:Menit)</Text>
-                <View style={styles.inputWithIcon}>
-                  <Ionicons name="time-outline" size={15} color={Palette.primary} />
-                  <TextInput
-                    style={styles.innerInput}
-                    value={transactionTime}
-                    onChangeText={setTransactionTime}
-                    placeholder="HH:mm"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
+                {/* Tanggal & Waktu Transaksi Grid */}
+                <View style={styles.dateTimeRow}>
+                  <View style={[styles.fieldGroup, { flex: 1.1 }]}>
+                    <Text style={styles.fieldLabel}>Tanggal Transaksi</Text>
+                    <View style={styles.inputWithIcon}>
+                      <Ionicons name="calendar-outline" size={15} color={Palette.primary} />
+                      <TextInput
+                        style={styles.innerInput}
+                        value={currentDraft.transaction_date}
+                        onChangeText={(val) => updateCurrentDraft({ transaction_date: val })}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.fieldGroup, { flex: 0.9 }]}>
+                    <Text style={styles.fieldLabel}>Waktu (Jam:Menit)</Text>
+                    <View style={styles.inputWithIcon}>
+                      <Ionicons name="time-outline" size={15} color={Palette.primary} />
+                      <TextInput
+                        style={styles.innerInput}
+                        value={currentDraft.transaction_time}
+                        onChangeText={(val) => updateCurrentDraft({ transaction_time: val })}
+                        placeholder="HH:mm"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
 
-            {/* Category & Payment Method Dropdown Row */}
-            <View style={styles.twoColRow}>
-              {/* Category Dropdown Picker */}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Kategori Pengeluaran</Text>
-                <TouchableOpacity
-                  style={styles.pickerTriggerBtn}
-                  onPress={() => setShowCategoryPicker(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.pickerTriggerLeft}>
-                    <View
-                      style={[
-                        styles.pickerIconBadge,
-                        { backgroundColor: `${currentCategory?.color || Palette.primary}25` },
-                      ]}
+                {/* Category & Payment Method Dropdown Row */}
+                <View style={styles.twoColRow}>
+                  {/* Category Dropdown Picker */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>Kategori Pengeluaran</Text>
+                    <TouchableOpacity
+                      style={styles.dropdownBtn}
+                      onPress={() => setShowCategoryPicker(true)}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons
-                        name={(currentCategory?.icon as any) || 'pricetag'}
-                        size={15}
-                        color={currentCategory?.color || Palette.primary}
-                      />
-                    </View>
-                    <Text style={[styles.pickerTriggerText, { color: Palette.darkText }]} numberOfLines={1}>
-                      {currentCategory?.name || 'Pilih Kategori'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={16} color={Palette.darkTextSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Payment Method Dropdown Picker */}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Metode Pembayaran</Text>
-                <TouchableOpacity
-                  style={styles.pickerTriggerBtn}
-                  onPress={() => setShowPaymentPicker(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.pickerTriggerLeft}>
-                    <View
-                      style={[
-                        styles.pickerIconBadge,
-                        { backgroundColor: 'rgba(88, 101, 242, 0.2)' },
-                      ]}
-                    >
-                      <Ionicons
-                        name={(currentPayment?.icon as any) || 'wallet-outline'}
-                        size={15}
-                        color={Palette.primary}
-                      />
-                    </View>
-                    <Text style={[styles.pickerTriggerText, { color: Palette.darkText }]} numberOfLines={1}>
-                      {currentPayment?.label || 'Pilih Metode'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={16} color={Palette.darkTextSecondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Item Breakdown List */}
-            <View style={styles.fieldGroup}>
-              <View style={styles.itemHeaderRow}>
-                <Text style={styles.fieldLabel}>
-                  Daftar Menu / Barang ({items.length} Item)
-                </Text>
-                <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
-                  <Ionicons name="add-circle" size={15} color={Palette.primary} />
-                  <Text style={styles.addItemText}>Tambah</Text>
-                </TouchableOpacity>
-              </View>
-
-              {items.map((item, idx) => (
-                <View key={idx} style={styles.itemCard}>
-                  <View style={styles.itemTopRow}>
-                    <TextInput
-                      style={styles.itemNameInput}
-                      value={item.item_name}
-                      onChangeText={(val) => handleUpdateItem(idx, 'item_name', val)}
-                      placeholder="Nama Menu / Barang"
-                      placeholderTextColor={Palette.darkTextMuted}
-                    />
-                    <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
-                      <Ionicons name="trash-outline" size={17} color={Palette.coral} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <View style={[styles.categoryDot, { backgroundColor: currentCategory?.color || Palette.primary }]} />
+                        <Text style={styles.dropdownBtnText} numberOfLines={1}>
+                          {currentCategory?.name || 'Pilih Kategori'}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={15} color={Palette.darkTextSecondary} />
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.itemBottomRow}>
-                    <View style={styles.itemFieldSmall}>
-                      <Text style={styles.itemFieldLabel}>Qty</Text>
-                      <TextInput
-                        style={styles.itemInputSmall}
-                        value={String(item.quantity)}
-                        onChangeText={(val) => handleUpdateItem(idx, 'quantity', val)}
-                        keyboardType="numeric"
-                      />
-                    </View>
-
-                    <View style={styles.itemFieldMed}>
-                      <Text style={styles.itemFieldLabel}>Harga Satuan</Text>
-                      <TextInput
-                        style={styles.itemInputSmall}
-                        value={String(item.unit_price)}
-                        onChangeText={(val) => handleUpdateItem(idx, 'unit_price', val)}
-                        keyboardType="numeric"
-                      />
-                    </View>
-
-                    <View style={styles.itemTotalCol}>
-                      <Text style={styles.itemFieldLabel}>Total</Text>
-                      <Text style={styles.itemTotalValue}>{formatRupiah(item.total_price)}</Text>
-                    </View>
+                  {/* Payment Method Dropdown Picker */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>Metode Pembayaran</Text>
+                    <TouchableOpacity
+                      style={styles.dropdownBtn}
+                      onPress={() => setShowPaymentPicker(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <Ionicons
+                          name={(currentPayment?.icon as any) || 'wallet-outline'}
+                          size={15}
+                          color={Palette.primary}
+                        />
+                        <Text style={styles.dropdownBtnText} numberOfLines={1}>
+                          {currentPayment?.label || 'E-Wallet'}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={15} color={Palette.darkTextSecondary} />
+                    </TouchableOpacity>
                   </View>
                 </View>
-              ))}
-            </View>
 
-            {/* Financial Summary & Breakdown Box */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryCardHeader}>Ringkasan Nominal Transaksi</Text>
+                {/* Daftar Menu / Barang Section */}
+                <View style={styles.itemsSection}>
+                  <View style={styles.itemsHeader}>
+                    <Text style={styles.itemsTitle}>
+                      DAFTAR MENU / BARANG ({currentDraft.items?.length || 0} ITEM)
+                    </Text>
+                    <TouchableOpacity style={styles.addItemBtn} onPress={handleAddItem}>
+                      <Ionicons name="add-circle" size={14} color={Palette.primary} />
+                      <Text style={styles.addItemBtnText}>Tambah</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal Menu/Item:</Text>
-                <Text style={styles.summaryVal}>{formatRupiah(itemsSubtotal)}</Text>
-              </View>
+                  {(currentDraft.items || []).map((item, index) => (
+                    <View key={index} style={styles.itemCard}>
+                      <View style={styles.itemCardHeader}>
+                        <TextInput
+                          style={styles.itemNameInput}
+                          value={item.item_name}
+                          onChangeText={(val) => handleUpdateItem(index, 'item_name', val)}
+                          placeholder="Nama Barang / Menu"
+                          placeholderTextColor={Palette.darkTextMuted}
+                        />
+                        <TouchableOpacity
+                          style={styles.deleteItemBtn}
+                          onPress={() => handleRemoveItem(index)}
+                        >
+                          <Ionicons name="trash-outline" size={16} color={Palette.coral} />
+                        </TouchableOpacity>
+                      </View>
 
-              {/* Biaya Layanan */}
-              {(Number(adminFee) > 0 || showExtraFees) && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Biaya Layanan & Lain:</Text>
-                  <TextInput
-                    style={styles.summaryInput}
-                    value={adminFee}
-                    onChangeText={setAdminFee}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
-                </View>
-              )}
+                      <View style={styles.itemDetailsRow}>
+                        <View style={styles.itemQtyCol}>
+                          <Text style={styles.subFieldLabel}>Qty</Text>
+                          <TextInput
+                            style={styles.numberInput}
+                            value={String(item.quantity || 1)}
+                            onChangeText={(val) => handleUpdateItem(index, 'quantity', val)}
+                            keyboardType="numeric"
+                            placeholder="1"
+                            placeholderTextColor={Palette.darkTextMuted}
+                          />
+                        </View>
 
-              {/* Ongkir */}
-              {(Number(shippingFee) > 0 || showExtraFees) && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Ongkos Kirim:</Text>
-                  <TextInput
-                    style={styles.summaryInput}
-                    value={shippingFee}
-                    onChangeText={setShippingFee}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
-                </View>
-              )}
+                        <View style={styles.itemPriceCol}>
+                          <Text style={styles.subFieldLabel}>Harga Satuan</Text>
+                          <TextInput
+                            style={styles.numberInput}
+                            value={String(item.unit_price || 0)}
+                            onChangeText={(val) => handleUpdateItem(index, 'unit_price', val)}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor={Palette.darkTextMuted}
+                          />
+                        </View>
 
-              {/* Pajak */}
-              {(Number(taxAmount) > 0 || showExtraFees) && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Pajak / PPN:</Text>
-                  <TextInput
-                    style={styles.summaryInput}
-                    value={taxAmount}
-                    onChangeText={setTaxAmount}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
-                </View>
-              )}
-
-              {/* Diskon */}
-              {(Number(discountAmount) > 0 || showExtraFees) && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Voucher / Diskon:</Text>
-                  <TextInput
-                    style={[styles.summaryInput, { color: Palette.coral }]}
-                    value={discountAmount}
-                    onChangeText={setDiscountAmount}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
-                </View>
-              )}
-
-              {/* Toggle Biaya Tambahan */}
-              <TouchableOpacity
-                style={{ paddingVertical: 4, alignItems: 'flex-start', marginVertical: 2 }}
-                onPress={() => setShowExtraFees((prev) => !prev)}
-              >
-                <Text style={{ fontSize: 11, color: Palette.primary, fontWeight: '600' }}>
-                  {showExtraFees ? '▴ Sembunyikan Opsi Biaya' : '+ Tambah Ongkir / Diskon / Biaya Lain'}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-                <View style={{ flex: 1, paddingRight: 6 }}>
-                  <Text style={styles.summaryTotalLabel}>Total Belanja:</Text>
-                  <Text style={styles.summaryTotalHint}>*Sesuai total struk</Text>
-                </View>
-                <View style={styles.totalInputWrapper}>
-                  <Text style={styles.rpPrefix}>Rp</Text>
-                  <TextInput
-                    style={styles.totalInputField}
-                    value={totalAmount}
-                    onChangeText={setTotalAmount}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Palette.darkTextMuted}
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Notes Input */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Catatan Tambahan (Opsional)</Text>
-              <TextInput
-                style={[styles.input, { height: 54 }]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Misal: Nomor pesanan, catatan pedas, dll."
-                placeholderTextColor={Palette.darkTextMuted}
-                multiline
-              />
-            </View>
-
-            {/* Lampiran Foto Struk / Bukti */}
-            <View style={styles.fieldGroup}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={styles.fieldLabel}>Foto / Lampiran Struk</Text>
-                <TouchableOpacity
-                  style={styles.attachPhotoBtn}
-                  onPress={handlePickAttachment}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="camera" size={13} color={Palette.primary} />
-                  <Text style={styles.attachPhotoBtnText}>
-                    {attachedPhotoUri ? 'Ganti Foto' : '+ Lampirkan Foto'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {attachedPhotoUri ? (
-                <TouchableOpacity
-                  style={styles.photoPreviewCard}
-                  onPress={() => setIsPreviewModalOpen(true)}
-                  activeOpacity={0.85}
-                >
-                  <Image source={{ uri: attachedPhotoUri }} style={styles.photoThumb} resizeMode="cover" />
-                  <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.photoThumbTitle} numberOfLines={1}>
-                        Foto Struk Terlampir
-                      </Text>
-                      <View style={styles.previewTag}>
-                        <Ionicons name="eye" size={10} color={Palette.primary} />
-                        <Text style={styles.previewTagText}>Pratinjau</Text>
+                        <View style={styles.itemTotalCol}>
+                          <Text style={styles.subFieldLabel}>Total</Text>
+                          <Text style={styles.itemTotalVal}>
+                            {formatRupiah(item.total_price || 0)}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                    <Text style={styles.photoThumbSub}>Ketuk untuk melihat foto dalam ukuran penuh</Text>
+                  ))}
+                </View>
+
+                {/* Ringkasan Biaya Tambahan & Total Transaksi */}
+                <View style={styles.summaryBox}>
+                  <Text style={styles.summaryTitle}>Ringkasan Nominal Transaksi</Text>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Subtotal Menu/Item:</Text>
+                    <Text style={styles.summaryValue}>{formatRupiah(itemsSubtotal)}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => setAttachedPhotoUri(null)} style={styles.removePhotoBtn}>
-                    <Ionicons name="trash-outline" size={16} color={Palette.coral} />
+
+                  {/* Biaya Admin */}
+                  {(Number(currentDraft.admin_fee) > 0 || showExtraFees) && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Biaya Layanan / Admin:</Text>
+                      <TextInput
+                        style={styles.summaryInput}
+                        value={String(currentDraft.admin_fee || 0)}
+                        onChangeText={(val) => updateCurrentDraft({ admin_fee: Number(val.replace(/[^0-9]/g, '')) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  )}
+
+                  {/* Ongkir */}
+                  {(Number(currentDraft.shipping_fee) > 0 || showExtraFees) && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Ongkos Kirim:</Text>
+                      <TextInput
+                        style={styles.summaryInput}
+                        value={String(currentDraft.shipping_fee || 0)}
+                        onChangeText={(val) => updateCurrentDraft({ shipping_fee: Number(val.replace(/[^0-9]/g, '')) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  )}
+
+                  {/* Pajak */}
+                  {(Number(currentDraft.tax_amount) > 0 || showExtraFees) && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Pajak / PPN:</Text>
+                      <TextInput
+                        style={styles.summaryInput}
+                        value={String(currentDraft.tax_amount || 0)}
+                        onChangeText={(val) => updateCurrentDraft({ tax_amount: Number(val.replace(/[^0-9]/g, '')) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  )}
+
+                  {/* Diskon */}
+                  {(Number(currentDraft.discount_amount) > 0 || showExtraFees) && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Voucher / Diskon:</Text>
+                      <TextInput
+                        style={[styles.summaryInput, { color: Palette.coral }]}
+                        value={String(currentDraft.discount_amount || 0)}
+                        onChangeText={(val) => updateCurrentDraft({ discount_amount: Number(val.replace(/[^0-9]/g, '')) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  )}
+
+                  {/* Toggle Biaya Tambahan */}
+                  <TouchableOpacity
+                    style={{ paddingVertical: 4, alignItems: 'flex-start', marginVertical: 2 }}
+                    onPress={() => setShowExtraFees((prev) => !prev)}
+                  >
+                    <Text style={{ fontSize: 11, color: Palette.primary, fontWeight: '600' }}>
+                      {showExtraFees ? '▴ Sembunyikan Opsi Biaya' : '+ Tambah Ongkir / Diskon / Biaya Lain'}
+                    </Text>
                   </TouchableOpacity>
+
+                  <View style={[styles.summaryRow, styles.summaryTotalRow]}>
+                    <View style={{ flex: 1, paddingRight: 6 }}>
+                      <Text style={styles.summaryTotalLabel}>Total Belanja:</Text>
+                      <Text style={styles.summaryTotalHint}>*Sesuai total struk</Text>
+                    </View>
+                    <View style={styles.totalInputWrapper}>
+                      <Text style={styles.rpPrefix}>Rp</Text>
+                      <TextInput
+                        style={styles.totalInputField}
+                        value={String(currentDraft.total_amount || 0)}
+                        onChangeText={(val) => updateCurrentDraft({ total_amount: Number(val.replace(/[^0-9]/g, '')) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={Palette.darkTextMuted}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {/* Notes Input */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Catatan Tambahan (Opsional)</Text>
+                  <TextInput
+                    style={[styles.input, { height: 54 }]}
+                    value={currentDraft.notes}
+                    onChangeText={(val) => updateCurrentDraft({ notes: val })}
+                    placeholder="Misal: Nomor pesanan, catatan pedas, dll."
+                    placeholderTextColor={Palette.darkTextMuted}
+                    multiline
+                  />
+                </View>
+
+                {/* Lampiran Foto Struk / Bukti */}
+                <View style={styles.fieldGroup}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={styles.fieldLabel}>Foto / Lampiran Struk</Text>
+                    <TouchableOpacity
+                      style={styles.attachPhotoBtn}
+                      onPress={handlePickAttachment}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="camera" size={13} color={Palette.primary} />
+                      <Text style={styles.attachPhotoBtnText}>
+                        {activeReceiptPhoto ? 'Ganti Foto' : '+ Lampirkan Foto'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {activeReceiptPhoto ? (
+                    <TouchableOpacity
+                      style={styles.photoPreviewCard}
+                      onPress={() => setIsPreviewModalOpen(true)}
+                      activeOpacity={0.85}
+                    >
+                      <Image source={{ uri: activeReceiptPhoto }} style={styles.photoThumb} resizeMode="cover" />
+                      <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={styles.photoThumbTitle} numberOfLines={1}>
+                            Foto Struk Terlampir
+                          </Text>
+                          <View style={styles.previewTag}>
+                            <Ionicons name="eye" size={10} color={Palette.primary} />
+                            <Text style={styles.previewTagText}>Pratinjau</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.photoThumbSub}>Ketuk untuk melihat foto dalam ukuran penuh</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => updateCurrentDraft({ receipt_image_uri: undefined })}
+                        style={styles.removePhotoBtn}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={Palette.coral} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.emptyPhotoBox}
+                      onPress={handlePickAttachment}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="image-outline" size={22} color={Palette.darkTextMuted} />
+                      <Text style={styles.emptyPhotoText}>
+                        Belum ada foto. Klik di sini untuk melampirkan foto struk fisik / bukti pembayaran
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScrollView>
+
+              {/* Action Buttons Footer */}
+              <View style={styles.footer}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+                  <Text style={styles.cancelBtnText}>Batal</Text>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.emptyPhotoBox}
-                  onPress={handlePickAttachment}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="image-outline" size={22} color={Palette.darkTextMuted} />
-                  <Text style={styles.emptyPhotoText}>
-                    Belum ada foto. Klik di sini untuk melampirkan foto struk fisik / bukti pembayaran
-                  </Text>
-                </TouchableOpacity>
-              )}
+
+                {drafts.length > 1 ? (
+                  <View style={styles.footerNavRow}>
+                    {/* Tombol Kembali ke Struk Sebelumnya */}
+                    {activeIndex > 0 ? (
+                      <TouchableOpacity
+                        style={styles.stepNavPrevBtn}
+                        onPress={() => setActiveIndex((prev) => prev - 1)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="chevron-back" size={15} color={Palette.darkText} />
+                        <Text style={styles.stepNavPrevBtnText}>Struk {activeIndex}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+
+                    {/* Tombol Lanjut ke Struk Berikutnya ATAU Simpan Semua di Akhir */}
+                    {activeIndex < drafts.length - 1 ? (
+                      <TouchableOpacity
+                        style={styles.stepNavNextBtn}
+                        onPress={() => setActiveIndex((prev) => prev + 1)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.stepNavNextBtnText}>
+                          Lanjut ke Struk {activeIndex + 2}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.saveAllBtn}
+                        onPress={handleSaveBatchFinal}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="cloud-upload" size={16} color="#FFFFFF" />
+                        <Text style={styles.saveAllBtnText}>
+                          Simpan Semua ({drafts.length} Struk)
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.saveBtn} onPress={handleSaveBatchFinal}>
+                    <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" />
+                    <Text style={styles.saveBtnText}>Simpan Transaksi</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </ScrollView>
-
-          {/* Action Buttons */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelBtnText}>Batal</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons
-                name={queueTotal && queueTotal > 1 && (queueIndex || 0) + 1 < queueTotal ? "arrow-forward-circle" : "checkmark-circle"}
-                size={17}
-                color="#FFFFFF"
-              />
-              <Text style={styles.saveBtnText}>
-                {queueTotal && queueTotal > 1 && (queueIndex || 0) + 1 < queueTotal
-                  ? `Simpan & Lanjut ke Struk ${(queueIndex || 0) + 2}`
-                  : 'Simpan Transaksi'}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </View>
-  </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
 
-  {/* MODAL FULL-SCREEN PREVIEW FOTO STRUK */}
-  <Modal
-    visible={isPreviewModalOpen}
-    transparent
-    animationType="fade"
-    onRequestClose={() => setIsPreviewModalOpen(false)}
-  >
-    <View style={styles.fullPreviewBackdrop}>
-      <View style={styles.fullPreviewHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="receipt" size={18} color="#FFFFFF" />
-          <Text style={styles.fullPreviewTitle}>
-            Pratinjau Foto Struk {queueTotal && queueTotal > 1 ? `(${((queueIndex || 0) + 1)} dari ${queueTotal})` : ''}
-          </Text>
+      {/* MODAL FULL-SCREEN PREVIEW FOTO STRUK */}
+      <Modal
+        visible={isPreviewModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsPreviewModalOpen(false)}
+      >
+        <View style={styles.fullPreviewBackdrop}>
+          <View style={styles.fullPreviewHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="receipt" size={18} color="#FFFFFF" />
+              <Text style={styles.fullPreviewTitle}>
+                Pratinjau Foto Struk {drafts.length > 1 ? `(${activeIndex + 1} dari ${drafts.length})` : ''}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.fullPreviewCloseBtn}
+              onPress={() => setIsPreviewModalOpen(false)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.fullPreviewBody}>
+            {activeReceiptPhoto ? (
+              <Image
+                source={{ uri: activeReceiptPhoto }}
+                style={styles.fullPreviewImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text style={{ color: '#FFFFFF' }}>Foto tidak tersedia</Text>
+            )}
+          </View>
         </View>
-        <TouchableOpacity
-          style={styles.fullPreviewCloseBtn}
-          onPress={() => setIsPreviewModalOpen(false)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="close" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      </Modal>
 
-      <View style={styles.fullPreviewBody}>
-        {activeReceiptPhoto ? (
-          <Image
-            source={{ uri: activeReceiptPhoto }}
-            style={styles.fullPreviewImage}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text style={{ color: '#FFFFFF' }}>Foto tidak tersedia</Text>
-        )}
-      </View>
-    </View>
-  </Modal>
-
-      {/* Pop-up Modal Pilih Kategori (Sama seperti Filter Kategori di Transaksi) */}
+      {/* Pop-up Modal Pilih Kategori */}
       <Modal visible={showCategoryPicker} transparent animationType="fade">
         <TouchableOpacity
           style={styles.popupOverlay}
@@ -810,20 +864,20 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
               {categories
-                .filter((c) => c.type === 'expense')
+                .filter((c) => c.type !== 'income')
                 .map((cat) => {
-                  const isSelected = selectedCategoryId === cat.id;
+                  const isSelected = currentDraft.category_id === cat.id;
                   return (
                     <TouchableOpacity
                       key={cat.id}
                       style={[
                         styles.popupOptionItem,
-                        isSelected && { backgroundColor: `${cat.color}20` },
+                        isSelected && { backgroundColor: `${cat.color}18` },
                       ]}
                       onPress={() => {
-                        setSelectedCategoryId(cat.id);
+                        updateCurrentDraft({ category_id: cat.id });
                         setShowCategoryPicker(false);
                       }}
                     >
@@ -886,7 +940,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
 
             <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
               {PAYMENT_METHODS.map((pm) => {
-                const isSelected = paymentMethod === pm.value;
+                const isSelected = currentDraft.payment_method === pm.value;
                 return (
                   <TouchableOpacity
                     key={pm.value}
@@ -895,7 +949,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                       isSelected && { backgroundColor: 'rgba(88, 101, 242, 0.18)' },
                     ]}
                     onPress={() => {
-                      setPaymentMethod(pm.value);
+                      updateCurrentDraft({ payment_method: pm.value });
                       setShowPaymentPicker(false);
                     }}
                   >
@@ -911,7 +965,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                         ]}
                       >
                         <Ionicons
-                          name={pm.icon as any}
+                          name={(pm.icon as any) || 'card-outline'}
                           size={16}
                           color={isSelected ? '#FFFFFF' : Palette.primary}
                         />
@@ -984,470 +1038,34 @@ const styles = StyleSheet.create({
   queueBadge: {
     backgroundColor: 'rgba(88, 101, 242, 0.25)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(88, 101, 242, 0.5)',
-  },
-  queueBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Palette.primaryLight,
-  },
-  subtitle: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollArea: {
-    flexGrow: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 20,
-  },
-  fieldGroup: {
-    marginBottom: 14,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.darkTextSecondary,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: Palette.darkText,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  dateTimeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  innerInput: {
-    flex: 1,
-    color: Palette.darkText,
-    fontSize: 12,
-  },
-  chipRow: {
-    flexDirection: 'row',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginRight: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5,
-  },
-  categoryChipText: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
-  },
-  paymentGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  paymentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  paymentButtonText: {
-    fontSize: 11,
-    color: Palette.darkTextSecondary,
-  },
-  itemHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  addItemBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addItemText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.primary,
-  },
-  itemCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  itemTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  itemNameInput: {
-    flex: 1,
-    color: Palette.darkText,
-    fontSize: 12,
-    fontWeight: '600',
-    marginRight: 6,
-  },
-  itemBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  itemFieldSmall: {
-    width: 48,
-  },
-  itemFieldMed: {
-    flex: 1,
-    minWidth: 80,
-  },
-  itemFieldLabel: {
-    fontSize: 9,
-    color: Palette.darkTextMuted,
-    marginBottom: 2,
-  },
-  itemInputSmall: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    color: Palette.darkText,
-    fontSize: 11,
-  },
-  itemTotalCol: {
-    minWidth: 70,
-    alignItems: 'flex-end',
-  },
-  itemTotalValue: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.darkText,
-    marginTop: 2,
-  },
-  summaryCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  summaryCardHeader: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Palette.darkText,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    paddingBottom: 4,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: Palette.darkTextSecondary,
-  },
-  summaryVal: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Palette.darkText,
-  },
-  summaryInput: {
-    width: 80,
-    textAlign: 'right',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    color: Palette.darkText,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  summaryTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 8,
-    marginTop: 4,
-    marginBottom: 0,
-    gap: 6,
-  },
-  summaryTotalLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Palette.darkText,
-  },
-  summaryTotalHint: {
-    fontSize: 9,
-    color: Palette.darkTextMuted,
-    marginTop: 1,
-  },
-  totalInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(88, 101, 242, 0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
     borderWidth: 1,
     borderColor: 'rgba(88, 101, 242, 0.4)',
-    maxWidth: '55%',
   },
-  rpPrefix: {
-    color: Palette.primaryLight,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  totalInputField: {
-    color: Palette.primaryLight,
-    fontSize: 14,
-    fontWeight: '800',
-    minWidth: 55,
-    textAlign: 'right',
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    color: Palette.darkTextSecondary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  saveBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: Palette.primary,
-  },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  twoColRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
-  },
-  pickerTriggerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  pickerTriggerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginRight: 6,
-  },
-  pickerIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pickerTriggerText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  popupOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  popupCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: Palette.darkCard,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  popupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  popupTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Palette.darkText,
-  },
-  popupCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  popupOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 6,
-  },
-  popupIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  popupOptionName: {
-    fontSize: 13,
-  },
-  attachPhotoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(88, 101, 242, 0.12)',
-  },
-  attachPhotoBtnText: {
+  queueBadgeText: {
     fontSize: 11,
     fontWeight: '700',
     color: Palette.primary,
   },
-  photoPreviewCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 8,
-  },
-  photoThumb: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#000',
-  },
-  photoThumbTitle: {
+  subtitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Palette.darkText,
-  },
-  photoThumbSub: {
-    fontSize: 10,
-    color: Palette.darkTextMuted,
+    color: Palette.darkTextSecondary,
     marginTop: 2,
   },
-  removePhotoBtn: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  emptyPhotoBox: {
+  headerSaveAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Palette.primary,
   },
-  emptyPhotoText: {
-    flex: 1,
-    fontSize: 11,
-    color: Palette.darkTextMuted,
-    lineHeight: 16,
+  headerSaveAllBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   headerPreviewBtn: {
     flexDirection: 'row',
@@ -1462,6 +1080,65 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Palette.primary,
+  },
+  closeBtn: {
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  stepperBar: {
+    backgroundColor: '#161922',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  stepperScroll: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  stepperPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  stepperPillActive: {
+    backgroundColor: 'rgba(88, 101, 242, 0.22)',
+    borderColor: Palette.primary,
+  },
+  stepperNumber: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperNumberActive: {
+    backgroundColor: Palette.primary,
+  },
+  stepperNumberText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Palette.darkTextSecondary,
+  },
+  stepperNumberTextActive: {
+    color: '#FFFFFF',
+  },
+  stepperLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Palette.darkTextMuted,
+    maxWidth: 130,
+  },
+  stepperLabelActive: {
+    color: Palette.primary,
+    fontWeight: '700',
   },
   bodyLayout: {
     flex: 1,
@@ -1654,5 +1331,443 @@ const styles = StyleSheet.create({
   fullPreviewImage: {
     width: '100%',
     height: '100%',
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  fieldGroup: {
+    marginBottom: 14,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Palette.darkTextSecondary,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Palette.darkText,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  innerInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: Palette.darkText,
+  },
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  dropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  categoryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dropdownBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Palette.darkText,
+  },
+  itemsSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  itemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  itemsTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Palette.darkTextSecondary,
+    letterSpacing: 0.5,
+  },
+  addItemBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+  },
+  addItemBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  itemCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  itemCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  itemNameInput: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Palette.darkText,
+    padding: 0,
+  },
+  deleteItemBtn: {
+    padding: 4,
+  },
+  itemDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  itemQtyCol: {
+    width: 60,
+  },
+  itemPriceCol: {
+    flex: 1,
+  },
+  itemTotalCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingBottom: 6,
+    minWidth: 70,
+  },
+  subFieldLabel: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginBottom: 4,
+  },
+  numberInput: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    fontSize: 12,
+    color: Palette.darkText,
+  },
+  itemTotalVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  summaryBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  summaryTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+    marginBottom: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: Palette.darkTextSecondary,
+  },
+  summaryValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  summaryInput: {
+    width: 120,
+    textAlign: 'right',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    color: Palette.darkText,
+  },
+  summaryTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginTop: 8,
+    paddingTop: 10,
+  },
+  summaryTotalLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Palette.darkText,
+  },
+  summaryTotalHint: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+  },
+  totalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(88, 101, 242, 0.3)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  rpPrefix: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.primary,
+    marginRight: 4,
+  },
+  totalInputField: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Palette.primaryLight,
+    minWidth: 90,
+    textAlign: 'right',
+  },
+  attachPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+  },
+  attachPhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  photoPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 8,
+  },
+  photoThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#000',
+  },
+  photoThumbTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  photoThumbSub: {
+    fontSize: 10,
+    color: Palette.darkTextMuted,
+    marginTop: 2,
+  },
+  removePhotoBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  emptyPhotoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  emptyPhotoText: {
+    flex: 1,
+    fontSize: 11,
+    color: Palette.darkTextMuted,
+    lineHeight: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    gap: 10,
+  },
+  footerNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Palette.darkTextSecondary,
+  },
+  stepNavPrevBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  stepNavPrevBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  stepNavNextBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Palette.primary,
+  },
+  stepNavNextBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  saveAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Palette.greenOnline,
+  },
+  saveAllBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Palette.primary,
+  },
+  saveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 18,
+    backgroundColor: Palette.darkCard,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+    padding: 16,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  popupTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  popupCloseBtn: {
+    padding: 4,
+  },
+  popupOptionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  popupIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupOptionName: {
+    fontSize: 13,
   },
 });
