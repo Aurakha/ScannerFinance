@@ -325,22 +325,22 @@ export function generateCompanyExpenseReportXLS(
 <body>
   <table>
     <colgroup>
-      <col width="130" style="width: 130px;" />
-      <col width="45" style="width: 45px;" />
-      <col width="480" style="width: 480px;" />
-      <col width="115" style="width: 115px;" />
-      <col width="135" style="width: 135px;" />
-      <col width="135" style="width: 135px;" />
-      <col width="135" style="width: 135px;" />
-      <col width="135" style="width: 135px;" />
-      <col width="145" style="width: 145px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="60" style="width: 60px;" />
+      <col width="460" style="width: 460px;" />
+      <col width="160" style="width: 160px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="140" style="width: 140px;" />
+      <col width="150" style="width: 150px;" />
     </colgroup>
 
     <!-- Metadata Section -->
     <tr style="height: 24px;">
-      <td style="font-weight: bold; width: 130px; white-space: nowrap;">Nama Perusahaan</td>
-      <td style="text-align: center; font-weight: bold; width: 45px; white-space: nowrap;">:</td>
-      <td colspan="7" style="font-weight: bold; width: 480px; white-space: nowrap;">${companyName}</td>
+      <td style="font-weight: bold; width: 140px; white-space: nowrap;">Nama Perusahaan</td>
+      <td style="text-align: center; font-weight: bold; width: 60px; white-space: nowrap;">:</td>
+      <td colspan="7" style="font-weight: bold; width: 460px; white-space: nowrap;">${companyName}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Nama</td>
@@ -365,16 +365,16 @@ export function generateCompanyExpenseReportXLS(
     <tr style="height: 16px;"><td colspan="9"></td></tr>
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
-    <tr style="height: 32px;">
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 130px; white-space: nowrap;">TANGGAL</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 45px; white-space: nowrap;">NO</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 480px; white-space: nowrap;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;KETERANGAN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px; white-space: nowrap;">JUMLAH ITEM</td>
-      <td class="th-header" style="background-color: #FEF08A; width: 135px; white-space: nowrap;">Operational</td>
-      <td class="th-header" style="background-color: #BBF7D0; width: 135px; white-space: nowrap;">Pantry</td>
-      <td class="th-header" style="background-color: #FBCFE8; width: 135px; white-space: nowrap;">Fasilitas</td>
-      <td class="th-header" style="background-color: #BAE6FD; width: 135px; white-space: nowrap;">Lain-Lain</td>
-      <td class="th-header" style="background-color: #E2E8F0; width: 145px; white-space: nowrap;">TOTAL</td>
+    <tr style="height: 34px;">
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 140px; white-space: nowrap; padding: 6px 10px;">TANGGAL</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 60px; white-space: nowrap; padding: 6px 6px;">NO</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 460px; white-space: nowrap; padding: 6px 12px;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 160px; white-space: nowrap; padding: 6px 10px;">JUMLAH ITEM</td>
+      <td class="th-header" style="background-color: #FEF08A; width: 140px; white-space: nowrap;">Operational</td>
+      <td class="th-header" style="background-color: #BBF7D0; width: 140px; white-space: nowrap;">Pantry</td>
+      <td class="th-header" style="background-color: #FBCFE8; width: 140px; white-space: nowrap;">Fasilitas</td>
+      <td class="th-header" style="background-color: #BAE6FD; width: 140px; white-space: nowrap;">Lain-Lain</td>
+      <td class="th-header" style="background-color: #E2E8F0; width: 150px; white-space: nowrap;">TOTAL</td>
     </tr>
     <tr style="height: 26px;">
       <td class="th-header" style="background-color: #FEF08A; font-size: 9.5pt; white-space: nowrap;">(Rp) - B</td>

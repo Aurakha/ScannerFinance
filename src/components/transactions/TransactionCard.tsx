@@ -56,7 +56,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
               { color: isIncome ? Palette.primary : theme.text },
             ]}
           >
-            {isIncome ? '+' : '-'}{formatRupiah(transaction.total_amount)}
+            {isIncome ? '+' : ''}{formatRupiah(transaction.total_amount)}
           </Text>
         </View>
 
