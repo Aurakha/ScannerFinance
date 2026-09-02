@@ -328,7 +328,7 @@ export function generateCompanyExpenseReportXLS(
     <colgroup>
       <col width="140" style="width: 140px;" />
       <col width="60" style="width: 60px;" />
-      <col width="420" style="width: 420px;" />
+      <col width="540" style="width: 540px;" />
       <col width="150" style="width: 150px;" />
       <col width="140" style="width: 140px;" />
       <col width="140" style="width: 140px;" />
@@ -341,7 +341,7 @@ export function generateCompanyExpenseReportXLS(
     <tr style="height: 24px;">
       <td style="font-weight: bold; width: 140px; white-space: nowrap;">Nama Perusahaan</td>
       <td align="center" style="text-align: center; font-weight: bold; width: 60px; white-space: nowrap;">:</td>
-      <td colspan="7" style="font-weight: bold; width: 420px; white-space: nowrap;">${companyName}</td>
+      <td colspan="7" style="font-weight: bold; width: 540px; white-space: nowrap;">${companyName}</td>
     </tr>
     <tr style="height: 24px;">
       <td style="font-weight: bold; white-space: nowrap;">Nama</td>
@@ -369,7 +369,7 @@ export function generateCompanyExpenseReportXLS(
     <tr style="height: 34px;">
       <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 140px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">TANGGAL</td>
       <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 60px; white-space: nowrap; padding: 6px 6px; text-align: center; vertical-align: middle;">NO</td>
-      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 420px; white-space: nowrap; padding: 6px 12px; text-align: center; vertical-align: middle;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 540px; white-space: nowrap; padding: 6px 14px; text-align: center; vertical-align: middle;">KETERANGAN</td>
       <td rowspan="2" class="th-header" align="center" valign="middle" style="background-color: #FFFFFF; width: 150px; white-space: nowrap; padding: 6px 8px; text-align: center; vertical-align: middle;">JUMLAH ITEM</td>
       <td class="th-header" align="center" valign="middle" style="background-color: #FEF08A; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Operational</td>
       <td class="th-header" align="center" valign="middle" style="background-color: #BBF7D0; width: 140px; white-space: nowrap; text-align: center; vertical-align: middle;">Pantry</td>

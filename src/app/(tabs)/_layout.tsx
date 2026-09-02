@@ -73,7 +73,7 @@ export default function TabLayout() {
             fontSize: 11,
             fontWeight: '700',
             color: Palette.primaryLight,
-            marginTop: 2,
+            marginTop: 4,
           },
         }}
       />
