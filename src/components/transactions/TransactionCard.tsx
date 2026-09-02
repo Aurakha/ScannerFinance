@@ -93,7 +93,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
         {transaction.notes ? (
           <Text style={[styles.notesText, { color: theme.textMuted }]} numberOfLines={1}>
-            💬 {transaction.notes}
+            {transaction.notes}
           </Text>
         ) : null}
       </View>

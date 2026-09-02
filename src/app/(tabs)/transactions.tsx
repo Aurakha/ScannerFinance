@@ -950,7 +950,6 @@ export default function TransactionsScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="today-outline" size={14} color={Palette.primary} />
                 <Text style={[styles.jumpToCurrentMonthText, { color: Palette.primary }]}>
                   Bulan Ini ({formatMonthLabel(getCurrentMonthKey())})
                 </Text>

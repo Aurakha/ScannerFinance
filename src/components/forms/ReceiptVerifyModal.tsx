@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +63,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   onConfirmSave,
 }) => {
   if (!scanData) return null;
+
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 860;
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const initialDate = scanData.transaction_date
     ? new Date(scanData.transaction_date)
@@ -119,6 +124,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   const [attachedPhotoUri, setAttachedPhotoUri] = useState<string | null>(
     scanData.receipt_image_uri || null
   );
+  const activeReceiptPhoto = attachedPhotoUri || scanData.receipt_image_uri || null;
 
   // Selalu sinkronkan ulang seluruh field formulir saat scanData berganti (misal saat giliran struk ke-2, 3, dst.)
   useEffect(() => {
@@ -270,7 +276,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, isDesktop && styles.sheetContainerDesktop]}>
           {/* Header Bar */}
           <View style={styles.header}>
             <View style={{ flex: 1, paddingRight: 8 }}>
@@ -292,16 +298,109 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                   : 'Verifikasi tanggal, jam, dan item transaksi'}
               </Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={20} color={Palette.darkTextSecondary} />
-            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {activeReceiptPhoto && (
+                <TouchableOpacity
+                  style={styles.headerPreviewBtn}
+                  onPress={() => setIsPreviewModalOpen(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="eye-outline" size={14} color={Palette.primary} />
+                  <Text style={styles.headerPreviewBtnText}>Pratinjau Foto</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                <Ionicons name="close" size={20} color={Palette.darkTextSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <ScrollView
-            style={styles.scrollArea}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          {/* Body Container: Split 2 columns on Desktop, single column on Mobile */}
+          <View style={[styles.bodyLayout, isDesktop && styles.bodyLayoutDesktop]}>
+            {/* LEFT COLUMN: Receipt Image Viewer on Desktop */}
+            {isDesktop && (
+              <View style={styles.desktopPreviewPane}>
+                <View style={styles.previewPaneHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="receipt-outline" size={15} color={Palette.primary} />
+                    <Text style={styles.previewPaneTitle}>Foto Bukti Struk</Text>
+                    {queueTotal !== undefined && queueTotal > 1 && (
+                      <View style={styles.previewPaneBadge}>
+                        <Text style={styles.previewPaneBadgeText}>Struk {(queueIndex || 0) + 1}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {activeReceiptPhoto && (
+                    <TouchableOpacity
+                      style={styles.expandPreviewBtn}
+                      onPress={() => setIsPreviewModalOpen(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="scan-outline" size={13} color={Palette.primary} />
+                      <Text style={styles.expandPreviewBtnText}>Layar Penuh</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {activeReceiptPhoto ? (
+                  <TouchableOpacity
+                    style={styles.desktopImageWrapper}
+                    activeOpacity={0.9}
+                    onPress={() => setIsPreviewModalOpen(true)}
+                  >
+                    <Image
+                      source={{ uri: activeReceiptPhoto }}
+                      style={styles.desktopImage}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.desktopImageHintBar}>
+                      <Ionicons name="search" size={12} color="#FFFFFF" />
+                      <Text style={styles.desktopImageHintText}>
+                        Klik foto untuk memperbesar / layar penuh
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.desktopNoImageContainer}>
+                    <Ionicons name="image-outline" size={48} color={Palette.darkTextMuted} />
+                    <Text style={styles.desktopNoImageTitle}>Belum Ada Foto Struk</Text>
+                    <Text style={styles.desktopNoImageSub}>
+                      Lampirkan foto struk fisik agar tersimpan sebagai bukti
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.desktopAttachBtn}
+                      onPress={handlePickAttachment}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="camera" size={14} color="#FFFFFF" />
+                      <Text style={styles.desktopAttachBtnText}>+ Lampirkan Foto</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* RIGHT COLUMN (or full width on mobile): Form and Actions */}
+            <View style={[styles.formPane, isDesktop && styles.formPaneDesktop]}>
+              <ScrollView
+                style={styles.scrollArea}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {!isDesktop && activeReceiptPhoto && (
+                  <TouchableOpacity
+                    style={styles.mobilePreviewBanner}
+                    onPress={() => setIsPreviewModalOpen(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="image" size={15} color={Palette.primary} />
+                    <Text style={styles.mobilePreviewBannerText}>
+                      Lihat Foto Struk Ini ({queueTotal && queueTotal > 1 ? `Struk ${(queueIndex || 0) + 1}` : 'Bukti Belanja'})
+                    </Text>
+                    <Ionicons name="chevron-forward" size={15} color={Palette.primary} />
+                  </TouchableOpacity>
+                )}
             {/* Merchant Name Input */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Nama Toko / Merchant / Penjual</Text>
@@ -591,18 +690,28 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
 
               {attachedPhotoUri ? (
-                <View style={styles.photoPreviewCard}>
+                <TouchableOpacity
+                  style={styles.photoPreviewCard}
+                  onPress={() => setIsPreviewModalOpen(true)}
+                  activeOpacity={0.85}
+                >
                   <Image source={{ uri: attachedPhotoUri }} style={styles.photoThumb} resizeMode="cover" />
                   <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                    <Text style={styles.photoThumbTitle} numberOfLines={1}>
-                      Foto Struk Terlampir
-                    </Text>
-                    <Text style={styles.photoThumbSub}>Tersimpan ke arsip Google Drive & transaksi</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.photoThumbTitle} numberOfLines={1}>
+                        Foto Struk Terlampir
+                      </Text>
+                      <View style={styles.previewTag}>
+                        <Ionicons name="eye" size={10} color={Palette.primary} />
+                        <Text style={styles.previewTagText}>Pratinjau</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.photoThumbSub}>Ketuk untuk melihat foto dalam ukuran penuh</Text>
                   </View>
                   <TouchableOpacity onPress={() => setAttachedPhotoUri(null)} style={styles.removePhotoBtn}>
                     <Ionicons name="trash-outline" size={16} color={Palette.coral} />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={styles.emptyPhotoBox}
@@ -638,7 +747,47 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
+    </View>
+  </KeyboardAvoidingView>
+
+  {/* MODAL FULL-SCREEN PREVIEW FOTO STRUK */}
+  <Modal
+    visible={isPreviewModalOpen}
+    transparent
+    animationType="fade"
+    onRequestClose={() => setIsPreviewModalOpen(false)}
+  >
+    <View style={styles.fullPreviewBackdrop}>
+      <View style={styles.fullPreviewHeader}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="receipt" size={18} color="#FFFFFF" />
+          <Text style={styles.fullPreviewTitle}>
+            Pratinjau Foto Struk {queueTotal && queueTotal > 1 ? `(${((queueIndex || 0) + 1)} dari ${queueTotal})` : ''}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.fullPreviewCloseBtn}
+          onPress={() => setIsPreviewModalOpen(false)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="close" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.fullPreviewBody}>
+        {activeReceiptPhoto ? (
+          <Image
+            source={{ uri: activeReceiptPhoto }}
+            style={styles.fullPreviewImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Text style={{ color: '#FFFFFF' }}>Foto tidak tersedia</Text>
+        )}
+      </View>
+    </View>
+  </Modal>
 
       {/* Pop-up Modal Pilih Kategori (Sama seperti Filter Kategori di Transaksi) */}
       <Modal visible={showCategoryPicker} transparent animationType="fade">
@@ -797,20 +946,26 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
   },
   sheetContainer: {
     backgroundColor: Palette.darkCard,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '92%',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    borderRadius: 22,
+    maxHeight: '94%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
     overflow: 'hidden',
+  },
+  sheetContainerDesktop: {
+    maxWidth: 1100,
+    width: '94%',
+    height: '90%',
+    maxHeight: 840,
   },
   header: {
     flexDirection: 'row',
@@ -1293,5 +1448,211 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Palette.darkTextMuted,
     lineHeight: 16,
+  },
+  headerPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
+  },
+  headerPreviewBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  bodyLayout: {
+    flex: 1,
+  },
+  bodyLayoutDesktop: {
+    flexDirection: 'row',
+  },
+  desktopPreviewPane: {
+    flex: 1,
+    backgroundColor: '#0E1015',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  previewPaneHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  previewPaneTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  previewPaneBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: 'rgba(88, 101, 242, 0.2)',
+  },
+  previewPaneBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  expandPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
+  },
+  expandPreviewBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Palette.primary,
+  },
+  desktopImageWrapper: {
+    flex: 1,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#090A0E',
+  },
+  desktopImage: {
+    width: '100%',
+    height: '100%',
+  },
+  desktopImageHintBar: {
+    position: 'absolute',
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  desktopImageHintText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  desktopNoImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 8,
+    backgroundColor: '#090A0E',
+  },
+  desktopNoImageTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  desktopNoImageSub: {
+    fontSize: 12,
+    color: Palette.darkTextMuted,
+    textAlign: 'center',
+    maxWidth: 240,
+    marginBottom: 8,
+  },
+  desktopAttachBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Palette.primary,
+  },
+  desktopAttachBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  formPane: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  formPaneDesktop: {
+    flex: 1.25,
+  },
+  mobilePreviewBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(88, 101, 242, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(88, 101, 242, 0.3)',
+    marginBottom: 14,
+  },
+  mobilePreviewBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.primary,
+    marginLeft: 8,
+  },
+  previewTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(88, 101, 242, 0.18)',
+  },
+  previewTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  fullPreviewBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    padding: 16,
+  },
+  fullPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  fullPreviewTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  fullPreviewCloseBtn: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  fullPreviewBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  fullPreviewImage: {
+    width: '100%',
+    height: '100%',
   },
 });
