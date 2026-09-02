@@ -234,6 +234,24 @@ export async function uploadReceiptToGoogleDrive(
 
     const data = await response.json();
     console.log('✅ Foto struk berhasil diupload ke Google Drive:', data.name);
+
+    // Berikan izin view agar thumbnail foto bisa langsung tampil di aplikasi
+    try {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone',
+        }),
+      });
+    } catch (permErr) {
+      console.warn('Set permission notice:', permErr);
+    }
+
     return {
       fileId: data.id,
       webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,

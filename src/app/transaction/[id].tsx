@@ -82,6 +82,21 @@ export default function TransactionDetailScreen() {
     }
   };
 
+  const directImageUrl = React.useMemo(() => {
+    if (!receiptUrl) return undefined;
+    if (receiptUrl.startsWith('data:image') || receiptUrl.startsWith('blob:') || receiptUrl.startsWith('file:')) {
+      return receiptUrl;
+    }
+    const driveMatch = receiptUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || receiptUrl.match(/id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+      const fileId = driveMatch[1];
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    return receiptUrl;
+  }, [receiptUrl]);
+
+  const [imageLoadError, setImageLoadError] = React.useState(false);
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       {/* Top Navbar */}
@@ -213,15 +228,28 @@ export default function TransactionDetailScreen() {
               onPress={handleOpenReceiptPhoto}
               style={styles.imagePreviewContainer}
             >
-              <Image
-                source={{ uri: receiptUrl }}
-                style={styles.receiptImage}
-                resizeMode="cover"
-              />
+              {!imageLoadError && directImageUrl ? (
+                <Image
+                  source={{ uri: directImageUrl }}
+                  style={styles.receiptImage}
+                  resizeMode="contain"
+                  onError={() => setImageLoadError(true)}
+                />
+              ) : (
+                <View style={styles.fallbackDriveBox}>
+                  <Ionicons name={isGoogleDrive ? "cloud-done" : "document-attach"} size={42} color={Palette.primary} />
+                  <Text style={[styles.fallbackDriveTitle, { color: theme.text }]}>
+                    Foto Struk Tersimpan di Google Drive ☁️
+                  </Text>
+                  <Text style={[styles.fallbackDriveSub, { color: theme.textMuted }]}>
+                    Klik di sini untuk membuka foto struk resolusi asli
+                  </Text>
+                </View>
+              )}
               <View style={styles.imageOverlayBanner}>
                 <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.imageOverlayText}>
-                  Klik untuk melihat foto struk resolusi penuh
+                  Klik untuk melihat foto struk resolusi penuh ↗
                 </Text>
               </View>
             </TouchableOpacity>
@@ -501,6 +529,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
+  },
+  fallbackDriveBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    gap: 6,
+  },
+  fallbackDriveTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  fallbackDriveSub: {
+    fontSize: 11,
+    textAlign: 'center',
   },
   noPhotoBox: {
     alignItems: 'center',
