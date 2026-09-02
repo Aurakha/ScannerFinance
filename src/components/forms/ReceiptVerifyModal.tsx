@@ -268,7 +268,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           <View style={styles.header}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Text style={styles.title} numberOfLines={1}>
+                <Text style={styles.title}>
                   Konfirmasi Hasil Ekstraksi
                 </Text>
                 {drafts.length > 1 && (
@@ -287,8 +287,8 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {/* Tombol Cepat Simpan Semua jika lebih dari 1 struk */}
-              {drafts.length > 1 && (
+              {/* Tombol Cepat Simpan Semua jika lebih dari 1 struk (Hanya tampil di Desktop agar tidak menutupi judul di Mobile) */}
+              {isDesktop && drafts.length > 1 && (
                 <TouchableOpacity
                   style={styles.headerSaveAllBtn}
                   onPress={handleSaveBatchFinal}
@@ -299,7 +299,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 </TouchableOpacity>
               )}
 
-              {activeReceiptPhoto && (
+              {isDesktop && activeReceiptPhoto && (
                 <TouchableOpacity
                   style={styles.headerPreviewBtn}
                   onPress={() => setIsPreviewModalOpen(true)}
