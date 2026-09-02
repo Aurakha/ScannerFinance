@@ -6,6 +6,8 @@ import { Transaction } from '@/types';
 import { useThemeStore } from '@/store/themeStore';
 import { formatFriendlyDate, formatRupiah } from '@/utils/formatters';
 import { Badge } from '../common/Badge';
+import { DEFAULT_CATEGORIES } from '@/constants/categories';
+import { categorizeColumn } from '@/utils/exportReport';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -18,7 +20,15 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   onPress,
 }) => {
   const { theme } = useThemeStore();
-  const category = transaction.category;
+  const category =
+    transaction.category ||
+    DEFAULT_CATEGORIES.find((c) => c.id === transaction.category_id) ||
+    DEFAULT_CATEGORIES.find((c) => {
+      const catKey = categorizeColumn(transaction.merchant_name || '');
+      return categorizeColumn(c.name) === catKey;
+    }) ||
+    DEFAULT_CATEGORIES[0];
+
   const isIncome = category?.type === 'income';
   const categoryColor = category?.color || Palette.primary;
   const itemCount = transaction.items?.length || 0;

@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Category, MonthlyStats, Transaction } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
+import { categorizeColumn } from '@/utils/exportReport';
 
 const LOCAL_TRANSACTIONS_KEY = '@scanfinance_local_transactions';
 const LOCAL_CATEGORIES_KEY = '@scanfinance_local_categories';
@@ -124,10 +125,21 @@ export async function getTransactions(targetUserId?: string): Promise<Transactio
     const { data, error } = await query;
 
     if (!error) {
-      const formatted = (data || []).map((d: any) => ({
-        ...d,
-        items: d.items || [],
-      }));
+      const formatted = (data || []).map((d: any) => {
+        let cat = d.category;
+        if (!cat) {
+          const catKey = categorizeColumn(d.merchant_name || '');
+          cat =
+            DEFAULT_CATEGORIES.find((c) => categorizeColumn(c.name) === catKey) ||
+            DEFAULT_CATEGORIES[0];
+        }
+        return {
+          ...d,
+          category_id: d.category_id || cat.id,
+          category: cat,
+          items: d.items || [],
+        };
+      });
       // Sinkronkan cache lokal dengan data cloud terkini (termasuk jika kosong 0 baris)
       await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(formatted));
       return formatted as Transaction[];

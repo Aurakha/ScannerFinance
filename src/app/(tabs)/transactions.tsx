@@ -22,7 +22,8 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport } from '@/utils/exportReport';
+import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport, categorizeColumn } from '@/utils/exportReport';
+import { DEFAULT_CATEGORIES } from '@/constants/categories';
 
 /** Nama bulan Indonesia lengkap */
 const MONTH_NAMES_FULL = [
@@ -123,7 +124,21 @@ export default function TransactionsScreen() {
       return false;
     }
 
-    const matchCategory = activeFilter === 'all' || t.category_id === activeFilter;
+    const resolvedCat =
+      t.category ||
+      DEFAULT_CATEGORIES.find((c) => c.id === t.category_id) ||
+      DEFAULT_CATEGORIES.find((c) => {
+        const catKey = categorizeColumn(t.merchant_name || '');
+        return categorizeColumn(c.name) === catKey;
+      }) ||
+      DEFAULT_CATEGORIES[0];
+
+    const matchCategory =
+      activeFilter === 'all' ||
+      t.category_id === activeFilter ||
+      t.category?.id === activeFilter ||
+      resolvedCat?.id === activeFilter;
+
     const matchSearch =
       !searchQuery ||
       t.merchant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
