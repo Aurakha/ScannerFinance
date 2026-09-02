@@ -270,10 +270,10 @@ export function generateCompanyExpenseReportXLS(
 </head>
 <body>
   <table>
-    <col width="115" />
+    <col width="120" />
     <col width="45" />
-    <col width="300" />
-    <col width="110" />
+    <col width="460" />
+    <col width="115" />
     <col width="135" />
     <col width="135" />
     <col width="135" />
@@ -310,10 +310,10 @@ export function generateCompanyExpenseReportXLS(
 
     <!-- Table Header (2 Rows) with distinct pastel colors -->
     <tr style="height: 32px;">
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px;">TANGGAL</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 120px;">TANGGAL</td>
       <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 45px;">NO</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 300px;">KETERANGAN</td>
-      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 110px;">JUMLAH ITEM</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 460px;">KETERANGAN</td>
+      <td rowspan="2" class="th-header" style="background-color: #FFFFFF; width: 115px;">JUMLAH ITEM</td>
       <td class="th-header" style="background-color: #FEF08A; width: 135px;">Operational</td>
       <td class="th-header" style="background-color: #BBF7D0; width: 135px;">Pantry</td>
       <td class="th-header" style="background-color: #FBCFE8; width: 135px;">Fasilitas</td>
