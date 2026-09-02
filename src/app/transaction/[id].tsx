@@ -35,6 +35,8 @@ export default function TransactionDetailScreen() {
 
   // Edit Modal State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editMerchantName, setEditMerchantName] = useState('');
   const [editCategoryName, setEditCategoryName] = useState('Pantry');
   const [editTransactionDate, setEditTransactionDate] = useState('');
@@ -47,16 +49,27 @@ export default function TransactionDetailScreen() {
   const [editNotes, setEditNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  if (!transaction) {
+  if (!transaction || isDeleting) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-        <View style={styles.notFoundContainer}>
-          <Ionicons name="alert-circle-outline" size={54} color={Palette.coral} />
-          <Text style={[styles.notFoundTitle, { color: theme.text }]}>
-            Transaksi Tidak Ditemukan
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={{ alignItems: 'center', gap: 14, padding: 24 }}>
+          <ActivityIndicator size="large" color={Palette.primary} />
+          <Text style={{ color: theme.textSecondary, fontSize: 14, textAlign: 'center' }}>
+            {isDeleting ? 'Menghapus transaksi...' : 'Mengalihkan ke riwayat transaksi...'}
           </Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backBtnText}>Kembali</Text>
+          <TouchableOpacity
+            style={{
+              marginTop: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              backgroundColor: theme.cardHover,
+              borderRadius: 10,
+            }}
+            onPress={() => router.replace('/(tabs)/transactions')}
+          >
+            <Text style={{ color: theme.text, fontSize: 13, fontWeight: '600' }}>
+              Kembali ke Riwayat
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -186,41 +199,19 @@ export default function TransactionDetailScreen() {
   };
 
   const handleDelete = () => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const confirmed = window.confirm(
-        `Apakah Anda yakin ingin menghapus transaksi dari "${transaction.merchant_name}"?`
-      );
-      if (confirmed) {
-        removeTransaction(transaction.id)
-          .then(() => {
-            router.replace('/(tabs)/transactions');
-          })
-          .catch((err) => {
-            window.alert('Gagal menghapus: ' + (err?.message || 'Terjadi kesalahan.'));
-          });
-      }
-      return;
-    }
+    setShowDeleteModal(true);
+  };
 
-    Alert.alert(
-      'Hapus Transaksi',
-      `Apakah Anda yakin ingin menghapus transaksi dari "${transaction.merchant_name}"?`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeTransaction(transaction.id);
-              router.replace('/(tabs)/transactions');
-            } catch (err: any) {
-              Alert.alert('Gagal', err?.message || 'Gagal menghapus transaksi.');
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true);
+      setShowDeleteModal(false);
+      await removeTransaction(transaction.id);
+      router.replace('/(tabs)/transactions');
+    } catch (err: any) {
+      setIsDeleting(false);
+      Alert.alert('Gagal Menghapus', err?.message || 'Terjadi kesalahan saat menghapus transaksi.');
+    }
   };
 
   const handleOpenReceiptPhoto = () => {
@@ -896,6 +887,47 @@ export default function TransactionDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL KONFIRMASI HAPUS DENGAN UI KHUSUS (BUKAN BROWSER POPUP) */}
+      <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={() => setShowDeleteModal(false)}>
+        <View style={styles.deleteModalOverlay}>
+          <View style={[styles.deleteModalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.deleteWarningIconBox}>
+              <Ionicons name="trash" size={26} color={Palette.coral} />
+            </View>
+
+            <Text style={[styles.deleteModalTitle, { color: theme.text }]}>
+              Hapus Transaksi?
+            </Text>
+            <Text style={[styles.deleteModalDesc, { color: theme.textSecondary }]}>
+              Apakah Anda yakin ingin menghapus transaksi dari{' '}
+              <Text style={{ fontWeight: '700', color: theme.text }}>
+                "{transaction?.merchant_name}"
+              </Text>
+              ? Data yang telah dihapus tidak dapat dipulihkan.
+            </Text>
+
+            <View style={styles.deleteModalActions}>
+              <TouchableOpacity
+                style={[styles.deleteCancelBtn, { backgroundColor: theme.cardHover }]}
+                onPress={() => setShowDeleteModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.deleteCancelBtnText, { color: theme.text }]}>Batal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteConfirmBtn}
+                onPress={handleConfirmDelete}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash" size={15} color="#FFFFFF" />
+                <Text style={styles.deleteConfirmBtnText}>Ya, Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1405,5 +1437,78 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 14,
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    padding: 22,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  deleteWarningIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(242, 63, 67, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  deleteModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  deleteModalDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  deleteModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  deleteConfirmBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Palette.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

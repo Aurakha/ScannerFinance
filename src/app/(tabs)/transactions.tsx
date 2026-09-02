@@ -76,6 +76,8 @@ export default function TransactionsScreen() {
   const [calendarPickerYear, setCalendarPickerYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; merchant: string } | null>(null);
 
   React.useEffect(() => {
     loadData(user?.id);
@@ -167,26 +169,17 @@ export default function TransactionsScreen() {
   );
 
   const handleDelete = (id: string, merchant: string) => {
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus transaksi dari "${merchant}"?`);
-      if (confirmed) {
-        removeTransaction(id);
-      }
-      return;
-    }
+    setDeleteTarget({ id, merchant });
+  };
 
-    Alert.alert(
-      'Hapus Transaksi',
-      `Apakah Anda yakin ingin menghapus transaksi dari "${merchant}"?`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: () => removeTransaction(id),
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await removeTransaction(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (err: any) {
+      Alert.alert('Gagal Menghapus', err?.message || 'Terjadi kesalahan saat menghapus transaksi.');
+    }
   };
 
   const handleExportExcel = () => {
@@ -440,42 +433,39 @@ export default function TransactionsScreen() {
             />
           </TouchableOpacity>
 
-          {/* Tombol Tampilkan Semua Data & Urutan Transaksi */}
+          {/* Tombol Urutkan Transaksi (Bentuk & Style Sama Persis dengan Filter Kategori) */}
           <TouchableOpacity
             style={[
-              styles.sortOrderBtn,
+              styles.categoryFilterBtn,
               {
-                backgroundColor: selectedMonth === 'all' ? `${Palette.primary}22` : theme.card,
-                borderColor: selectedMonth === 'all' ? Palette.primary : theme.border,
+                backgroundColor: theme.card,
+                borderColor: theme.border,
               },
             ]}
-            onPress={() => {
-              if (selectedMonth !== 'all') {
-                setSelectedMonth('all');
-              } else {
-                setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'));
-              }
-            }}
+            onPress={() => setShowSortModal(true)}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={selectedMonth !== 'all' ? 'layers-outline' : (sortOrder === 'newest' ? 'arrow-down' : 'arrow-up')}
-              size={13}
-              color={selectedMonth === 'all' ? Palette.primary : theme.textSecondary}
+              name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'}
+              size={14}
+              color={Palette.primary}
             />
             <Text
               style={[
-                styles.sortOrderBtnText,
+                styles.categoryFilterBtnText,
                 {
-                  color: selectedMonth === 'all' ? Palette.primary : theme.text,
-                  fontWeight: selectedMonth === 'all' ? '700' : '600',
+                  color: theme.text,
+                  fontWeight: '600',
                 },
               ]}
             >
-              {selectedMonth !== 'all'
-                ? 'Tampilkan Semua Data'
-                : (sortOrder === 'newest' ? 'Semua Data (Terbaru ➔ Terlama)' : 'Semua Data (Paling Lama ➔ Terbaru)')}
+              {sortOrder === 'newest' ? 'Urutan: Terbaru' : 'Urutan: Terlama'}
             </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={theme.textMuted}
+            />
           </TouchableOpacity>
 
           {activeFilter !== 'all' && (
@@ -663,6 +653,185 @@ export default function TransactionsScreen() {
               </ScrollView>
             </View>
           </TouchableOpacity>
+        </Modal>
+
+        {/* Modal Pemilih Urutan Transaksi (Bentuk & Style Sama dengan Modal Kategori) */}
+        <Modal
+          visible={showSortModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSortModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowSortModal(false)}
+          >
+            <View
+              style={[
+                styles.modalCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="swap-vertical" size={18} color={Palette.primary} />
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Urutkan Transaksi</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, { backgroundColor: theme.cardHover }]}
+                  onPress={() => setShowSortModal(false)}
+                >
+                  <Ionicons name="close" size={18} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ paddingVertical: 4 }}>
+                {/* Opsi Terbaru ke Terlama */}
+                <TouchableOpacity
+                  style={[
+                    styles.categoryOptionItem,
+                    sortOrder === 'newest' && {
+                      backgroundColor: `${Palette.primary}18`,
+                    },
+                  ]}
+                  onPress={() => {
+                    setSortOrder('newest');
+                    setShowSortModal(false);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View
+                      style={[
+                        styles.categoryIconBox,
+                        { backgroundColor: sortOrder === 'newest' ? Palette.primary : theme.cardHover },
+                      ]}
+                    >
+                      <Ionicons
+                        name="arrow-down"
+                        size={16}
+                        color={sortOrder === 'newest' ? '#FFFFFF' : theme.textSecondary}
+                      />
+                    </View>
+                    <View>
+                      <Text
+                        style={[
+                          styles.categoryOptionName,
+                          {
+                            color: sortOrder === 'newest' ? Palette.primary : theme.text,
+                            fontWeight: sortOrder === 'newest' ? '700' : '600',
+                          },
+                        ]}
+                      >
+                        Paling Baru Masuk (Terbaru ➔ Terlama)
+                      </Text>
+                      <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                        Menampilkan transaksi paling baru di posisi paling atas
+                      </Text>
+                    </View>
+                  </View>
+                  {sortOrder === 'newest' && (
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
+                  )}
+                </TouchableOpacity>
+
+                {/* Opsi Terlama ke Terbaru */}
+                <TouchableOpacity
+                  style={[
+                    styles.categoryOptionItem,
+                    sortOrder === 'oldest' && {
+                      backgroundColor: `${Palette.primary}18`,
+                    },
+                  ]}
+                  onPress={() => {
+                    setSortOrder('oldest');
+                    setShowSortModal(false);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View
+                      style={[
+                        styles.categoryIconBox,
+                        { backgroundColor: sortOrder === 'oldest' ? Palette.primary : theme.cardHover },
+                      ]}
+                    >
+                      <Ionicons
+                        name="arrow-up"
+                        size={16}
+                        color={sortOrder === 'oldest' ? '#FFFFFF' : theme.textSecondary}
+                      />
+                    </View>
+                    <View>
+                      <Text
+                        style={[
+                          styles.categoryOptionName,
+                          {
+                            color: sortOrder === 'oldest' ? Palette.primary : theme.text,
+                            fontWeight: sortOrder === 'oldest' ? '700' : '600',
+                          },
+                        ]}
+                      >
+                        Paling Lama Masuk (Terlama ➔ Terbaru)
+                      </Text>
+                      <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                        Menampilkan transaksi dari data terdahulu ke paling baru
+                      </Text>
+                    </View>
+                  </View>
+                  {sortOrder === 'oldest' && (
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal Konfirmasi Hapus Transaksi (UI Khusus, Bukan Browser Alert) */}
+        <Modal
+          visible={Boolean(deleteTarget)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDeleteTarget(null)}
+        >
+          <View style={styles.deleteModalOverlay}>
+            <View style={[styles.deleteModalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.deleteWarningIconBox}>
+                <Ionicons name="trash" size={26} color={Palette.coral} />
+              </View>
+
+              <Text style={[styles.deleteModalTitle, { color: theme.text }]}>
+                Hapus Transaksi?
+              </Text>
+              <Text style={[styles.deleteModalDesc, { color: theme.textSecondary }]}>
+                Apakah Anda yakin ingin menghapus transaksi dari{' '}
+                <Text style={{ fontWeight: '700', color: theme.text }}>
+                  "{deleteTarget?.merchant}"
+                </Text>
+                ? Data yang dihapus tidak dapat dipulihkan.
+              </Text>
+
+              <View style={styles.deleteModalActions}>
+                <TouchableOpacity
+                  style={[styles.deleteCancelBtn, { backgroundColor: theme.cardHover }]}
+                  onPress={() => setDeleteTarget(null)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.deleteCancelBtnText, { color: theme.text }]}>Batal</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.deleteConfirmBtn}
+                  onPress={handleConfirmDelete}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="trash" size={15} color="#FFFFFF" />
+                  <Text style={styles.deleteConfirmBtnText}>Ya, Hapus</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
 
         {/* Modal Kalender / Pemilih Bulan & Tahun */}
@@ -1185,5 +1354,78 @@ const styles = StyleSheet.create({
   jumpToCurrentMonthText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    padding: 22,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  deleteWarningIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(242, 63, 67, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  deleteModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  deleteModalDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  deleteModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  deleteConfirmBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Palette.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
