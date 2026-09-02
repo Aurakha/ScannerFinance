@@ -172,6 +172,69 @@ export function generateCompanyExpenseReportXLS(
       `;
       rowNo++;
     }
+
+    // Catat Biaya Layanan / Admin (jika ada) ke kolom Lain-Lain
+    if (tx.admin_fee && Number(tx.admin_fee) > 0) {
+      const feeVal = Number(tx.admin_fee);
+      grandTotal += feeVal;
+      sumLainLain += feeVal;
+      rowsHTML += `
+        <tr style="height: 28px;">
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Biaya Layanan / Admin (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">1 Trx</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${feeVal}</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${feeVal}</td>
+        </tr>
+      `;
+      rowNo++;
+    }
+
+    // Catat Ongkos Kirim (jika ada) ke kolom Operational / Lain-Lain
+    if (tx.shipping_fee && Number(tx.shipping_fee) > 0) {
+      const shipVal = Number(tx.shipping_fee);
+      grandTotal += shipVal;
+      sumOperational += shipVal;
+      rowsHTML += `
+        <tr style="height: 28px;">
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Ongkos Kirim (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">1 Trx</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${shipVal}</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${shipVal}</td>
+        </tr>
+      `;
+      rowNo++;
+    }
+
+    // Catat Pajak / PPN (jika ada) ke kolom Lain-Lain
+    if (tx.tax_amount && Number(tx.tax_amount) > 0) {
+      const taxVal = Number(tx.tax_amount);
+      grandTotal += taxVal;
+      sumLainLain += taxVal;
+      rowsHTML += `
+        <tr style="height: 28px;">
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${txDateStr}</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">${rowNo}</td>
+          <td style="border: 1px solid #000000; text-align: left; vertical-align: middle; padding: 4px 10px;">Pajak / PPN (${tx.merchant_name})</td>
+          <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; padding: 4px 6px;">-</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${taxVal}</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';">${taxVal}</td>
+        </tr>
+      `;
+      rowNo++;
+    }
   });
 
   const refund = cashAdvance - grandTotal;
@@ -479,7 +542,68 @@ export function generateCompanyExpenseReportCSV(
       rowNo++;
     }
 
+    // Catat Biaya Layanan / Admin (jika ada) ke kolom Lain-Lain
+    if (tx.admin_fee && Number(tx.admin_fee) > 0) {
+      const feeVal = Number(tx.admin_fee);
+      grandTotal += feeVal;
+      sumLainLain += feeVal;
+      lines.push(
+        [
+          escapeCSV(txDateStr),
+          escapeCSV(rowNo),
+          escapeCSV(`Biaya Layanan / Admin (${tx.merchant_name})`),
+          escapeCSV('1 Trx'),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(feeVal),
+          escapeCSV(feeVal),
+        ].join(',')
+      );
+      rowNo++;
+    }
 
+    // Catat Ongkos Kirim (jika ada) ke kolom Operational
+    if (tx.shipping_fee && Number(tx.shipping_fee) > 0) {
+      const shipVal = Number(tx.shipping_fee);
+      grandTotal += shipVal;
+      sumOperational += shipVal;
+      lines.push(
+        [
+          escapeCSV(txDateStr),
+          escapeCSV(rowNo),
+          escapeCSV(`Ongkos Kirim (${tx.merchant_name})`),
+          escapeCSV('1 Trx'),
+          escapeCSV(shipVal),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(shipVal),
+        ].join(',')
+      );
+      rowNo++;
+    }
+
+    // Catat Pajak / PPN (jika ada) ke kolom Lain-Lain
+    if (tx.tax_amount && Number(tx.tax_amount) > 0) {
+      const taxVal = Number(tx.tax_amount);
+      grandTotal += taxVal;
+      sumLainLain += taxVal;
+      lines.push(
+        [
+          escapeCSV(txDateStr),
+          escapeCSV(rowNo),
+          escapeCSV(`Pajak / PPN (${tx.merchant_name})`),
+          escapeCSV('-'),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(taxVal),
+          escapeCSV(taxVal),
+        ].join(',')
+      );
+      rowNo++;
+    }
   });
 
   const refund = cashAdvance - grandTotal;
