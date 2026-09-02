@@ -316,7 +316,8 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
 
   return rawReceipts.map((rc: any, idx: number) => {
     const finalTotal = Number(rc.total_amount) || Number(rc.subtotal) || 0;
-    const photoForThis = (idx === 0 && driveLink) ? driveLink : (targetImages[idx]?.uri || targetImages[0]?.uri);
+    // Selalu prioritaskan foto lokal yang diunggah pengguna agar preview tampil 100% instan dan jernih
+    const photoForThis = targetImages[idx]?.uri || targetImages[0]?.uri || (idx === 0 ? driveLink : undefined);
     return {
       merchant_name: rc.merchant_name || 'Toko Belanja',
       transaction_date: rc.transaction_date || new Date().toISOString(),

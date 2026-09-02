@@ -49,6 +49,18 @@ interface ReceiptVerifyModalProps {
   onConfirmSaveBatch?: (batchData: VerifiedReceiptDraft[]) => void;
 }
 
+export function resolveDirectImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('data:image') || url.startsWith('blob:') || url.startsWith('file:')) {
+    return url;
+  }
+  const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+  if (driveMatch && driveMatch[1]) {
+    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
+  }
+  return url;
+}
+
 const PAYMENT_METHODS: Array<{ label: string; value: PaymentMethod; icon: string }> = [
   { label: 'QRIS', value: 'qris', icon: 'qr-code-outline' },
   { label: 'Tunai', value: 'cash', icon: 'cash-outline' },
@@ -132,7 +144,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
 
   const currentCategory = categories.find((c) => c.id === currentDraft.category_id) || categories[0];
   const currentPayment = PAYMENT_METHODS.find((p) => p.value === currentDraft.payment_method) || PAYMENT_METHODS[0];
-  const activeReceiptPhoto = currentDraft.receipt_image_uri || null;
+  const activeReceiptPhoto = resolveDirectImageUrl(currentDraft.receipt_image_uri);
   const itemsSubtotal = (currentDraft.items || []).reduce((sum, it) => sum + (Number(it.total_price) || 0), 0);
 
   // Update data struk yang sedang aktif di state batch (perubahan tersimpan otomatis)
