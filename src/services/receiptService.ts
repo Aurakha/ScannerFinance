@@ -88,23 +88,24 @@ export async function processReceiptImage(
     throw new Error('Gagal membaca data gambar. Pastikan file gambar dapat diakses.');
   }
 
-  // Upload ke Google Drive di latar belakang jika token/refresh token aktif
+  // Upload ke Google Drive di latar belakang (non-blocking)
   let driveLink: string | undefined;
-  try {
-    const fileName = `Struk_${Date.now()}.jpg`;
-    const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
-    if (driveRes?.webViewLink) {
-      driveLink = driveRes.webViewLink;
+  const driveUploadPromise = (async () => {
+    try {
+      const fileName = `Struk_${Date.now()}.jpg`;
+      const driveRes = await uploadReceiptToGoogleDrive(base64Data, fileName);
+      if (driveRes?.webViewLink) {
+        driveLink = driveRes.webViewLink;
+      }
+    } catch (gdriveErr) {
+      console.warn('Google Drive auto-upload notice:', gdriveErr);
     }
-  } catch (gdriveErr) {
-    console.warn('Google Drive auto-upload notice:', gdriveErr);
-  }
+  })();
 
   const effectiveApiKey =
     userGeminiApiKey ||
     process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    DEFAULT_GEMINI_API_KEY ||
-    '';
+    DEFAULT_GEMINI_API_KEY;
 
   if (!effectiveApiKey) {
     throw new Error('Kunci Gemini API Key belum terpasang.');
@@ -225,6 +226,14 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
   }
 
   const finalTotal = Number(parsed.total_amount) || Number(parsed.subtotal) || 0;
+
+  // Tunggu sejenak jika upload Drive selesai cepat (maksimal 3 detik agar tidak lambat)
+  try {
+    await Promise.race([
+      driveUploadPromise,
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
+  } catch {}
 
   return {
     merchant_name: parsed.merchant_name || 'Toko Belanja',
