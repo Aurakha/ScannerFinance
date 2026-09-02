@@ -45,12 +45,12 @@ export default function ScannerScreen() {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
-        quality: 0.85,
-        base64: true,
+        quality: 0.8,
+        base64: false,
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        processImages([{ uri: result.assets[0].uri, base64: result.assets[0].base64 || undefined }]);
+        processImages([{ uri: result.assets[0].uri }]);
       }
     } catch (err: any) {
       console.warn('Take photo error:', err);
@@ -64,14 +64,13 @@ export default function ScannerScreen() {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         selectionLimit: 5,
-        quality: 0.85,
-        base64: true,
+        quality: 0.8,
+        base64: false,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const inputItems = result.assets.map((a) => ({
           uri: a.uri,
-          base64: a.base64 || undefined,
         }));
         processImages(inputItems);
       }
