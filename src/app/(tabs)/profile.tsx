@@ -171,18 +171,22 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Tombol Panel Admin Hanya Ditampilkan Jika Role Pengguna adalah Admin */}
+            {/* Tombol Panel Super Admin */}
             {user?.role === 'admin' && (
               <TouchableOpacity
                 style={[
                   styles.adminPanelBtn,
-                  { backgroundColor: theme.cardHover, borderColor: theme.border },
+                  {
+                    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+                    borderColor: Palette.primary,
+                    borderWidth: 1.5,
+                  },
                 ]}
                 onPress={() => router.push('/admin' as any)}
               >
-                <Ionicons name="shield-checkmark-outline" size={16} color={Palette.primary} />
-                <Text style={[styles.adminPanelBtnText, { color: theme.text }]}>
-                  Akses Panel Admin (Kelola User) 🛡️
+                <Ionicons name="shield-checkmark" size={18} color={Palette.primary} />
+                <Text style={[styles.adminPanelBtnText, { color: Palette.primary, fontWeight: '700' }]}>
+                  Buka Panel Super Admin 🛡️
                 </Text>
               </TouchableOpacity>
             )}
