@@ -255,16 +255,27 @@ export async function deleteTransaction(id: string): Promise<boolean> {
   }
 
   try {
-    await supabase.from('transactions').delete().eq('id', id);
+    // 1. Hapus item anak di transaction_items terlebih dahulu agar tidak melanggar foreign key
+    await supabase.from('transaction_items').delete().eq('transaction_id', id);
+    // 2. Hapus baris transaksi induk
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (error) {
+      console.warn('Supabase delete error:', error);
+    }
   } catch (err) {
     console.warn('Supabase delete notice:', err);
   }
 
-  const current = await getTransactions();
-  const updated = current.filter((t) => t.id !== id);
+  // 3. Langsung perbarui cache lokal
   try {
-    await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(updated));
+    const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
+    if (raw) {
+      const allTx: Transaction[] = JSON.parse(raw);
+      const updated = allTx.filter((t) => t.id !== id);
+      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(updated));
+    }
   } catch {}
+
   return true;
 }
 

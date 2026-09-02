@@ -186,6 +186,22 @@ export default function TransactionDetailScreen() {
   };
 
   const handleDelete = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `Apakah Anda yakin ingin menghapus transaksi dari "${transaction.merchant_name}"?`
+      );
+      if (confirmed) {
+        removeTransaction(transaction.id)
+          .then(() => {
+            router.replace('/(tabs)/transactions');
+          })
+          .catch((err) => {
+            window.alert('Gagal menghapus: ' + (err?.message || 'Terjadi kesalahan.'));
+          });
+      }
+      return;
+    }
+
     Alert.alert(
       'Hapus Transaksi',
       `Apakah Anda yakin ingin menghapus transaksi dari "${transaction.merchant_name}"?`,
@@ -195,8 +211,12 @@ export default function TransactionDetailScreen() {
           text: 'Hapus',
           style: 'destructive',
           onPress: async () => {
-            await removeTransaction(transaction.id);
-            router.back();
+            try {
+              await removeTransaction(transaction.id);
+              router.replace('/(tabs)/transactions');
+            } catch (err: any) {
+              Alert.alert('Gagal', err?.message || 'Gagal menghapus transaksi.');
+            }
           },
         },
       ]
