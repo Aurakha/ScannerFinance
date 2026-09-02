@@ -80,16 +80,16 @@ export default function TransactionsScreen() {
   // Selected category helper
   const selectedCategory = categories.find((c) => c.id === activeFilter);
 
-  // 5 bulan terakhir (misal: Mei, Juni, Juli, Agustus, September)
-  const recent5Months = useMemo(() => {
+  // 6 bulan terakhir (misal: April, Mei, Juni, Juli, Agustus, September)
+  const recent6Months = useMemo(() => {
     const now = new Date();
     const list: string[] = [];
-    for (let i = 4; i >= 0; i--) {
+    for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       list.push(key);
     }
-    // Jika user memilih bulan dari kalender di luar 5 bulan ini, masukkan agar tetap aktif
+    // Jika user memilih bulan dari kalender di luar 6 bulan ini, masukkan agar tetap aktif
     if (!list.includes(selectedMonth)) {
       list.push(selectedMonth);
       list.sort();
@@ -226,7 +226,7 @@ export default function TransactionsScreen() {
           }
         />
 
-        {/* Month Tabs Bar (5 Bulan Terakhir & Tombol Kalender di Kanan) */}
+        {/* Month Tabs Bar (6 Bulan Terakhir & Tombol Kalender di Kanan) */}
         <View
           style={[
             styles.monthTabBarContainer,
@@ -241,7 +241,7 @@ export default function TransactionsScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.monthTabsScroll}
           >
-            {recent5Months.map((mKey) => {
+            {recent6Months.map((mKey) => {
               const isSelected = mKey === selectedMonth;
               const monthName = getMonthNameOnly(mKey);
               const [y] = mKey.split('-');
