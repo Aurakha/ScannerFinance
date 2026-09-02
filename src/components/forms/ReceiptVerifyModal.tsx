@@ -81,6 +81,12 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     scanData.payment_method || 'e-wallet'
   );
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
+
+  const currentCategory = categories.find((c) => c.id === selectedCategoryId) || categories[0];
+  const currentPayment = PAYMENT_METHODS.find((p) => p.value === paymentMethod) || PAYMENT_METHODS[0];
+
   const [items, setItems] = useState<TransactionItem[]>(() => {
     return (scanData.items || []).map((it) => ({
       item_name: it.item_name,
@@ -229,76 +235,65 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
               </View>
             </View>
 
-            {/* Category Selector */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Kategori Pengeluaran</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-                {categories
-                  .filter((c) => c.type === 'expense')
-                  .map((cat) => {
-                    const isSelected = selectedCategoryId === cat.id;
-                    return (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[
-                          styles.categoryChip,
-                          isSelected && {
-                            backgroundColor: `${cat.color}25`,
-                            borderColor: cat.color,
-                          },
-                        ]}
-                        onPress={() => setSelectedCategoryId(cat.id)}
-                      >
-                        <View style={[styles.dot, { backgroundColor: cat.color }]} />
-                        <Text
-                          style={[
-                            styles.categoryChipText,
-                            isSelected && { color: cat.color, fontWeight: '700' },
-                          ]}
-                        >
-                          {cat.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </ScrollView>
-            </View>
-
-            {/* Payment Method Selector */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Metode Pembayaran</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-                {PAYMENT_METHODS.map((pm) => {
-                  const isSelected = paymentMethod === pm.value;
-                  return (
-                    <TouchableOpacity
-                      key={pm.value}
+            {/* Category & Payment Method Dropdown Row */}
+            <View style={styles.twoColRow}>
+              {/* Category Dropdown Picker */}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>Kategori Pengeluaran</Text>
+                <TouchableOpacity
+                  style={styles.pickerTriggerBtn}
+                  onPress={() => setShowCategoryPicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.pickerTriggerLeft}>
+                    <View
                       style={[
-                        styles.categoryChip,
-                        isSelected && {
-                          borderColor: Palette.primary,
-                          backgroundColor: 'rgba(88, 101, 242, 0.2)',
-                        },
+                        styles.pickerIconBadge,
+                        { backgroundColor: `${currentCategory?.color || Palette.primary}25` },
                       ]}
-                      onPress={() => setPaymentMethod(pm.value)}
                     >
                       <Ionicons
-                        name={pm.icon as any}
-                        size={14}
-                        color={isSelected ? Palette.primary : Palette.darkTextSecondary}
+                        name={(currentCategory?.icon as any) || 'pricetag'}
+                        size={15}
+                        color={currentCategory?.color || Palette.primary}
                       />
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          isSelected && { color: Palette.primary, fontWeight: '700' },
-                        ]}
-                      >
-                        {pm.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                    </View>
+                    <Text style={[styles.pickerTriggerText, { color: Palette.darkText }]} numberOfLines={1}>
+                      {currentCategory?.name || 'Pilih Kategori'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={16} color={Palette.darkTextSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Payment Method Dropdown Picker */}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>Metode Pembayaran</Text>
+                <TouchableOpacity
+                  style={styles.pickerTriggerBtn}
+                  onPress={() => setShowPaymentPicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.pickerTriggerLeft}>
+                    <View
+                      style={[
+                        styles.pickerIconBadge,
+                        { backgroundColor: 'rgba(88, 101, 242, 0.2)' },
+                      ]}
+                    >
+                      <Ionicons
+                        name={(currentPayment?.icon as any) || 'wallet-outline'}
+                        size={15}
+                        color={Palette.primary}
+                      />
+                    </View>
+                    <Text style={[styles.pickerTriggerText, { color: Palette.darkText }]} numberOfLines={1}>
+                      {currentPayment?.label || 'Pilih Metode'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={16} color={Palette.darkTextSecondary} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Item Breakdown List */}
@@ -483,6 +478,156 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Pop-up Modal Pilih Kategori (Sama seperti Filter Kategori di Transaksi) */}
+      <Modal visible={showCategoryPicker} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.popupOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCategoryPicker(false)}
+        >
+          <View style={styles.popupCard}>
+            <View style={styles.popupHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="funnel" size={18} color={Palette.primary} />
+                <Text style={styles.popupTitle}>Pilih Kategori</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.popupCloseBtn}
+                onPress={() => setShowCategoryPicker(false)}
+              >
+                <Ionicons name="close" size={16} color={Palette.darkTextSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              {categories
+                .filter((c) => c.type === 'expense')
+                .map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.popupOptionItem,
+                        isSelected && { backgroundColor: `${cat.color}20` },
+                      ]}
+                      onPress={() => {
+                        setSelectedCategoryId(cat.id);
+                        setShowCategoryPicker(false);
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View
+                          style={[
+                            styles.popupIconBox,
+                            { backgroundColor: isSelected ? cat.color : `${cat.color}25` },
+                          ]}
+                        >
+                          <Ionicons
+                            name={(cat.icon as any) || 'pricetag'}
+                            size={16}
+                            color={isSelected ? '#FFFFFF' : cat.color}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.popupOptionName,
+                            {
+                              color: isSelected ? cat.color : Palette.darkText,
+                              fontWeight: isSelected ? '700' : '500',
+                            },
+                          ]}
+                        >
+                          {cat.name}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={20} color={cat.color} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Pop-up Modal Pilih Metode Pembayaran */}
+      <Modal visible={showPaymentPicker} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.popupOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPaymentPicker(false)}
+        >
+          <View style={styles.popupCard}>
+            <View style={styles.popupHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="wallet-outline" size={18} color={Palette.primary} />
+                <Text style={styles.popupTitle}>Pilih Metode Pembayaran</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.popupCloseBtn}
+                onPress={() => setShowPaymentPicker(false)}
+              >
+                <Ionicons name="close" size={16} color={Palette.darkTextSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              {PAYMENT_METHODS.map((pm) => {
+                const isSelected = paymentMethod === pm.value;
+                return (
+                  <TouchableOpacity
+                    key={pm.value}
+                    style={[
+                      styles.popupOptionItem,
+                      isSelected && { backgroundColor: 'rgba(88, 101, 242, 0.18)' },
+                    ]}
+                    onPress={() => {
+                      setPaymentMethod(pm.value);
+                      setShowPaymentPicker(false);
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View
+                        style={[
+                          styles.popupIconBox,
+                          {
+                            backgroundColor: isSelected
+                              ? Palette.primary
+                              : 'rgba(88, 101, 242, 0.2)',
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={pm.icon as any}
+                          size={16}
+                          color={isSelected ? '#FFFFFF' : Palette.primary}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.popupOptionName,
+                          {
+                            color: isSelected ? Palette.primary : Palette.darkText,
+                            fontWeight: isSelected ? '700' : '500',
+                          },
+                        ]}
+                      >
+                        {pm.label}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Modal>
   );
 };
@@ -817,6 +962,102 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 13,
+  },
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  pickerTriggerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  pickerTriggerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    marginRight: 6,
+  },
+  pickerIconBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerTriggerText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: Palette.darkCard,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  popupTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Palette.darkText,
+  },
+  popupCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  popupIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupOptionName: {
     fontSize: 13,
   },
 });

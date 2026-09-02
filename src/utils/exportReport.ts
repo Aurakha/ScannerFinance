@@ -130,7 +130,7 @@ export function generateCompanyExpenseReportXLS(
             <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
             <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
             <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
-            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+            <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${itTotal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${itTotal}</td>
           </tr>
         `;
         rowNo++;
@@ -170,7 +170,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${cVal ? `x:num="${cVal}"` : ''}>${cVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${dVal ? `x:num="${dVal}"` : ''}>${dVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" ${fVal ? `x:num="${fVal}"` : ''}>${fVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${total}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${total}</td>
         </tr>
       `;
       rowNo++;
@@ -213,7 +213,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${cVal ? `x:num="${negVal}"` : ''}>${cVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${dVal ? `x:num="${negVal}"` : ''}>${dVal}</td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" ${fVal ? `x:num="${negVal}"` : ''}>${fVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; color: #DC2626; mso-number-format:'\\0022Rp\\0022\\ #\\,##0;(\\0022Rp\\0022\\ #\\,##0)';" x:num="${negVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${negVal}</td>
         </tr>
       `;
       rowNo++;
@@ -236,7 +236,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}">${feeVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${feeVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${feeVal}</td>
         </tr>
       `;
       rowNo++;
@@ -259,7 +259,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${shipVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${shipVal}</td>
         </tr>
       `;
       rowNo++;
@@ -282,7 +282,7 @@ export function generateCompanyExpenseReportXLS(
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';"></td>
           <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}">${taxVal}</td>
-          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${currentRow}:H${currentRow})">=SUM(E${currentRow}:H${currentRow})</td>
+          <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${taxVal}" x:fmla="=SUM(E${currentRow}:H${currentRow})">${taxVal}</td>
         </tr>
       `;
       rowNo++;
@@ -294,6 +294,7 @@ export function generateCompanyExpenseReportXLS(
   const endDataRow = totalItemCount > 0 ? 8 + totalItemCount : 9;
   const totalRowIndex = endDataRow + 1;
   const summaryStartRow = totalRowIndex + 2; // Baris Total Pengeluaran (f)
+  const refund = cashAdvance - grandTotal;
 
   // Format Spreadsheet XLS/HTML
   const xlsContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -389,11 +390,11 @@ export function generateCompanyExpenseReportXLS(
     <!-- TOTAL Row with SUM formulas -->
     <tr style="height: 30px; font-weight: bold; background-color: #F8FAFC;">
       <td colspan="4" style="border: 1px solid #000000; text-align: center; font-weight: bold; vertical-align: middle; white-space: nowrap;">TOTAL</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(E${startDataRow}:E${endDataRow})">=SUM(E${startDataRow}:E${endDataRow})</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(F${startDataRow}:F${endDataRow})">=SUM(F${startDataRow}:F${endDataRow})</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(G${startDataRow}:G${endDataRow})">=SUM(G${startDataRow}:G${endDataRow})</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(H${startDataRow}:H${endDataRow})">=SUM(H${startDataRow}:H${endDataRow})</td>
-      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=SUM(I${startDataRow}:I${endDataRow})">=SUM(I${startDataRow}:I${endDataRow})</td>
+      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumOperational}" x:fmla="=SUM(E${startDataRow}:E${endDataRow})">${sumOperational}</td>
+      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumPantry}" x:fmla="=SUM(F${startDataRow}:F${endDataRow})">${sumPantry}</td>
+      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumFasilitas}" x:fmla="=SUM(G${startDataRow}:G${endDataRow})">${sumFasilitas}</td>
+      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${sumLainLain}" x:fmla="=SUM(H${startDataRow}:H${endDataRow})">${sumLainLain}</td>
+      <td style="border: 1px solid #000000; text-align: right; vertical-align: middle; padding: 4px 10px; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=SUM(I${startDataRow}:I${endDataRow})">${grandTotal}</td>
     </tr>
     <tr style="height: 18px;"><td colspan="9"></td></tr>
 
@@ -401,7 +402,7 @@ export function generateCompanyExpenseReportXLS(
     <tr style="height: 24px;">
       <td colspan="3" style="font-weight: bold; white-space: nowrap;">Total Pengeluaran (f)</td>
       <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
-      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=I${totalRowIndex}">=I${totalRowIndex}</td>
+      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=I${totalRowIndex}">${grandTotal}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;">
@@ -413,13 +414,13 @@ export function generateCompanyExpenseReportXLS(
     <tr style="height: 24px;">
       <td colspan="3" style="white-space: nowrap;">Jumlah yang diklaim</td>
       <td style="text-align: center; white-space: nowrap;">:</td>
-      <td style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=E${summaryStartRow}">=E${summaryStartRow}</td>
+      <td style="text-align: right; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${grandTotal}" x:fmla="=E${summaryStartRow}">${grandTotal}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;">
       <td colspan="3" style="font-weight: bold; white-space: nowrap;">Jumlah pengembalian dana</td>
       <td style="text-align: center; font-weight: bold; white-space: nowrap;">:</td>
-      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:fmla="=E${summaryStartRow + 1}-E${summaryStartRow + 2}">=(E${summaryStartRow + 1}-E${summaryStartRow + 2})</td>
+      <td style="text-align: right; font-weight: bold; white-space: nowrap; mso-number-format:'\\0022Rp\\0022\\ #\\,##0';" x:num="${refund}" x:fmla="=(E${summaryStartRow + 1}-E${summaryStartRow + 2})">${refund}</td>
       <td colspan="4"></td>
     </tr>
     <tr style="height: 24px;"><td colspan="9"></td></tr>
