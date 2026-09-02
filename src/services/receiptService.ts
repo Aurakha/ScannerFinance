@@ -110,8 +110,8 @@ export async function processReceiptImage(
     throw new Error('Kunci Gemini API Key belum terpasang.');
   }
 
-  // Model Gemini 1.5 Flash (atau 2.0 Flash)
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveApiKey}`;
+  // Model Gemini 3.6 Flash (model resmi terbaru Google)
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${effectiveApiKey}`;
 
   const systemPrompt = `
 Anda adalah AI OCR & Akuntan Finansial Cerdas Khusus Pembukuan, Struk Belanja, & Aplikasi Pesanan Online (ShopeeFood, GrabFood, GoFood, Tokopedia, Indomaret, dll.).
@@ -201,7 +201,9 @@ Perhatian: Kembalikan JSON murni tanpa markdown.
   }
 
   const jsonResponse = await response.json();
-  const rawText = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts = jsonResponse?.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find((p: any) => p.text && !p.thought) || parts[0];
+  const rawText = textPart?.text;
 
   if (!rawText) {
     throw new Error('Gemini API tidak memberikan balasan data.');
