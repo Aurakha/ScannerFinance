@@ -24,10 +24,10 @@ import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
 import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport } from '@/utils/exportReport';
 
-/** Nama bulan Indonesia singkat */
-const MONTH_NAMES_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+/** Nama bulan Indonesia lengkap */
+const MONTH_NAMES_FULL = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 
 function getCurrentMonthKey(): string {
@@ -37,7 +37,12 @@ function getCurrentMonthKey(): string {
 
 function formatMonthLabel(monthKey: string): string {
   const [year, month] = monthKey.split('-').map(Number);
-  return `${MONTH_NAMES_SHORT[month - 1]} ${year}`;
+  return `${MONTH_NAMES_FULL[month - 1]} ${year}`;
+}
+
+function getMonthNameOnly(monthKey: string): string {
+  const [, month] = monthKey.split('-').map(Number);
+  return MONTH_NAMES_FULL[month - 1];
 }
 
 function shiftMonth(monthKey: string, delta: number): string {
@@ -64,6 +69,8 @@ export default function TransactionsScreen() {
   const [isExportingSheet, setIsExportingSheet] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [calendarPickerYear, setCalendarPickerYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
 
   React.useEffect(() => {
@@ -72,6 +79,23 @@ export default function TransactionsScreen() {
 
   // Selected category helper
   const selectedCategory = categories.find((c) => c.id === activeFilter);
+
+  // 5 bulan terakhir (misal: Mei, Juni, Juli, Agustus, September)
+  const recent5Months = useMemo(() => {
+    const now = new Date();
+    const list: string[] = [];
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      list.push(key);
+    }
+    // Jika user memilih bulan dari kalender di luar 5 bulan ini, masukkan agar tetap aktif
+    if (!list.includes(selectedMonth)) {
+      list.push(selectedMonth);
+      list.sort();
+    }
+    return list;
+  }, [selectedMonth]);
 
   // Available months derived from transactions
   const availableMonths = useMemo(() => {
@@ -202,35 +226,69 @@ export default function TransactionsScreen() {
           }
         />
 
-        {/* Month Filter Navigation */}
+        {/* Month Tabs Bar (5 Bulan Terakhir & Tombol Kalender di Kanan) */}
         <View
           style={[
-            styles.monthFilterRow,
+            styles.monthTabBarContainer,
             {
-              backgroundColor: mode === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.06)',
-              borderColor: mode === 'dark' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.18)',
+              backgroundColor: theme.card,
+              borderColor: theme.border,
             },
           ]}
         >
-          <TouchableOpacity
-            style={[styles.monthArrowBtn, { backgroundColor: theme.cardHover }]}
-            onPress={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.monthTabsScroll}
           >
-            <Ionicons name="chevron-back" size={16} color={theme.text} />
-          </TouchableOpacity>
+            {recent5Months.map((mKey) => {
+              const isSelected = mKey === selectedMonth;
+              const monthName = getMonthNameOnly(mKey);
+              const [y] = mKey.split('-');
+              const isDiffYear = Number(y) !== new Date().getFullYear();
 
-          <View style={styles.monthLabelContainer}>
-            <Ionicons name="calendar-outline" size={15} color={Palette.primary} />
-            <Text style={[styles.monthLabelText, { color: theme.text }]}>
-              {formatMonthLabel(selectedMonth)}
-            </Text>
-          </View>
+              return (
+                <TouchableOpacity
+                  key={mKey}
+                  style={[styles.monthTabItem, isSelected && styles.monthTabItemActive]}
+                  onPress={() => setSelectedMonth(mKey)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.monthTabText,
+                      { color: isSelected ? Palette.primary : theme.textSecondary },
+                      isSelected && styles.monthTabTextActive,
+                    ]}
+                  >
+                    {monthName}{isDiffYear ? ` '${y.slice(-2)}` : ''}
+                  </Text>
+                  {isSelected && (
+                    <View style={[styles.activeTabIndicator, { backgroundColor: Palette.primary }]} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
+          <View style={[styles.calendarBtnDivider, { backgroundColor: theme.border }]} />
+
+          {/* Tombol Kalender di Kanan */}
           <TouchableOpacity
-            style={[styles.monthArrowBtn, { backgroundColor: theme.cardHover }]}
-            onPress={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+            style={[
+              styles.calendarSearchBtn,
+              {
+                backgroundColor:
+                  mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : 'rgba(88, 101, 242, 0.08)',
+              },
+            ]}
+            onPress={() => {
+              setCalendarPickerYear(Number(selectedMonth.split('-')[0]));
+              setShowCalendarModal(true);
+            }}
+            activeOpacity={0.7}
           >
-            <Ionicons name="chevron-forward" size={16} color={theme.text} />
+            <Ionicons name="calendar-outline" size={18} color={Palette.primary} />
           </TouchableOpacity>
         </View>
 
@@ -538,6 +596,131 @@ export default function TransactionsScreen() {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Modal Kalender / Pemilih Bulan & Tahun */}
+        <Modal visible={showCalendarModal} transparent animationType="fade">
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowCalendarModal(false)}
+          >
+            <View
+              style={[
+                styles.calendarModalCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              {/* Modal Header */}
+              <View style={styles.calendarModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={styles.calendarIconCircle}>
+                    <Ionicons name="calendar" size={18} color={Palette.primary} />
+                  </View>
+                  <Text style={[styles.calendarModalTitle, { color: theme.text }]}>
+                    Pilih Periode Bulan
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowCalendarModal(false)}
+                  style={[styles.calendarCloseBtn, { backgroundColor: theme.cardHover }]}
+                >
+                  <Ionicons name="close" size={18} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Year Selector */}
+              <View
+                style={[
+                  styles.yearSelectorRow,
+                  { backgroundColor: theme.background, borderColor: theme.border },
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.yearArrowBtn}
+                  onPress={() => setCalendarPickerYear((prev) => prev - 1)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-back" size={18} color={theme.text} />
+                </TouchableOpacity>
+
+                <Text style={[styles.yearText, { color: theme.text }]}>
+                  {calendarPickerYear}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.yearArrowBtn}
+                  onPress={() => setCalendarPickerYear((prev) => prev + 1)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-forward" size={18} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 12 Months Grid */}
+              <View style={styles.monthsGrid}>
+                {MONTH_NAMES_FULL.map((name, idx) => {
+                  const mKey = `${calendarPickerYear}-${String(idx + 1).padStart(2, '0')}`;
+                  const isSelected = mKey === selectedMonth;
+                  const isCurrentMonth = mKey === getCurrentMonthKey();
+
+                  return (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.monthGridItem,
+                        {
+                          backgroundColor: isSelected ? Palette.primary : theme.background,
+                          borderColor: isSelected ? Palette.primary : theme.border,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedMonth(mKey);
+                        setShowCalendarModal(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.monthGridText,
+                          { color: isSelected ? '#FFFFFF' : theme.text },
+                          isSelected && { fontWeight: '800' },
+                        ]}
+                      >
+                        {name}
+                      </Text>
+                      {isCurrentMonth && !isSelected && (
+                        <View style={styles.currentMonthDot} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Quick Action: Bulan Ini */}
+              <TouchableOpacity
+                style={[
+                  styles.jumpToCurrentMonthBtn,
+                  {
+                    backgroundColor:
+                      mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : 'rgba(88, 101, 242, 0.08)',
+                  },
+                ]}
+                onPress={() => {
+                  const cur = getCurrentMonthKey();
+                  setSelectedMonth(cur);
+                  setShowCalendarModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="today-outline" size={14} color={Palette.primary} />
+                <Text style={[styles.jumpToCurrentMonthText, { color: Palette.primary }]}>
+                  Bulan Ini ({formatMonthLabel(getCurrentMonthKey())})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -557,34 +740,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  monthFilterRow: {
+  // Month Tabs Bar (5 Bulan Terakhir + Calendar Button)
+  monthTabBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     marginHorizontal: 16,
-    marginBottom: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    marginBottom: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
-  monthArrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  monthLabelContainer: {
+  monthTabsScroll: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    paddingHorizontal: 4,
+    gap: 4,
   },
-  monthLabelText: {
-    fontSize: 14,
+  monthTabItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  monthTabItemActive: {
+    // Active state
+  },
+  monthTabText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  monthTabTextActive: {
     fontWeight: '800',
-    letterSpacing: 0.3,
+  },
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    height: 3,
+    width: '60%',
+    borderRadius: 2,
+  },
+  calendarBtnDivider: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 4,
+  },
+  calendarSearchBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   spreadsheetBanner: {
     marginHorizontal: 16,
@@ -795,5 +1003,103 @@ const styles = StyleSheet.create({
   },
   categoryOptionName: {
     fontSize: 13,
+  },
+  // Calendar Modal Styles
+  calendarModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  calendarModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  calendarIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(88, 101, 242, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  calendarCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearSelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  yearArrowBtn: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  monthsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  monthGridItem: {
+    width: '31%',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  monthGridText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  currentMonthDot: {
+    position: 'absolute',
+    bottom: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Palette.primary,
+  },
+  jumpToCurrentMonthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  jumpToCurrentMonthText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
