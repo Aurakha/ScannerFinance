@@ -12,12 +12,13 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           backgroundColor: theme.tabBar,
           borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 78,
-          paddingBottom: Platform.OS === 'ios' ? 26 : 14,
+          height: Platform.OS === 'ios' ? 88 : 74,
+          paddingBottom: Platform.OS === 'ios' ? 26 : 10,
           paddingTop: 6,
         },
         tabBarActiveTintColor: Palette.primary,
@@ -25,7 +26,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
-          marginBottom: 2,
+          marginTop: 2,
         },
       }}
     >
@@ -72,7 +73,7 @@ export default function TabLayout() {
             fontSize: 11,
             fontWeight: '700',
             color: Palette.primaryLight,
-            marginBottom: 2,
+            marginTop: 2,
           },
         }}
       />

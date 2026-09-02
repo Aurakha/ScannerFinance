@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Platform,
   Linking,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +22,7 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, generateCompanyExpenseReportCSV, openPrintableReport } from '@/utils/exportReport';
-import { exportToGoogleSpreadsheet } from '@/services/googleDriveService';
+import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport, openPrintableReport } from '@/utils/exportReport';
 
 export default function TransactionsScreen() {
   const router = useRouter();
@@ -40,10 +40,15 @@ export default function TransactionsScreen() {
   } = useTransactionStore();
 
   const [isExportingSheet, setIsExportingSheet] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   React.useEffect(() => {
     loadData(user?.id);
   }, [user]);
+
+  // Selected category helper
+  const selectedCategory = categories.find((c) => c.id === activeFilter);
 
   // Filter transactions
   const filteredTransactions = transactions.filter((t) => {
@@ -89,35 +94,35 @@ export default function TransactionsScreen() {
     openPrintableReport(filteredTransactions, user || undefined);
   };
 
+  const handleExportExcel = () => {
+    try {
+      setIsExportingExcel(true);
+      const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xls`;
+      exportExcelReport(filteredTransactions, user || undefined, fileName);
+      setTimeout(() => setIsExportingExcel(false), 800);
+      if (Platform.OS === 'web') {
+        // Otomatis terunduh
+      } else {
+        Alert.alert('Sukses', 'File Excel (.xls) berhasil diunduh.');
+      }
+    } catch (err: any) {
+      setIsExportingExcel(false);
+      Alert.alert('Gagal Ekspor Excel', err.message || 'Terjadi kesalahan saat mengunduh file Excel.');
+    }
+  };
+
   const handleExportGoogleSheet = async () => {
     try {
       setIsExportingSheet(true);
-      const csv = generateCompanyExpenseReportCSV(filteredTransactions, user || undefined);
       const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
-
-      // 1. Selalu unduh file otomatis ke perangkat
-      downloadCSV(csv, `${fileName}.xls`);
-
-      // 2. Buka Spreadsheet di tab baru
-      const result = await exportToGoogleSpreadsheet(csv, fileName);
+      const result = await exportGoogleSpreadsheetReport(filteredTransactions, user || undefined, fileName);
       setIsExportingSheet(false);
-
-      if (result.isDirectCloud) {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.open(result.spreadsheetUrl, '_blank');
-        } else {
-          Linking.openURL(result.spreadsheetUrl);
-        }
-      } else {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.open('https://sheets.new', '_blank');
-        } else {
-          Linking.openURL('https://sheets.new');
-        }
+      if (Platform.OS !== 'web') {
+        Alert.alert('Google Spreadsheet', result.message);
       }
     } catch (err: any) {
       setIsExportingSheet(false);
-      Alert.alert('Gagal Ekspor', err.message || 'Terjadi kesalahan saat mengekspor laporan.');
+      Alert.alert('Gagal Ekspor Spreadsheet', err.message || 'Terjadi kesalahan saat membuka Google Spreadsheet.');
     }
   };
 
@@ -142,7 +147,7 @@ export default function TransactionsScreen() {
           }
         />
 
-        {/* 1-Click Printable & Spreadsheet Banner (Format Foto 2 & 3) */}
+        {/* 1-Click Printable, Excel & Spreadsheet Banner */}
         <View
           style={[
             styles.spreadsheetBanner,
@@ -154,29 +159,38 @@ export default function TransactionsScreen() {
         >
           <View style={styles.bannerLeftCol}>
             <View style={styles.spreadsheetIconCircle}>
-              <Ionicons name="document-text" size={20} color={Palette.greenOnline} />
+              <Ionicons name="document-text" size={22} color={Palette.greenOnline} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spreadsheetBannerTitle, { color: theme.text }]}>
-                Rekap Klaim Resmi (Foto 2 & 3) 📋
+                Rekap Formulir SKA Resmi 📋
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
-                {user?.company_name || 'PT. San Kawan Abadi'} • Siap Cetak / Google Sheets
+                {user?.company_name || 'PT. San Kawan Abadi'} • Format Rapih & Lega
               </Text>
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 6 }}>
+          <View style={styles.bannerBtnGroup}>
+            {/* Tombol Excel */}
             <TouchableOpacity
-              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
-              onPress={handlePrintReport}
+              style={[styles.openSpreadsheetBtn, { backgroundColor: '#107C41' }]}
+              onPress={handleExportExcel}
+              disabled={isExportingExcel}
             >
-              <Ionicons name="print-outline" size={14} color="#FFFFFF" />
-              <Text style={styles.openSpreadsheetBtnText}>Cetak / PDF 🖨️</Text>
+              {isExportingExcel ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="download-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.openSpreadsheetBtnText}>Excel (.xls)</Text>
+                </>
+              )}
             </TouchableOpacity>
 
+            {/* Tombol Google Sheets */}
             <TouchableOpacity
-              style={styles.openSpreadsheetBtn}
+              style={[styles.openSpreadsheetBtn, { backgroundColor: '#0F9D58' }]}
               onPress={handleExportGoogleSheet}
               disabled={isExportingSheet}
             >
@@ -188,6 +202,15 @@ export default function TransactionsScreen() {
                   <Text style={styles.openSpreadsheetBtnText}>Spreadsheet ↗</Text>
                 </>
               )}
+            </TouchableOpacity>
+
+            {/* Tombol Cetak / PDF */}
+            <TouchableOpacity
+              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
+              onPress={handlePrintReport}
+            >
+              <Ionicons name="print-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.openSpreadsheetBtnText}>Cetak / PDF</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -214,61 +237,55 @@ export default function TransactionsScreen() {
           ) : null}
         </View>
 
-        {/* Category Filters Pill Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterRow}
-          contentContainerStyle={styles.filterContent}
-        >
+        {/* Compact Category Filter Trigger (Tidak Muncul Semua secara Default) */}
+        <View style={styles.filterControlRow}>
           <TouchableOpacity
             style={[
-              styles.filterChip,
-              activeFilter === 'all' && styles.filterChipActive,
-              { backgroundColor: theme.card, borderColor: theme.border },
+              styles.categoryFilterBtn,
+              activeFilter !== 'all' && styles.categoryFilterBtnActive,
+              {
+                backgroundColor: activeFilter !== 'all' ? `${selectedCategory?.color || Palette.primary}18` : theme.card,
+                borderColor: activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.border,
+              },
             ]}
-            onPress={() => setActiveFilter('all')}
+            onPress={() => setShowCategoryModal(true)}
           >
+            <Ionicons
+              name={activeFilter !== 'all' ? 'funnel' : 'funnel-outline'}
+              size={14}
+              color={activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.textSecondary}
+            />
+            {activeFilter !== 'all' && selectedCategory && (
+              <View style={[styles.dot, { backgroundColor: selectedCategory.color }]} />
+            )}
             <Text
               style={[
-                styles.filterChipText,
-                activeFilter === 'all' && styles.filterChipTextActive,
-                { color: activeFilter === 'all' ? '#FFFFFF' : theme.textSecondary },
+                styles.categoryFilterBtnText,
+                {
+                  color: activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.text,
+                  fontWeight: activeFilter !== 'all' ? '700' : '600',
+                },
               ]}
             >
-              Semua
+              {activeFilter === 'all' ? 'Filter Kategori' : selectedCategory?.name || 'Kategori Terpilih'}
             </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.textMuted}
+            />
           </TouchableOpacity>
 
-          {categories.map((cat) => {
-            const isSelected = activeFilter === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.filterChip,
-                  isSelected && {
-                    backgroundColor: `${cat.color}25`,
-                    borderColor: cat.color,
-                  },
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-                onPress={() => setActiveFilter(cat.id)}
-              >
-                <View style={[styles.dot, { backgroundColor: cat.color }]} />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isSelected && { color: cat.color, fontWeight: '700' },
-                    { color: isSelected ? cat.color : theme.textSecondary },
-                  ]}
-                >
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+          {activeFilter !== 'all' && (
+            <TouchableOpacity
+              style={[styles.resetFilterBtn, { backgroundColor: theme.cardHover }]}
+              onPress={() => setActiveFilter('all')}
+            >
+              <Ionicons name="close-circle" size={15} color={theme.textMuted} />
+              <Text style={[styles.resetFilterText, { color: theme.textSecondary }]}>Reset Filter</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Subtotal Summary Header */}
         <View style={styles.totalHeader}>
@@ -314,6 +331,135 @@ export default function TransactionsScreen() {
             ))
           )}
         </ScrollView>
+
+        {/* Modal Pemilih Kategori (Muncul saat tombol filter ditekan) */}
+        <Modal
+          visible={showCategoryModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCategoryModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowCategoryModal(false)}
+          >
+            <View
+              style={[
+                styles.modalCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="funnel" size={18} color={Palette.primary} />
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Pilih Kategori</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, { backgroundColor: theme.cardHover }]}
+                  onPress={() => setShowCategoryModal(false)}
+                >
+                  <Ionicons name="close" size={18} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {/* Opsi Semua Kategori */}
+                <TouchableOpacity
+                  style={[
+                    styles.categoryOptionItem,
+                    activeFilter === 'all' && {
+                      backgroundColor: `${Palette.primary}18`,
+                    },
+                  ]}
+                  onPress={() => {
+                    setActiveFilter('all');
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View
+                      style={[
+                        styles.categoryIconBox,
+                        { backgroundColor: activeFilter === 'all' ? Palette.primary : theme.cardHover },
+                      ]}
+                    >
+                      <Ionicons
+                        name="apps"
+                        size={16}
+                        color={activeFilter === 'all' ? '#FFFFFF' : theme.textSecondary}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryOptionName,
+                        {
+                          color: activeFilter === 'all' ? Palette.primary : theme.text,
+                          fontWeight: activeFilter === 'all' ? '700' : '500',
+                        },
+                      ]}
+                    >
+                      Semua Kategori
+                    </Text>
+                  </View>
+                  {activeFilter === 'all' && (
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
+                  )}
+                </TouchableOpacity>
+
+                {/* List Kategori */}
+                {categories.map((cat) => {
+                  const isSelected = activeFilter === cat.id;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryOptionItem,
+                        isSelected && {
+                          backgroundColor: `${cat.color}18`,
+                        },
+                      ]}
+                      onPress={() => {
+                        setActiveFilter(cat.id);
+                        setShowCategoryModal(false);
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View
+                          style={[
+                            styles.categoryIconBox,
+                            { backgroundColor: isSelected ? cat.color : `${cat.color}25` },
+                          ]}
+                        >
+                          <Ionicons
+                            name={(cat.icon as any) || 'pricetag'}
+                            size={16}
+                            color={isSelected ? '#FFFFFF' : cat.color}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.categoryOptionName,
+                            {
+                              color: isSelected ? cat.color : theme.text,
+                              fontWeight: isSelected ? '700' : '500',
+                            },
+                          ]}
+                        >
+                          {cat.name}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={20} color={cat.color} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -366,11 +512,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 1,
   },
+  bannerBtnGroup: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
   openSpreadsheetBtn: {
-    backgroundColor: Palette.greenOnline,
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   openSpreadsheetBtnText: {
     color: '#FFFFFF',
@@ -392,40 +551,44 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
   },
-  filterRow: {
-    maxHeight: 38,
-    marginBottom: 10,
-  },
-  filterContent: {
-    paddingHorizontal: 16,
-    gap: 6,
+  filterControlRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    gap: 8,
   },
-  filterChip: {
+  categoryFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingVertical: 7,
+    borderRadius: 10,
     borderWidth: 1,
+    gap: 6,
   },
-  filterChipActive: {
-    backgroundColor: Palette.primary,
-    borderColor: Palette.primary,
+  categoryFilterBtnActive: {
+    borderWidth: 1.5,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
+  categoryFilterBtnText: {
+    fontSize: 12,
   },
-  filterChipText: {
+  resetFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 4,
+  },
+  resetFilterText: {
     fontSize: 11,
     fontWeight: '600',
   },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   totalHeader: {
     flexDirection: 'row',
@@ -467,5 +630,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(150, 150, 150, 0.15)',
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  modalCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryOptionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  categoryIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryOptionName: {
+    fontSize: 13,
   },
 });
