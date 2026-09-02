@@ -112,7 +112,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    top: -14,
+    top: -22,
     alignItems: 'center',
     justifyContent: 'center',
   },
