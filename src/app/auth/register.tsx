@@ -270,13 +270,14 @@ export default function RegisterScreen() {
 
             {/* Action Buttons */}
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, styles.modalPrimaryBtn]}
               onPress={() => {
                 setShowSuccessModal(false);
                 router.replace('/auth/login');
               }}
             >
-              <Text style={styles.primaryButtonText}>Menuju Halaman Masuk (Login) ➔</Text>
+              <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>Menuju Halaman Masuk (Login)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -286,8 +287,9 @@ export default function RegisterScreen() {
                 router.replace('/(tabs)');
               }}
             >
+              <Ionicons name="apps-outline" size={18} color={theme.text} />
               <Text style={[styles.secondaryModalBtnText, { color: theme.text }]}>
-                Buka Dashboard Sekarang ↗
+                Buka Dashboard Sekarang
               </Text>
             </TouchableOpacity>
           </View>
@@ -400,12 +402,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   primaryButton: {
+    width: '100%',
     backgroundColor: Palette.primary,
-    borderRadius: 12,
-    height: 46,
+    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 14,
+  },
+  modalPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 16,
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -494,11 +505,14 @@ const styles = StyleSheet.create({
   },
   secondaryModalBtn: {
     width: '100%',
-    height: 44,
-    borderRadius: 12,
+    height: 46,
+    borderRadius: 14,
     borderWidth: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
     marginTop: 10,
   },
   secondaryModalBtnText: {
