@@ -89,6 +89,7 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   const [taxAmount, setTaxAmount] = useState<string>(String(scanData.tax_amount || 0));
   const [discountAmount, setDiscountAmount] = useState<string>(String(scanData.discount_amount || 0));
   const [notes, setNotes] = useState<string>(scanData.notes || '');
+  const [showExtraFees, setShowExtraFees] = useState(false);
 
   // Total Belanja: Selalu mengunci nilai TOTAL AKHIR yang tertera di struk
   const [totalAmount, setTotalAmount] = useState<string>(() => {
@@ -359,53 +360,75 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                 <Text style={styles.summaryVal}>{formatRupiah(itemsSubtotal)}</Text>
               </View>
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Biaya Layanan & Lain:</Text>
-                <TextInput
-                  style={styles.summaryInput}
-                  value={adminFee}
-                  onChangeText={setAdminFee}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Palette.darkTextMuted}
-                />
-              </View>
+              {/* Biaya Layanan */}
+              {(Number(adminFee) > 0 || showExtraFees) && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Biaya Layanan & Lain:</Text>
+                  <TextInput
+                    style={styles.summaryInput}
+                    value={adminFee}
+                    onChangeText={setAdminFee}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              )}
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Ongkos Kirim:</Text>
-                <TextInput
-                  style={styles.summaryInput}
-                  value={shippingFee}
-                  onChangeText={setShippingFee}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Palette.darkTextMuted}
-                />
-              </View>
+              {/* Ongkir */}
+              {(Number(shippingFee) > 0 || showExtraFees) && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Ongkos Kirim:</Text>
+                  <TextInput
+                    style={styles.summaryInput}
+                    value={shippingFee}
+                    onChangeText={setShippingFee}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              )}
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Pajak / PPN:</Text>
-                <TextInput
-                  style={styles.summaryInput}
-                  value={taxAmount}
-                  onChangeText={setTaxAmount}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Palette.darkTextMuted}
-                />
-              </View>
+              {/* Pajak */}
+              {(Number(taxAmount) > 0 || showExtraFees) && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Pajak / PPN:</Text>
+                  <TextInput
+                    style={styles.summaryInput}
+                    value={taxAmount}
+                    onChangeText={setTaxAmount}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              )}
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Voucher / Diskon:</Text>
-                <TextInput
-                  style={[styles.summaryInput, { color: Palette.coral }]}
-                  value={discountAmount}
-                  onChangeText={setDiscountAmount}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Palette.darkTextMuted}
-                />
-              </View>
+              {/* Diskon */}
+              {(Number(discountAmount) > 0 || showExtraFees) && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Voucher / Diskon:</Text>
+                  <TextInput
+                    style={[styles.summaryInput, { color: Palette.coral }]}
+                    value={discountAmount}
+                    onChangeText={setDiscountAmount}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Palette.darkTextMuted}
+                  />
+                </View>
+              )}
+
+              {/* Toggle Biaya Tambahan */}
+              <TouchableOpacity
+                style={{ paddingVertical: 4, alignItems: 'flex-start', marginVertical: 2 }}
+                onPress={() => setShowExtraFees((prev) => !prev)}
+              >
+                <Text style={{ fontSize: 11, color: Palette.primary, fontWeight: '600' }}>
+                  {showExtraFees ? '▴ Sembunyikan Opsi Biaya' : '+ Tambah Ongkir / Diskon / Biaya Lain'}
+                </Text>
+              </TouchableOpacity>
 
               <View style={[styles.summaryRow, styles.summaryTotalRow]}>
                 <View style={{ flex: 1, paddingRight: 6 }}>
