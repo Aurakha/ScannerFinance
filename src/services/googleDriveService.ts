@@ -164,28 +164,49 @@ async function getOrCreateFolder(token: string, folderName: string): Promise<str
 }
 
 /**
- * Upload gambar struk ke Google Drive via REST API Multipart Upload
+ * Upload gambar struk ke Google Drive (Serverless API / Direct REST API)
  */
 export async function uploadReceiptToGoogleDrive(
   base64Image: string,
   fileName: string,
   mimeType = 'image/jpeg'
 ): Promise<{ fileId: string; webViewLink: string; webContentLink?: string } | null> {
-  const token = await getValidAccessToken();
+  // 1. Coba lewat Vercel Serverless API jika di Web
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
+      const apiRes = await fetch('/api/upload-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Image, fileName, mimeType }),
+      });
+      if (apiRes.ok) {
+        const result = await apiRes.json();
+        if (result.success && result.webViewLink) {
+          console.log('✅ Foto struk berhasil diupload via Serverless API:', result.name);
+          return {
+            fileId: result.fileId,
+            webViewLink: result.webViewLink,
+          };
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Serverless image upload error, trying direct:', apiErr);
+    }
+  }
 
+  // 2. Fallback: Direct API
+  const token = await getValidAccessToken();
   if (!token) {
     console.warn('⚠️ Tidak ada Google Drive token yang valid. Foto tidak diupload.');
     return null;
   }
 
   try {
-    // Pastikan folder ada
     const settings = await getGoogleDriveSettings();
     let folderId = settings.folderId;
     if (!folderId) {
       folderId = (await getOrCreateFolder(token, settings.folderName || 'ScanFinance Receipts')) ?? undefined;
       if (folderId) {
-        // Simpan folder ID untuk pemakaian berikutnya
         await saveGoogleDriveSettings({ folderId });
       }
     }
@@ -235,7 +256,6 @@ export async function uploadReceiptToGoogleDrive(
     const data = await response.json();
     console.log('✅ Foto struk berhasil diupload ke Google Drive:', data.name);
 
-    // Berikan izin view agar thumbnail foto bisa langsung tampil di aplikasi
     try {
       await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
         method: 'POST',
@@ -248,9 +268,7 @@ export async function uploadReceiptToGoogleDrive(
           type: 'anyone',
         }),
       });
-    } catch (permErr) {
-      console.warn('Set permission notice:', permErr);
-    }
+    } catch {}
 
     return {
       fileId: data.id,
@@ -270,9 +288,33 @@ export async function exportToGoogleSpreadsheet(
   csvContent: string,
   sheetTitle = 'Rekapitulasi_Pengeluaran_ScanFinance'
 ): Promise<{ fileId?: string; spreadsheetUrl: string; isDirectCloud: boolean }> {
+  // 1. Coba lewat Vercel Serverless API jika di Web (bebas CORS & langsung jadi)
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
+      const apiRes = await fetch('/api/create-spreadsheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csvContent, title: sheetTitle }),
+      });
+      if (apiRes.ok) {
+        const result = await apiRes.json();
+        if (result.success && result.spreadsheetUrl) {
+          console.log('✅ Spreadsheet berhasil dibuat via Serverless API:', result.name);
+          return {
+            fileId: result.fileId,
+            spreadsheetUrl: result.spreadsheetUrl,
+            isDirectCloud: true,
+          };
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Serverless spreadsheet creation error, trying direct:', apiErr);
+    }
+  }
+
+  // 2. Fallback: Direct API
   const token = await getValidAccessToken();
 
-  // Jika ada token yang valid, coba buat langsung di Google Drive
   if (token) {
     try {
       const settings = await getGoogleDriveSettings();
@@ -341,7 +383,7 @@ export async function exportToGoogleSpreadsheet(
     }
   }
 
-  // Fallback Instan: Membuka Google Sheets Web Document Langsung
+  // 3. Fallback Instan
   return {
     spreadsheetUrl: 'https://sheets.new',
     isDirectCloud: false,

@@ -156,16 +156,30 @@ export default function TransactionsScreen() {
   };
 
   const handleExportGoogleSheet = async () => {
+    // Buka tab di awal sebelum async agar tidak diblokir popup blocker browser
+    let targetTab: Window | null = null;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      targetTab = window.open('about:blank', '_blank');
+    }
+
     try {
       setIsExportingSheet(true);
       const monthLabel = formatMonthLabel(selectedMonth);
       const fileName = `Rekapitulasi_Klaim_${(user?.company_name || 'Perusahaan').replace(/\s+/g, '_')}_${monthLabel.replace(/\s+/g, '_')}`;
-      const result = await exportGoogleSpreadsheetReport(filteredTransactions, user || undefined, fileName);
+      const result = await exportGoogleSpreadsheetReport(
+        filteredTransactions,
+        user || undefined,
+        fileName,
+        targetTab
+      );
       setIsExportingSheet(false);
       if (Platform.OS !== 'web') {
         Alert.alert('Google Spreadsheet', result.message);
       }
     } catch (err: any) {
+      if (targetTab) {
+        targetTab.close();
+      }
       setIsExportingSheet(false);
       Alert.alert('Gagal Ekspor Spreadsheet', err.message || 'Terjadi kesalahan saat membuka Google Spreadsheet.');
     }

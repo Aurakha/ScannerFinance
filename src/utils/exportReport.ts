@@ -726,22 +726,27 @@ export function exportExcelReport(
 export async function exportGoogleSpreadsheetReport(
   transactions: Transaction[],
   profile?: UserProfile,
-  fileName?: string
-): Promise<{ success: boolean; message: string }> {
+  fileName?: string,
+  targetWindow?: any
+): Promise<{ success: boolean; message: string; spreadsheetUrl: string }> {
   const name =
     fileName ||
     `Rekap_Klaim_${(profile?.company_name || 'SKA').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
   // 1. Salin tabel berformat ke clipboard (jika user ingin paste di tempat lain)
-  await copyFormattedTableToClipboard(transactions, profile);
+  try {
+    await copyFormattedTableToClipboard(transactions, profile);
+  } catch {}
 
   // 2. Buat file Google Spreadsheet langsung di Google Drive
   const csv = generateCompanyExpenseReportCSV(transactions, profile);
   const cloudRes = await cloudExportToGDrive(csv, name);
 
-  // 3. Buka URL Google Sheets di tab baru
+  // 3. Buka URL Google Sheets di tab browser
   const targetUrl = cloudRes.isDirectCloud ? cloudRes.spreadsheetUrl : 'https://sheets.new';
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  if (targetWindow && !targetWindow.closed) {
+    targetWindow.location.href = targetUrl;
+  } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.open(targetUrl, '_blank');
   } else {
     Linking.openURL(targetUrl);
@@ -752,6 +757,7 @@ export async function exportGoogleSpreadsheetReport(
     message: cloudRes.isDirectCloud
       ? 'Google Spreadsheet berhasil dibuat langsung di Google Drive Anda!'
       : 'Google Spreadsheet dibuka! Tabel otomatis tersalin ke Clipboard (tekan Ctrl+V / Paste).',
+    spreadsheetUrl: targetUrl,
   };
 }
 
