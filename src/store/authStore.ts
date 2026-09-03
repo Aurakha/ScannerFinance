@@ -60,28 +60,64 @@ const DEFAULT_PROFILE: UserProfile = {
   role: 'user',
 };
 
+export const SUPABASE_AUTH_USERS_MAP: Record<string, { email: string; full_name: string }> = {
+  '06c4ff59-e531-49cc-b3b8-dbd3c3fc8e94': {
+    email: 'aurakharere@gmail.com',
+    full_name: 'raka2',
+  },
+  '68bfd819-58eb-42a8-b554-a52381214154': {
+    email: 'gabrielrudra9@gmail.com',
+    full_name: 'gabriel',
+  },
+  '432506ee-f847-41b8-a59e-5dd2c741fe04': {
+    email: 'haharakha@gmail.com',
+    full_name: 'raka',
+  },
+  '407f1456-a322-4831-8127-762b16d1991f': {
+    email: 'scanfinancebucket@gmail.com',
+    full_name: 'Albert',
+  },
+};
+
 const SEED_USERS: UserProfile[] = [
   {
-    id: 'user-default-1',
-    email: 'guest@company.com',
-    full_name: 'Guest',
-    company_name: 'PT. Nama Perusahaan',
+    id: '06c4ff59-e531-49cc-b3b8-dbd3c3fc8e94',
+    email: 'aurakharere@gmail.com',
+    full_name: 'raka2',
+    company_name: 'PT. San Kawan Abadi',
     department: 'Divisi Operasional',
     project_name: 'Head Office / Proyek 1',
     city: 'Jakarta',
-    verifier_name: 'Pemeriksa 1',
-    approver_name: 'Pimpinan 1',
+    verifier_name: 'Yunitha',
+    approver_name: 'Dwi Hartanto',
+    cash_advance_amount: 5000000,
+    currency: 'IDR',
+    monthly_income_budget: 15000000,
+    monthly_expense_budget: 8000000,
+    role: 'admin',
+    created_at: '2026-09-01T09:46:52.499366+00:00',
+  },
+  {
+    id: '68bfd819-58eb-42a8-b554-a52381214154',
+    email: 'gabrielrudra9@gmail.com',
+    full_name: 'gabriel',
+    company_name: 'PT. San Kawan Abadi',
+    department: 'Divisi Operasional',
+    project_name: 'Head Office / Proyek 1',
+    city: 'Jakarta',
+    verifier_name: 'Yunitha',
+    approver_name: 'Dwi Hartanto',
     cash_advance_amount: 5000000,
     currency: 'IDR',
     monthly_income_budget: 10000000,
     monthly_expense_budget: 5000000,
     role: 'user',
-    created_at: new Date().toISOString(),
+    created_at: '2026-09-03T06:30:21.387375+00:00',
   },
   {
-    id: 'user-raka-2',
+    id: '432506ee-f847-41b8-a59e-5dd2c741fe04',
     email: 'haharakha@gmail.com',
-    full_name: 'Raka Renata',
+    full_name: 'raka',
     company_name: 'PT. San Kawan Abadi',
     department: 'Operation & Field',
     project_name: 'Tangerang Project',
@@ -93,24 +129,24 @@ const SEED_USERS: UserProfile[] = [
     monthly_income_budget: 12000000,
     monthly_expense_budget: 7000000,
     role: 'admin',
-    created_at: new Date().toISOString(),
+    created_at: '2026-09-01T08:30:39.401004+00:00',
   },
   {
-    id: 'user-aura-3',
-    email: 'aurakharere@gmail.com',
-    full_name: 'Aura Kharere',
+    id: '407f1456-a322-4831-8127-762b16d1991f',
+    email: 'scanfinancebucket@gmail.com',
+    full_name: 'Albert',
     company_name: 'PT. San Kawan Abadi',
-    department: 'Finance & Admin',
-    project_name: 'Head Office',
+    department: 'Divisi Operasional',
+    project_name: 'Head Office / Proyek 1',
     city: 'Jakarta',
     verifier_name: 'Yunitha',
     approver_name: 'Dwi Hartanto',
     cash_advance_amount: 5000000,
     currency: 'IDR',
-    monthly_income_budget: 15000000,
-    monthly_expense_budget: 8000000,
-    role: 'admin',
-    created_at: new Date().toISOString(),
+    monthly_income_budget: 10000000,
+    monthly_expense_budget: 5000000,
+    role: 'user',
+    created_at: '2026-09-02T08:41:11.723424+00:00',
   },
   {
     id: 'user-test-demo',
@@ -473,21 +509,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (!error && dbUsers && dbUsers.length > 0) {
-        const mappedUsers: UserProfile[] = dbUsers.map((p: any) => ({
-          ...DEFAULT_PROFILE,
-          id: p.id,
-          email: p.email || `${p.full_name.toLowerCase().replace(/\s+/g, '')}@company.com`,
-          full_name: p.full_name || 'Pengguna',
-          company_name: p.company_name || 'PT. Nama Perusahaan',
-          department: p.department || 'Divisi Operasional',
-          project_name: p.project_name || 'Head Office / Proyek 1',
-          city: p.city || 'Jakarta',
-          verifier_name: p.verifier_name || 'Pemeriksa 1',
-          approver_name: p.approver_name || 'Pimpinan 1',
-          cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 5000000,
-          role: p.role || 'user',
-          created_at: p.created_at,
-        }));
+        const mappedUsers: UserProfile[] = dbUsers.map((p: any) => {
+          const authUser = SUPABASE_AUTH_USERS_MAP[p.id];
+          const realEmail = authUser?.email || p.email || (p.full_name?.includes('@') ? p.full_name : `${p.full_name?.toLowerCase().replace(/\s+/g, '')}@gmail.com`);
+          const realName = p.full_name || authUser?.full_name || 'Pengguna';
+
+          return {
+            ...DEFAULT_PROFILE,
+            id: p.id,
+            email: realEmail,
+            full_name: realName,
+            company_name: p.company_name || 'PT. San Kawan Abadi',
+            department: p.department || 'Divisi Operasional',
+            project_name: p.project_name || 'Head Office / Proyek 1',
+            city: p.city || 'Jakarta',
+            verifier_name: p.verifier_name || 'Yunitha',
+            approver_name: p.approver_name || 'Dwi Hartanto',
+            cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 5000000,
+            role: p.role || 'user',
+            created_at: p.created_at,
+          };
+        });
+
+        // Tambahkan akun test jika belum ada
+        if (!mappedUsers.some((u) => u.email === 'test@gmail.com')) {
+          const testSeed = SEED_USERS.find((u) => u.email === 'test@gmail.com');
+          if (testSeed) mappedUsers.push(testSeed);
+        }
+
         await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(mappedUsers));
         return mappedUsers;
       }
