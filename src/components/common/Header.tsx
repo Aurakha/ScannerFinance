@@ -4,14 +4,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
   rightAction?: React.ReactNode;
+  showLanguageToggle?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, rightAction }) => {
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  subtitle,
+  rightAction,
+  showLanguageToggle = true,
+}) => {
   const { user } = useAuthStore();
   const { theme } = useThemeStore();
 
@@ -29,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, rightAction }) 
       </View>
 
       <View style={styles.actionsContainer}>
+        {showLanguageToggle && <LanguageToggle />}
         {rightAction}
 
         <View style={styles.avatar}>

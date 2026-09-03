@@ -21,31 +21,36 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, exportExcelReport, exportGoogleSpreadsheetReport, categorizeColumn } from '@/utils/exportReport';
+import { downloadCSV, exportExcelReport, categorizeColumn } from '@/utils/exportReport';
+import { ExcelPreviewModal } from '@/components/modals/ExcelPreviewModal';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 
-/** Nama bulan Indonesia lengkap */
-const MONTH_NAMES_FULL = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];
+import {
+  getLocalizedCategoryName,
+  getLocalizedMonthLabel,
+  translations,
+  Language,
+} from '@/i18n/translations';
 
 function getCurrentMonthKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function formatMonthLabel(monthKey: string): string {
-  if (monthKey === 'all') return 'Semua Waktu';
-  const [year, month] = monthKey.split('-').map(Number);
-  return `${MONTH_NAMES_FULL[month - 1]} ${year}`;
+function formatMonthLabel(monthKey: string, lang: Language = 'id'): string {
+  return getLocalizedMonthLabel(monthKey, lang);
 }
 
-function getMonthNameOnly(monthKey: string): string {
-  if (monthKey === 'all') return 'Semua Data';
+function getMonthNameOnly(monthKey: string, lang: Language = 'id'): string {
+  if (monthKey === 'all') return translations[lang].months.allData;
   const [, month] = monthKey.split('-').map(Number);
-  return MONTH_NAMES_FULL[month - 1];
+  const keys = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december',
+  ] as const;
+  return (translations[lang].months as any)[keys[month - 1]] || monthKey;
 }
 
 function shiftMonth(monthKey: string, delta: number): string {
@@ -58,6 +63,7 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t, language } = useLanguageStore();
   const {
     transactions,
     categories,
@@ -69,7 +75,7 @@ export default function TransactionsScreen() {
     loadData,
   } = useTransactionStore();
 
-  const [isExportingSheet, setIsExportingSheet] = useState(false);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -198,41 +204,13 @@ export default function TransactionsScreen() {
     }
   };
 
-  const handleExportGoogleSheet = async () => {
-    // Buka tab di awal sebelum async agar tidak diblokir popup blocker browser
-    let targetTab: Window | null = null;
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      targetTab = window.open('about:blank', '_blank');
-    }
-
-    try {
-      setIsExportingSheet(true);
-      const result = await exportGoogleSpreadsheetReport(
-        filteredTransactions,
-        user || undefined,
-        undefined,
-        targetTab
-      );
-      setIsExportingSheet(false);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Google Spreadsheet', result.message);
-      }
-    } catch (err: any) {
-      if (targetTab) {
-        targetTab.close();
-      }
-      setIsExportingSheet(false);
-      Alert.alert('Gagal Ekspor Spreadsheet', err.message || 'Terjadi kesalahan saat membuka Google Spreadsheet.');
-    }
-  };
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
         {/* Header */}
         <Header
-          title="Riwayat Transaksi"
-          subtitle={`${sortedTransactions.length} transaksi tercatat`}
+          title={t('transactions.title')}
+          subtitle={t('transactions.totalCount', { count: sortedTransactions.length })}
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -264,7 +242,7 @@ export default function TransactionsScreen() {
           >
             {recent6Months.map((mKey) => {
               const isSelected = mKey === selectedMonth;
-              const monthName = getMonthNameOnly(mKey);
+              const monthName = getMonthNameOnly(mKey, language);
               const [y] = mKey.split('-');
               const isDiffYear = mKey !== 'all' && Number(y) !== new Date().getFullYear();
 
@@ -329,43 +307,38 @@ export default function TransactionsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spreadsheetBannerTitle, { color: theme.text }]}>
-                Rekap Formulir SKA Resmi
+                {t('transactions.excelReportTitle')}
               </Text>
               <Text style={[styles.spreadsheetBannerSub, { color: theme.textSecondary }]}>
-                {user?.company_name || 'PT. San Kawan Abadi'} • {formatMonthLabel(selectedMonth)}
+                {user?.company_name || 'PT. San Kawan Abadi'} • {formatMonthLabel(selectedMonth, language)}
               </Text>
             </View>
           </View>
 
           <View style={styles.bannerBtnGroup}>
-            {/* Tombol Excel */}
+            {/* Tombol Pratinjau Excel */}
+            <TouchableOpacity
+              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
+              onPress={() => setShowExcelPreview(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="eye-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.openSpreadsheetBtnText}>{t('transactions.previewExcel')}</Text>
+            </TouchableOpacity>
+
+            {/* Tombol Unduh Excel */}
             <TouchableOpacity
               style={[styles.openSpreadsheetBtn, { backgroundColor: '#107C41' }]}
               onPress={handleExportExcel}
               disabled={isExportingExcel}
+              activeOpacity={0.8}
             >
               {isExportingExcel ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Ionicons name="download-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.openSpreadsheetBtnText}>Excel (.xls)</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Tombol Google Sheets */}
-            <TouchableOpacity
-              style={[styles.openSpreadsheetBtn, { backgroundColor: '#0F9D58' }]}
-              onPress={handleExportGoogleSheet}
-              disabled={isExportingSheet}
-            >
-              {isExportingSheet ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="grid-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.openSpreadsheetBtnText}>Spreadsheet ↗</Text>
+                  <Ionicons name="download-outline" size={15} color="#FFFFFF" />
+                  <Text style={styles.openSpreadsheetBtnText}>{t('transactions.downloadExcel')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -382,7 +355,7 @@ export default function TransactionsScreen() {
           <Ionicons name="search-outline" size={18} color={theme.textMuted} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Cari toko, barang belanjaan, atau catatan..."
+            placeholder={t('transactions.searchPlaceholder')}
             placeholderTextColor={theme.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -424,7 +397,9 @@ export default function TransactionsScreen() {
                 },
               ]}
             >
-              {activeFilter === 'all' ? 'Filter Kategori' : selectedCategory?.name || 'Kategori Terpilih'}
+              {activeFilter === 'all'
+                ? t('transactions.filterCategory')
+                : getLocalizedCategoryName(selectedCategory?.name || '', language)}
             </Text>
             <Ionicons
               name="chevron-down"
@@ -459,7 +434,9 @@ export default function TransactionsScreen() {
                 },
               ]}
             >
-              {sortOrder === 'newest' ? 'Urutan: Terbaru' : 'Urutan: Terlama'}
+              {sortOrder === 'newest'
+                ? (language === 'id' ? 'Urutan: Terbaru' : 'Sort: Newest')
+                : (language === 'id' ? 'Urutan: Terlama' : 'Sort: Oldest')}
             </Text>
             <Ionicons
               name="chevron-down"
@@ -482,7 +459,7 @@ export default function TransactionsScreen() {
         {/* Subtotal Summary Header */}
         <View style={styles.totalHeader}>
           <Text style={[styles.totalCountText, { color: theme.textMuted }]}>
-            Total Tercatat ({selectedMonth === 'all' ? 'Semua Waktu' : formatMonthLabel(selectedMonth)}):
+            {language === 'id' ? 'Total Tercatat' : 'Recorded Total'} ({selectedMonth === 'all' ? (language === 'id' ? 'Semua Waktu' : 'All Time') : formatMonthLabel(selectedMonth, language)}):
           </Text>
           <Text style={[styles.totalAmountText, { color: theme.text }]}>
             {formatRupiah(totalFilteredAmount)}
@@ -504,14 +481,14 @@ export default function TransactionsScreen() {
             >
               <Ionicons name="receipt-outline" size={48} color={theme.textMuted} />
               <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                Tidak ada transaksi ditemukan
+                {t('transactions.noTransactionsFound')}
               </Text>
               <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
                 {searchQuery
-                  ? 'Coba gunakan kata kunci pencarian yang lain'
+                  ? t('transactions.noTransactionsFoundDesc')
                   : selectedMonth === 'all'
-                  ? 'Belum ada transaksi tersimpan di sistem'
-                  : `Belum ada transaksi di bulan ${formatMonthLabel(selectedMonth)}`}
+                  ? t('transactions.noTransactionsAll')
+                  : t('transactions.noTransactionsInMonth', { month: formatMonthLabel(selectedMonth, language) })}
               </Text>
             </View>
           ) : (
@@ -548,7 +525,7 @@ export default function TransactionsScreen() {
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Ionicons name="funnel" size={18} color={Palette.primary} />
-                  <Text style={[styles.modalTitle, { color: theme.text }]}>Pilih Kategori</Text>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>{t('transactions.selectCategory')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.modalCloseBtn, { backgroundColor: theme.cardHover }]}
@@ -594,7 +571,7 @@ export default function TransactionsScreen() {
                         },
                       ]}
                     >
-                      Semua Kategori
+                      {t('transactions.allCategories')}
                     </Text>
                   </View>
                   {activeFilter === 'all' && (
@@ -641,7 +618,7 @@ export default function TransactionsScreen() {
                             },
                           ]}
                         >
-                          {cat.name}
+                          {getLocalizedCategoryName(cat.name, language)}
                         </Text>
                       </View>
                       {isSelected && (
@@ -677,7 +654,7 @@ export default function TransactionsScreen() {
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Ionicons name="swap-vertical" size={18} color={Palette.primary} />
-                  <Text style={[styles.modalTitle, { color: theme.text }]}>Urutkan Transaksi</Text>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>{t('transactions.sortTitle')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.modalCloseBtn, { backgroundColor: theme.cardHover }]}
@@ -724,10 +701,10 @@ export default function TransactionsScreen() {
                           },
                         ]}
                       >
-                        Paling Baru Masuk (Terbaru ➔ Terlama)
+                        {t('transactions.sortNewest')}
                       </Text>
                       <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
-                        Menampilkan transaksi paling baru di posisi paling atas
+                        {t('transactions.sortNewestDesc')}
                       </Text>
                     </View>
                   </View>
@@ -772,10 +749,10 @@ export default function TransactionsScreen() {
                           },
                         ]}
                       >
-                        Paling Lama Masuk (Terlama ➔ Terbaru)
+                        {t('transactions.sortOldest')}
                       </Text>
                       <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
-                        Menampilkan transaksi dari data terdahulu ke paling baru
+                        {t('transactions.sortOldestDesc')}
                       </Text>
                     </View>
                   </View>
@@ -802,14 +779,10 @@ export default function TransactionsScreen() {
               </View>
 
               <Text style={[styles.deleteModalTitle, { color: theme.text }]}>
-                Hapus Transaksi?
+                {t('transactions.deleteTitle')}
               </Text>
               <Text style={[styles.deleteModalDesc, { color: theme.textSecondary }]}>
-                Apakah Anda yakin ingin menghapus transaksi dari{' '}
-                <Text style={{ fontWeight: '700', color: theme.text }}>
-                  "{deleteTarget?.merchant}"
-                </Text>
-                ? Data yang dihapus tidak dapat dipulihkan.
+                {t('transactions.deleteConfirm', { merchant: deleteTarget?.merchant || '' })}
               </Text>
 
               <View style={styles.deleteModalActions}>
@@ -818,7 +791,9 @@ export default function TransactionsScreen() {
                   onPress={() => setDeleteTarget(null)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.deleteCancelBtnText, { color: theme.text }]}>Batal</Text>
+                  <Text style={[styles.deleteCancelBtnText, { color: theme.text }]}>
+                    {t('common.cancel')}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -827,7 +802,9 @@ export default function TransactionsScreen() {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="trash" size={15} color="#FFFFFF" />
-                  <Text style={styles.deleteConfirmBtnText}>Ya, Hapus</Text>
+                  <Text style={styles.deleteConfirmBtnText}>
+                    {t('common.delete')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -855,7 +832,7 @@ export default function TransactionsScreen() {
                     <Ionicons name="calendar" size={18} color={Palette.primary} />
                   </View>
                   <Text style={[styles.calendarModalTitle, { color: theme.text }]}>
-                    Pilih Periode Bulan
+                    {t('months.selectMonthYear')}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -896,14 +873,15 @@ export default function TransactionsScreen() {
 
               {/* 12 Months Grid */}
               <View style={styles.monthsGrid}>
-                {MONTH_NAMES_FULL.map((name, idx) => {
+                {Array.from({ length: 12 }).map((_, idx) => {
                   const mKey = `${calendarPickerYear}-${String(idx + 1).padStart(2, '0')}`;
                   const isSelected = mKey === selectedMonth;
                   const isCurrentMonth = mKey === getCurrentMonthKey();
+                  const monthName = getMonthNameOnly(mKey, language);
 
                   return (
                     <TouchableOpacity
-                      key={name}
+                      key={mKey}
                       style={[
                         styles.monthGridItem,
                         {
@@ -924,7 +902,7 @@ export default function TransactionsScreen() {
                           isSelected && { fontWeight: '800' },
                         ]}
                       >
-                        {name}
+                        {monthName}
                       </Text>
                       {isCurrentMonth && !isSelected && (
                         <View style={styles.currentMonthDot} />
@@ -951,12 +929,21 @@ export default function TransactionsScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.jumpToCurrentMonthText, { color: Palette.primary }]}>
-                  Bulan Ini ({formatMonthLabel(getCurrentMonthKey())})
+                  {t('months.jumpToCurrentMonth', { month: formatMonthLabel(getCurrentMonthKey(), language) })}
                 </Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Modal Pratinjau Excel (.xlsx / .xls) */}
+        <ExcelPreviewModal
+          visible={showExcelPreview}
+          onClose={() => setShowExcelPreview(false)}
+          transactions={filteredTransactions}
+          user={user}
+          selectedMonth={selectedMonth}
+        />
       </View>
     </SafeAreaView>
   );

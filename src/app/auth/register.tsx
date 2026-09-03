@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -79,16 +80,19 @@ export default function RegisterScreen() {
               <Ionicons name="arrow-back" size={18} color={theme.text} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.themeToggle, { backgroundColor: theme.cardHover }]}
-              onPress={toggleTheme}
-            >
-              <Ionicons
-                name={mode === 'dark' ? 'sunny' : 'moon'}
-                size={18}
-                color={mode === 'dark' ? Palette.amber : Palette.primary}
-              />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <LanguageToggle />
+              <TouchableOpacity
+                style={[styles.themeToggle, { backgroundColor: theme.cardHover }]}
+                onPress={toggleTheme}
+              >
+                <Ionicons
+                  name={mode === 'dark' ? 'sunny' : 'moon'}
+                  size={18}
+                  color={mode === 'dark' ? Palette.amber : Palette.primary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.content}>

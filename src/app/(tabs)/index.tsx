@@ -17,6 +17,7 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function DashboardScreen() {
@@ -24,6 +25,7 @@ export default function DashboardScreen() {
   const { user, impersonatingUser, exitImpersonation } = useAuthStore();
   const { transactions, stats, loadData } = useTransactionStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t, language } = useLanguageStore();
 
   useEffect(() => {
     loadData(user?.id);
@@ -49,22 +51,24 @@ export default function DashboardScreen() {
             <View style={styles.impersonationLeft}>
               <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
               <Text style={styles.impersonationText}>
-                Mode Admin: Sedang menginspeksi akun {user?.full_name}
+                {t('header.adminModeNotice', { name: user?.full_name || '' })}
               </Text>
             </View>
             <TouchableOpacity
               style={styles.impersonationExitBtn}
               onPress={handleReturnToAdmin}
             >
-              <Text style={styles.impersonationExitBtnText}>Kembali ke Admin ↗</Text>
+              <Text style={styles.impersonationExitBtnText}>{t('header.backToAdmin')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Header */}
         <Header
-          title={`Halo, ${user?.full_name?.split(' ')[0] || 'Pengguna'} 👋`}
-          subtitle={user?.company_name || 'Rekap & analisis pengeluaran cerdas Anda'}
+          title={t('header.greeting', {
+            name: user?.full_name?.split(' ')[0] || (language === 'id' ? 'Pengguna' : 'User'),
+          })}
+          subtitle={user?.company_name || t('header.defaultSubtitle')}
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -91,10 +95,12 @@ export default function DashboardScreen() {
         >
           <View style={styles.heroHeader}>
             <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>
-              Total Pengeluaran Tercatat
+              {t('dashboard.totalRecordedExpenses')}
             </Text>
             <View style={[styles.badgeMonth, { backgroundColor: theme.cardHover }]}>
-              <Text style={[styles.badgeMonthText, { color: theme.text }]}>Aktif</Text>
+              <Text style={[styles.badgeMonthText, { color: theme.text }]}>
+                {t('common.active')}
+              </Text>
             </View>
           </View>
 
@@ -106,8 +112,10 @@ export default function DashboardScreen() {
           <View style={styles.budgetProgressContainer}>
             <View style={styles.budgetLabels}>
               <Text style={[styles.budgetSubText, { color: theme.textSecondary }]}>
-                Terpakai: {formatPercent(stats.budgetUsedPercentage)} dari{' '}
-                {formatRupiah(stats.budgetLimit)}
+                {t('dashboard.budgetUsed', {
+                  used: formatPercent(stats.budgetUsedPercentage),
+                  limit: formatRupiah(stats.budgetLimit),
+                })}
               </Text>
               <Text
                 style={[
@@ -115,7 +123,9 @@ export default function DashboardScreen() {
                   { color: stats.balance < 0 ? Palette.coral : Palette.primaryLight },
                 ]}
               >
-                Sisa: {formatRupiah(stats.balance)}
+                {t('dashboard.budgetRemaining', {
+                  remaining: formatRupiah(stats.balance),
+                })}
               </Text>
             </View>
 
@@ -138,22 +148,22 @@ export default function DashboardScreen() {
         <View style={styles.statsGrid}>
           <View style={{ flex: 1 }}>
             <StatCard
-              title="Rata-rata Harian"
+              title={t('dashboard.dailyAverage')}
               amount={stats.dailyAverage}
               icon="calendar-outline"
               color={Palette.primary}
-              badgeText="Harian"
+              badgeText={t('dashboard.dailyBadge')}
               badgeType="info"
             />
           </View>
           <View style={{ flex: 1 }}>
             <StatCard
-              title="Struk Terpindai"
+              title={t('dashboard.receiptsScanned')}
               amount={stats.receiptCount}
               icon="document-text-outline"
               color={Palette.amber}
-              subtitle="Struk tersimpan"
-              badgeText="AI Vision"
+              subtitle={t('dashboard.receiptsSaved')}
+              badgeText={t('dashboard.aiVisionBadge')}
               badgeType="warning"
             />
           </View>
@@ -178,10 +188,10 @@ export default function DashboardScreen() {
             </View>
             <View>
               <Text style={[styles.quickScanTitle, { color: theme.text }]}>
-                Scan / Unggah Struk Belanja
+                {t('dashboard.quickScanTitle')}
               </Text>
               <Text style={[styles.quickScanSubtitle, { color: theme.textSecondary }]}>
-                AI otomatis ekstrak item, ongkir, & biaya admin
+                {t('dashboard.quickScanSubtitle')}
               </Text>
             </View>
           </View>
@@ -191,9 +201,11 @@ export default function DashboardScreen() {
 
         {/* Expense Category Donut Chart */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Distribusi Pengeluaran</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            {t('dashboard.expenseDistribution')}
+          </Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/analytics')}>
-            <Text style={styles.seeAllText}>Detail Analisis</Text>
+            <Text style={styles.seeAllText}>{t('dashboard.analyticsDetail')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -204,9 +216,11 @@ export default function DashboardScreen() {
 
         {/* Recent Transactions List */}
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Transaksi Terakhir</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            {t('dashboard.recentTransactions')}
+          </Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
-            <Text style={styles.seeAllText}>Lihat Semua</Text>
+            <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -218,9 +232,11 @@ export default function DashboardScreen() {
             ]}
           >
             <Ionicons name="receipt-outline" size={40} color={theme.textMuted} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>Belum ada transaksi</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              {t('dashboard.noTransactions')}
+            </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
-              Unggah foto struk belanja Anda untuk mulai mencatat keuangan
+              {t('dashboard.noTransactionsDesc')}
             </Text>
           </View>
         ) : (

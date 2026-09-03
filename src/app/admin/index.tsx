@@ -17,6 +17,7 @@ import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useTransactionStore } from '@/store/transactionStore';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
 import { UserProfile } from '@/types';
 import { formatRupiah } from '@/utils/formatters';
 
@@ -161,6 +162,7 @@ export default function AdminPanelScreen() {
         </View>
 
         <View style={styles.navRight}>
+          <LanguageToggle />
           <TouchableOpacity
             style={[styles.iconButton, { backgroundColor: theme.cardHover }]}
             onPress={toggleTheme}

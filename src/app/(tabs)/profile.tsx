@@ -16,12 +16,14 @@ import { Header } from '@/components/common/Header';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, session, isDemoMode, updateProfile, signOut } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t, language, setLanguage } = useLanguageStore();
 
   const [fullName, setFullName] = useState(user?.full_name || 'User 1');
   const [companyName, setCompanyName] = useState(user?.company_name || 'PT. Nama Perusahaan');
@@ -34,30 +36,53 @@ export default function ProfileScreen() {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  React.useEffect(() => {
+    if (user) {
+      setFullName(user.full_name || '');
+      setCompanyName(user.company_name || '');
+      setDepartment(user.department || '');
+      setProjectName(user.project_name || '');
+      setCity(user.city || '');
+      setVerifierName(user.verifier_name || '');
+      setApproverName(user.approver_name || '');
+      setCashAdvance(String(user.cash_advance_amount ?? 5000000));
+    }
+  }, [user]);
+
   const handleSaveProfile = async () => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
+      const parsedCashAdvance = parseFloat(cashAdvance.replace(/[^0-9]/g, '')) || 0;
       await updateProfile({
         full_name: fullName,
         company_name: companyName,
-        department: department,
+        department,
         project_name: projectName,
-        city: city,
+        city,
         verifier_name: verifierName,
         approver_name: approverName,
-        cash_advance_amount: Number(cashAdvance) || 0,
+        cash_advance_amount: parsedCashAdvance,
       });
-      setIsSaving(false);
-      Alert.alert('Tersimpan! ✅', 'Data profil dan informasi klaim perusahaan berhasil diperbarui.');
+
+      if (Platform.OS === 'web') {
+        window.alert(t('profile.profileUpdatedSuccess'));
+      } else {
+        Alert.alert(t('common.success'), t('profile.profileUpdatedSuccess'));
+      }
     } catch (err: any) {
+      if (Platform.OS === 'web') {
+        window.alert(t('profile.profileUpdateFailed', { error: err.message }));
+      } else {
+        Alert.alert(t('common.failed'), t('profile.profileUpdateFailed', { error: err.message }));
+      }
+    } finally {
       setIsSaving(false);
-      Alert.alert('Gagal', err.message || 'Tidak dapat memperbarui profil.');
     }
   };
 
   const handleLogout = async () => {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Apakah Anda yakin ingin keluar dari akun ini?');
+      const confirmed = window.confirm(t('profile.logoutConfirm'));
       if (confirmed) {
         await signOut();
         router.replace('/auth/login');
@@ -65,10 +90,10 @@ export default function ProfileScreen() {
       return;
     }
 
-    Alert.alert('Keluar Akun', 'Apakah Anda yakin ingin keluar dari akun ini?', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('profile.logout'), t('profile.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Keluar',
+        text: t('profile.logout'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -86,8 +111,8 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title="Profil & Pengaturan"
-          subtitle="Atur identitas perusahaan, verifikator klaim, dan preferensi tema"
+          title={t('profile.title')}
+          subtitle={t('profile.subtitle')}
           rightAction={
             <TouchableOpacity
               style={[styles.themeBtn, { backgroundColor: theme.cardHover }]}
@@ -113,7 +138,7 @@ export default function ProfileScreen() {
             <View style={styles.userInfoCol}>
               <Text style={[styles.userName, { color: theme.text }]}>{fullName}</Text>
               <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
-                {user?.email || 'Akun Tamu / Demo'}
+                {user?.email || 'demo@scanfinance.app'}
               </Text>
               <View style={styles.badgeRow}>
                 <View
@@ -134,7 +159,9 @@ export default function ProfileScreen() {
                       { color: session ? Palette.greenOnline : Palette.amberIdle },
                     ]}
                   >
-                    {session ? 'Akun Supabase Aktif' : 'Mode Tamu / Demo'}
+                    {session
+                      ? (language === 'id' ? 'Akun Supabase Aktif' : 'Supabase Account Active')
+                      : (language === 'id' ? 'Mode Tamu / Demo' : 'Guest / Demo Mode')}
                   </Text>
                 </View>
 
@@ -142,7 +169,7 @@ export default function ProfileScreen() {
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: 'rgba(88, 101, 242, 0.15)', marginLeft: 6 },
+                      { backgroundColor: 'rgba(88, 101, 242, 0.15)', marginTop: 4 },
                     ]}
                   >
                     <Ionicons name="shield-checkmark" size={12} color={Palette.primary} />
@@ -162,12 +189,14 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/auth/login')}
               >
                 <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.loginBtnText}>Masuk / Daftar Akun Pribadi</Text>
+                <Text style={styles.loginBtnText}>
+                  {language === 'id' ? 'Masuk / Daftar Akun Pribadi' : 'Sign In / Register Account'}
+                </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={16} color={Palette.coral} />
-                <Text style={styles.logoutBtnText}>Keluar Akun</Text>
+                <Text style={styles.logoutBtnText}>{t('profile.logout')}</Text>
               </TouchableOpacity>
             )}
 
@@ -186,18 +215,72 @@ export default function ProfileScreen() {
               >
                 <Ionicons name="shield-checkmark" size={18} color={Palette.primary} />
                 <Text style={[styles.adminPanelBtnText, { color: Palette.primary, fontWeight: '700' }]}>
-                  Buka Panel Super Admin 🛡️
+                  {language === 'id' ? 'Buka Panel Super Admin 🛡️' : 'Open Super Admin Panel 🛡️'}
                 </Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
+        {/* Language Settings Card */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.appLanguage')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
+            {t('profile.appLanguageSubtitle')}
+          </Text>
+
+          <View style={styles.themeSelectorRow}>
+            <TouchableOpacity
+              style={[
+                styles.themeOptionCard,
+                language === 'id' && styles.themeOptionActive,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+              onPress={() => language !== 'id' && setLanguage('id')}
+            >
+              <Text style={{ fontSize: 24, marginBottom: 4 }}>🇮🇩</Text>
+              <Text
+                style={[
+                  styles.themeOptionTitle,
+                  { color: language === 'id' ? Palette.primary : theme.text },
+                ]}
+              >
+                {t('profile.indonesian')}
+              </Text>
+              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
+                {t('profile.indonesianDesc')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeOptionCard,
+                language === 'en' && styles.themeOptionActive,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+              onPress={() => language !== 'en' && setLanguage('en')}
+            >
+              <Text style={{ fontSize: 24, marginBottom: 4 }}>🇬🇧</Text>
+              <Text
+                style={[
+                  styles.themeOptionTitle,
+                  { color: language === 'en' ? Palette.primary : theme.text },
+                ]}
+              >
+                {t('profile.english')}
+              </Text>
+              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
+                {t('profile.englishDesc')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Theme Settings Card */}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Tampilan & Tema Aplikasi</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.appTheme')}</Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-            Pilih mode tampilan yang nyaman untuk mata Anda
+            {t('profile.appThemeSubtitle')}
           </Text>
 
           <View style={styles.themeSelectorRow}>
@@ -220,10 +303,10 @@ export default function ProfileScreen() {
                   { color: mode === 'dark' ? Palette.primary : theme.text },
                 ]}
               >
-                Dark Mode
+                {t('profile.darkMode')}
               </Text>
               <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                Tema Discord Dark
+                {t('profile.darkModeDesc')}
               </Text>
             </TouchableOpacity>
 
@@ -246,67 +329,75 @@ export default function ProfileScreen() {
                   { color: mode === 'light' ? Palette.primary : theme.text },
                 ]}
               >
-                Light Mode
+                {t('profile.lightMode')}
               </Text>
               <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                Tema Cerah & Bersih
+                {t('profile.lightModeDesc')}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Company & Reimbursement Profile Form (Foto 2, 3, 4) */}
+        {/* Company & Reimbursement Profile Form */}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Informasi Perusahaan & Rekapitulasi Klaim
+            {t('profile.companySectionTitle')}
           </Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-            Data ini otomatis dicetak pada header dan kolom tanda tangan Google Spreadsheet
+            {t('profile.companySectionSubtitle')}
           </Text>
 
           {/* Form Fields Grid */}
           <View style={styles.formGrid}>
             <View style={styles.formField}>
-              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Nama Perusahaan</Text>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                {t('profile.companyName')}
+              </Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 value={companyName}
                 onChangeText={setCompanyName}
-                placeholder="Misal: PT. Nama Perusahaan"
+                placeholder="Misal: PT. San Kawan Abadi"
                 placeholderTextColor={theme.textMuted}
               />
             </View>
 
             <View style={styles.formField}>
-              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Nama Lengkap Pembuat</Text>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                {t('profile.fullName')}
+              </Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Misal: User 1"
+                placeholder="Misal: Gabriel Rudra Renata"
                 placeholderTextColor={theme.textMuted}
               />
             </View>
 
             <View style={styles.rowTwoCols}>
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Dept / Divisi</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.department')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={department}
                   onChangeText={setDepartment}
-                  placeholder="Misal: Divisi Operasional"
+                  placeholder="Misal: Operation"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
 
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Project / Lokasi</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.projectName')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={projectName}
                   onChangeText={setProjectName}
-                  placeholder="Misal: Head Office / Proyek 1"
+                  placeholder="Misal: Head Office"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -314,18 +405,22 @@ export default function ProfileScreen() {
 
             <View style={styles.rowTwoCols}>
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Kota Tanda Tangan</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.city')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={city}
                   onChangeText={setCity}
-                  placeholder="Misal: Jakarta"
+                  placeholder="Misal: Tangerang"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
 
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Jumlah Cash Advance (Rp)</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.cashAdvance')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={cashAdvance}
@@ -340,23 +435,27 @@ export default function ProfileScreen() {
             {/* Verificators */}
             <View style={styles.rowTwoCols}>
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Diperiksa oleh</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.verifierName')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={verifierName}
                   onChangeText={setVerifierName}
-                  placeholder="Misal: Pemeriksa 1"
+                  placeholder="Misal: Yunitha"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
 
               <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Diperiksa & Diketahui oleh</Text>
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                  {t('profile.approverName')}
+                </Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={approverName}
                   onChangeText={setApproverName}
-                  placeholder="Misal: Pimpinan 1"
+                  placeholder="Misal: Dwi Hartanto"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
@@ -371,7 +470,7 @@ export default function ProfileScreen() {
           >
             <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
             <Text style={styles.saveProfileBtnText}>
-              {isSaving ? 'Menyimpan...' : 'Simpan Data Perusahaan'}
+              {isSaving ? t('common.saving') : t('profile.saveProfileBtn')}
             </Text>
           </TouchableOpacity>
         </View>

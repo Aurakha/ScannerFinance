@@ -14,15 +14,18 @@ import { SpendingBarChart } from '@/components/charts/SpendingBarChart';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
+import { getLocalizedCategoryName, translations } from '@/i18n/translations';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function AnalyticsScreen() {
   const { stats, transactions } = useTransactionStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t, language } = useLanguageStore();
   const [activePeriod, setActivePeriod] = useState<'month' | 'week'>('month');
 
   // Siapkan data pengeluaran 7 hari terakhir
-  const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const daysOfWeek = translations[language].months.daysShort;
   const now = new Date();
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
@@ -59,8 +62,8 @@ export default function AnalyticsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title="Analisis Finansial"
-          subtitle="Insight pola belanja & monitoring anggaran"
+          title={t('analytics.title')}
+          subtitle={t('analytics.subtitle')}
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -85,10 +88,10 @@ export default function AnalyticsScreen() {
           <View style={styles.budgetCardHeader}>
             <View>
               <Text style={[styles.budgetCardTitle, { color: theme.text }]}>
-                Kesehatan Anggaran
+                {t('analytics.budgetStatusTitle')}
               </Text>
               <Text style={[styles.budgetCardSub, { color: theme.textSecondary }]}>
-                Batas: {formatRupiah(stats.budgetLimit)}
+                {language === 'id' ? 'Batas: ' : 'Limit: '}{formatRupiah(stats.budgetLimit)}
               </Text>
             </View>
 
@@ -119,10 +122,10 @@ export default function AnalyticsScreen() {
                 ]}
               >
                 {stats.budgetUsedPercentage > 90
-                  ? 'Kritis'
+                  ? (language === 'id' ? 'Kritis' : 'Critical')
                   : stats.budgetUsedPercentage > 70
-                  ? 'Waspada'
-                  : 'Aman'}
+                  ? (language === 'id' ? 'Waspada' : 'Warning')
+                  : (language === 'id' ? 'Aman' : 'Safe')}
               </Text>
             </View>
           </View>
@@ -134,14 +137,18 @@ export default function AnalyticsScreen() {
             ]}
           >
             <View style={styles.metricBox}>
-              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>Terpakai</Text>
+              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>
+                {language === 'id' ? 'Terpakai' : 'Used'}
+              </Text>
               <Text style={[styles.metricVal, { color: theme.text }]}>
                 {formatRupiah(stats.totalExpense)}
               </Text>
             </View>
             <View style={[styles.metricDivider, { backgroundColor: theme.border }]} />
             <View style={styles.metricBox}>
-              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>Sisa Anggaran</Text>
+              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>
+                {language === 'id' ? 'Sisa Anggaran' : 'Remaining Budget'}
+              </Text>
               <Text
                 style={[
                   styles.metricVal,
@@ -163,7 +170,7 @@ export default function AnalyticsScreen() {
         <View style={styles.sectionMargin}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Porsi Kategori Pengeluaran
+              {t('analytics.categoryDistribution')}
             </Text>
           </View>
           <CategoryPieChart
@@ -176,7 +183,7 @@ export default function AnalyticsScreen() {
         <View style={styles.sectionMargin}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Rincian Kategori Terbesar
+              {t('analytics.highestCategoryBreakdown')}
             </Text>
           </View>
 
@@ -203,7 +210,9 @@ export default function AnalyticsScreen() {
 
                 <View style={styles.catInfo}>
                   <View style={styles.catNameRow}>
-                    <Text style={[styles.catName, { color: theme.text }]}>{cat.categoryName}</Text>
+                    <Text style={[styles.catName, { color: theme.text }]}>
+                      {getLocalizedCategoryName(cat.categoryName, language)}
+                    </Text>
                     <Text style={[styles.catAmount, { color: theme.text }]}>
                       {formatRupiah(cat.amount)}
                     </Text>

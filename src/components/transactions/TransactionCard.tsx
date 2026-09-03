@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { Transaction } from '@/types';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatFriendlyDate, formatRupiah } from '@/utils/formatters';
 import { Badge } from '../common/Badge';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
@@ -20,6 +21,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   onPress,
 }) => {
   const { theme } = useThemeStore();
+  const { language, t } = useLanguageStore();
   const category =
     transaction.category ||
     DEFAULT_CATEGORIES.find((c) => c.id === transaction.category_id) ||
@@ -72,13 +74,13 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
         <View style={styles.subRow}>
           <Text style={[styles.dateText, { color: theme.textMuted }]}>
-            {formatFriendlyDate(transaction.transaction_date)}
+            {formatFriendlyDate(transaction.transaction_date, language)}
           </Text>
 
           <View style={styles.badgesRow}>
             {itemCount > 0 && (
               <Badge
-                label={`${itemCount} item`}
+                label={`${itemCount} ${itemCount > 1 ? t('common.items') : t('common.item')}`}
                 color={theme.textSecondary}
                 size="sm"
               />

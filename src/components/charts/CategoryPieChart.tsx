@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { G, Circle } from 'react-native-svg';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
+import { getLocalizedCategoryName } from '@/i18n/translations';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 interface CategoryData {
@@ -22,6 +24,7 @@ interface CategoryPieChartProps {
 
 export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, totalAmount }) => {
   const { theme, mode } = useThemeStore();
+  const { language, t } = useLanguageStore();
   const size = 180;
   const radius = 70;
   const strokeWidth = 24;
@@ -37,7 +40,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, totalA
         ]}
       >
         <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-          Belum ada data pengeluaran aktif
+          {language === 'id' ? 'Belum ada data pengeluaran aktif' : 'No active expense data yet'}
         </Text>
       </View>
     );
@@ -92,7 +95,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, totalA
 
         {/* Center label */}
         <View style={styles.centerLabel}>
-          <Text style={[styles.centerSub, { color: theme.textMuted }]}>Total</Text>
+          <Text style={[styles.centerSub, { color: theme.textMuted }]}>{t('common.total')}</Text>
           <Text style={[styles.centerAmount, { color: theme.text }]} numberOfLines={1}>
             {formatRupiah(totalAmount)}
           </Text>
@@ -106,7 +109,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, totalA
             <View style={styles.legendLeft}>
               <View style={[styles.dot, { backgroundColor: item.categoryColor }]} />
               <Text style={[styles.legendName, { color: theme.text }]} numberOfLines={1}>
-                {item.categoryName}
+                {getLocalizedCategoryName(item.categoryName, language)}
               </Text>
             </View>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
 
 interface DailyExpense {
@@ -18,6 +19,7 @@ interface SpendingBarChartProps {
 
 export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmount }) => {
   const { theme, mode } = useThemeStore();
+  const { t } = useLanguageStore();
   const calculatedMax = maxAmount || Math.max(...data.map((d) => d.amount), 50000);
 
   return (
@@ -28,7 +30,7 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data, maxAmo
       ]}
     >
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.text }]}>Tren Pengeluaran 7 Hari Terakhir</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('analytics.spending7Days')}</Text>
       </View>
 
       <View style={styles.chartArea}>

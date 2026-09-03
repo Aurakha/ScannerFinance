@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Palette, Colors } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -82,6 +83,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.topBar}>
+          <LanguageToggle />
           <TouchableOpacity
             style={[styles.themeToggle, { backgroundColor: theme.cardHover }]}
             onPress={toggleTheme}
@@ -321,6 +323,8 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 20,
     paddingTop: 10,
   },

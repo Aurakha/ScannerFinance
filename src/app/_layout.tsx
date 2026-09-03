@@ -5,6 +5,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { Palette } from '@/constants/theme';
 
 class GlobalErrorBoundary extends React.Component<
@@ -77,11 +78,13 @@ export default function RootLayout() {
   const { initializeAuth, session, isLoading } = useAuthStore();
   const { loadData } = useTransactionStore();
   const { mode, theme, loadTheme } = useThemeStore();
+  const { loadLanguage } = useLanguageStore();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
     loadTheme();
+    loadLanguage();
     initializeAuth().then(() => {
       loadData();
     });

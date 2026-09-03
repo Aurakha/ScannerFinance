@@ -1,15 +1,18 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 
 export default function TabLayout() {
   const { theme } = useThemeStore();
+  const { t, language } = useLanguageStore();
 
   return (
     <Tabs
+      key={`tab-layout-${language}`}
       screenOptions={{
         headerShown: false,
         tabBarLabelPosition: 'below-icon',
@@ -23,17 +26,15 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: Palette.primary,
         tabBarInactiveTintColor: theme.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          marginTop: 2,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Beranda',
+          title: t('tabs.home'),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.home')}</Text>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
@@ -47,7 +48,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Transaksi',
+          title: t('tabs.transactions'),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.transactions')}</Text>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'receipt' : 'receipt-outline'}
@@ -61,7 +65,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scanner"
         options={{
-          title: 'Unggah Struk',
+          title: t('tabs.scanner'),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabelText, { color: Palette.primaryLight, marginTop: 4 }]}>
+              {t('tabs.scanner')}
+            </Text>
+          ),
           tabBarIcon: ({ focused }) => (
             <View style={styles.floatingContainer}>
               <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar }]}>
@@ -69,19 +78,16 @@ export default function TabLayout() {
               </View>
             </View>
           ),
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '700',
-            color: Palette.primaryLight,
-            marginTop: 4,
-          },
         }}
       />
 
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Analisis',
+          title: t('tabs.analytics'),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.analytics')}</Text>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'pie-chart' : 'pie-chart-outline'}
@@ -95,7 +101,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: t('tabs.profile'),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.profile')}</Text>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
@@ -110,6 +119,12 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabLabelText: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
+  },
   floatingContainer: {
     position: 'absolute',
     top: -26,

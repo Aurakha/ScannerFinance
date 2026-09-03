@@ -18,6 +18,7 @@ import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { processReceiptImages } from '@/services/receiptService';
 import { ReceiptScanResult } from '@/types';
 
@@ -33,6 +34,7 @@ export default function ScannerScreen() {
   const { addTransaction, categories } = useTransactionStore();
   const { user, geminiApiKey } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t, language } = useLanguageStore();
 
   const handleTakePhoto = async () => {
     try {
@@ -204,8 +206,8 @@ export default function ScannerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title="Unggah & Ekstrak Struk"
-          subtitle="AI membaca 1-5 foto, struk panjang, ongkir, & admin"
+          title={t('scanner.title')}
+          subtitle={t('scanner.subtitle')}
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -234,30 +236,42 @@ export default function ScannerScreen() {
             <Ionicons name="scan-circle" size={44} color="#FFFFFF" />
           </View>
 
-          <Text style={[styles.dropzoneTitle, { color: theme.text }]}>Ekstrak Struk Belanja Otomatis</Text>
+          <Text style={[styles.dropzoneTitle, { color: theme.text }]}>
+            {language === 'id' ? 'Ekstrak Struk Belanja Otomatis' : 'Automatic Receipt Extraction'}
+          </Text>
           <Text style={[styles.dropzoneSubtitle, { color: theme.textSecondary }]}>
-            Foto langsung atau pilih hingga 5 foto struk dari galeri (mendukung struk panjang bersambung / multi-struk)
+            {language === 'id'
+              ? 'Foto langsung atau pilih hingga 5 foto struk dari galeri (mendukung struk panjang bersambung / multi-struk)'
+              : 'Take a photo or choose up to 5 receipts from gallery (supports long continuous / multi-receipts)'}
           </Text>
 
           <View style={styles.buttonActionGroup}>
             <TouchableOpacity style={styles.cameraPrimaryBtn} onPress={handleTakePhoto} activeOpacity={0.85}>
               <Ionicons name="camera" size={18} color="#FFFFFF" />
-              <Text style={styles.actionBtnText}>Buka Kamera</Text>
+              <Text style={styles.actionBtnText}>{t('scanner.openCamera')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.gallerySecondaryBtn} onPress={handlePickImage} activeOpacity={0.85}>
               <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
-              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>Pilih dari Galeri (1-5 Foto)</Text>
+              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
+                {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
+              </Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.demoTestBtn} onPress={handleSelectManualInput} activeOpacity={0.8}>
             <Ionicons name="create-outline" size={15} color="#F0B232" />
-            <Text style={styles.demoTestText}>Input Manual (Formulir Kosong / Struk Sulit Terbaca)</Text>
+            <Text style={styles.demoTestText}>
+              {language === 'id'
+                ? 'Input Manual (Formulir Kosong / Struk Sulit Terbaca)'
+                : 'Manual Input (Blank Form / Unclear Receipt)'}
+            </Text>
           </TouchableOpacity>
 
           <Text style={[styles.formatHint, { color: theme.textMuted }]}>
-            Mendukung: Nota kasir toko, struk GoFood/ShopeeFood/Grab, nota bensin, tulisan tangan, & invoice PDF/JPG
+            {language === 'id'
+              ? 'Mendukung: Nota kasir toko, struk GoFood/ShopeeFood/Grab, nota bensin, tulisan tangan, & invoice PDF/JPG'
+              : 'Supports: Cashier slips, GoFood/Grab food receipts, gas receipts, handwritten notes, & invoices'}
           </Text>
         </View>
 
@@ -273,9 +287,13 @@ export default function ScannerScreen() {
               <Ionicons name="book-outline" size={20} color={Palette.primary} />
             </View>
             <View>
-              <Text style={[styles.guideTitle, { color: theme.text }]}>Cara Menggunakan Sistem</Text>
+              <Text style={[styles.guideTitle, { color: theme.text }]}>
+                {language === 'id' ? 'Cara Menggunakan Sistem' : 'How to Use the System'}
+              </Text>
               <Text style={[styles.guideSub, { color: theme.textSecondary }]}>
-                3 Langkah mudah merekap struk pengeluaran
+                {language === 'id'
+                  ? '3 Langkah mudah merekap struk pengeluaran'
+                  : '3 Simple steps to record your expense receipts'}
               </Text>
             </View>
           </View>
@@ -289,10 +307,14 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="cloud-upload-outline" size={16} color={Palette.primary} />
-                  <Text style={[styles.stepTitle, { color: theme.text }]}>Unggah Foto Struk / Nota</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>
+                    {language === 'id' ? 'Unggah Foto Struk / Nota' : 'Upload Receipt Photo'}
+                  </Text>
                 </View>
                 <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
-                  Pilih foto struk belanja toko fisik (Indomaret, SPBU, resto), nota manual tulisan tangan, atau bukti pembayaran online.
+                  {language === 'id'
+                    ? 'Pilih foto struk belanja toko fisik (Indomaret, SPBU, resto), nota manual tulisan tangan, atau bukti pembayaran online.'
+                    : 'Select photos of physical store receipts, handwritten manual slips, or digital payment proofs.'}
                 </Text>
               </View>
             </View>
@@ -307,10 +329,14 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="sparkles-outline" size={16} color="#F0B232" />
-                  <Text style={[styles.stepTitle, { color: theme.text }]}>AI Mengekstrak Otomatis</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>
+                    {language === 'id' ? 'AI Mengekstrak Otomatis' : 'Automatic AI Extraction'}
+                  </Text>
                 </View>
                 <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
-                  AI Gemini 3.6 Flash membaca nama toko, tanggal & jam transaksi, daftar barang, ongkos kirim (GoSend/Grab), biaya admin, diskon, dan total biaya.
+                  {language === 'id'
+                    ? 'AI Vision membaca nama toko, tanggal & jam transaksi, daftar barang, ongkos kirim (GoSend/Grab), biaya admin, diskon, dan total biaya.'
+                    : 'AI Vision extracts store name, transaction date & time, item details, delivery fees, admin fees, discounts, and grand totals.'}
                 </Text>
               </View>
             </View>
@@ -325,10 +351,14 @@ export default function ScannerScreen() {
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
                   <Ionicons name="document-text-outline" size={16} color="#23A55A" />
-                  <Text style={[styles.stepTitle, { color: theme.text }]}>Verifikasi & Ekspor Spreadsheet</Text>
+                  <Text style={[styles.stepTitle, { color: theme.text }]}>
+                    {language === 'id' ? 'Verifikasi & Ekspor Excel' : 'Verify & Export to Excel'}
+                  </Text>
                 </View>
                 <Text style={[styles.stepDesc, { color: theme.textSecondary }]}>
-                  Periksa rincian data pada formulir konfirmasi, simpan ke database, dan ekspor ke Google Spreadsheet kapan saja dengan 1 klik!
+                  {language === 'id'
+                    ? 'Periksa rincian data pada formulir konfirmasi, simpan ke database, dan ekspor ke Excel kapan saja dengan 1 klik!'
+                    : 'Review line items in verification form, save to database, and preview or export to Excel anytime in 1 click!'}
                 </Text>
               </View>
             </View>
