@@ -252,11 +252,11 @@ export default function InputScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title={language === 'id' ? 'Input & Kelola Data' : 'Input & Management'}
+          title={language === 'id' ? 'Input & Kelola' : 'Input & Manage'}
           subtitle={
             language === 'id'
-              ? 'Kelola multi-cash advance, proyek, kolaborator, & statistik pengeluaran'
-              : 'Manage multiple cash advances, projects, collaborators, & analytics'
+              ? 'Kelola cash advance, proyek, kolaborator, & statistik'
+              : 'Manage cash advances, projects, collaborators, & analytics'
           }
           rightAction={
             <TouchableOpacity
@@ -358,7 +358,7 @@ export default function InputScreen() {
               >
                 <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.createCABtnText}>
-                  {language === 'id' ? '+ Tambah Cash Advance' : '+ New Cash Advance'}
+                  {language === 'id' ? 'Tambah Cash Advance' : 'New Cash Advance'}
                 </Text>
               </TouchableOpacity>
             </View>

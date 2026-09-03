@@ -55,15 +55,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 10 : 14,
+    paddingTop: Platform.OS === 'ios' ? 14 : 18,
     paddingBottom: 14,
   },
   textContainer: {
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 12,
   },
   title: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
@@ -76,11 +76,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingRight: 6, // Jarak ekstra agar tidak mepet ke tepi layar
   },
   avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
 });
