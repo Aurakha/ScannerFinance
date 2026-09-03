@@ -295,7 +295,7 @@ export default function InputScreen() {
                 { color: activeSubTab === 'cash_advance' ? '#FFFFFF' : theme.textSecondary },
               ]}
             >
-              {language === 'id' ? 'Kelola Cash Advance & Proyek' : 'Manage Cash Advance'}
+              {language === 'id' ? 'Cash Advance & Proyek' : 'Cash Advance & Projects'}
             </Text>
           </TouchableOpacity>
 
@@ -1011,24 +1011,29 @@ const styles = StyleSheet.create({
   },
   subTabContainer: {
     flexDirection: 'row',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 4,
-    marginBottom: 16,
-    gap: 6,
+    padding: 6,
+    marginTop: 14,
+    marginBottom: 18,
+    gap: 8,
   },
   subTabBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
   subTabBtnText: {
     fontSize: 12,
     fontWeight: '700',
+    lineHeight: 16,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   tabContent: {
     gap: 16,
