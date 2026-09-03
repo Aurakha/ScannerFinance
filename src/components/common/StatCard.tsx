@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
 
 interface StatCardProps {
@@ -14,6 +15,8 @@ interface StatCardProps {
   badgeText?: string;
   badgeType?: 'success' | 'warning' | 'danger' | 'info';
   onPress?: () => void;
+  isCount?: boolean;
+  unit?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -25,8 +28,11 @@ export const StatCard: React.FC<StatCardProps> = ({
   badgeText,
   badgeType = 'success',
   onPress,
+  isCount,
+  unit,
 }) => {
   const { theme } = useThemeStore();
+  const { language } = useLanguageStore();
 
   const getBadgeColor = () => {
     switch (badgeType) {
@@ -42,6 +48,17 @@ export const StatCard: React.FC<StatCardProps> = ({
   };
 
   const badgeColor = getBadgeColor();
+
+  const isReceiptCount =
+    isCount !== undefined
+      ? isCount
+      : title.toLowerCase().includes('struk') ||
+        title.toLowerCase().includes('receipt');
+
+  const defaultUnit = language === 'id' ? 'Struk' : amount === 1 ? 'Receipt' : 'Receipts';
+  const displayAmount = isReceiptCount
+    ? `${amount} ${unit || defaultUnit}`
+    : formatRupiah(amount);
 
   return (
     <TouchableOpacity
@@ -69,7 +86,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
       <Text style={[styles.title, { color: theme.textSecondary }]}>{title}</Text>
       <Text style={[styles.amount, { color: theme.text }]}>
-        {title.includes('Struk') ? `${amount} Struk` : formatRupiah(amount)}
+        {displayAmount}
       </Text>
 
       {subtitle ? (

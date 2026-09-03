@@ -160,6 +160,7 @@ export default function DashboardScreen() {
             <StatCard
               title={t('dashboard.receiptsScanned')}
               amount={stats.receiptCount}
+              isCount
               icon="document-text-outline"
               color={Palette.amber}
               subtitle={t('dashboard.receiptsSaved')}
