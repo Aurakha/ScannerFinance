@@ -91,7 +91,15 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    // Tidak memaksa redirect ke login sehingga pengguna selalu dapat langsung masuk ke dashboard
+    if (isLoading) return; // Tunggu auth selesai loading
+
+    const inAuthGroup = segments[0] === 'auth';
+    const { isDemoMode } = useAuthStore.getState();
+
+    if (!session && !isDemoMode && !inAuthGroup) {
+      // Belum login & bukan demo → arahkan ke login
+      router.replace('/auth/login');
+    }
   }, [session, isLoading, segments]);
 
   return (
