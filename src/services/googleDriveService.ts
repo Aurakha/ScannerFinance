@@ -120,16 +120,23 @@ export async function saveGoogleDriveSettings(
   return updated;
 }
 
+const INDONESIAN_MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
 /**
- * Cari atau buat folder "ScanFinance Receipts" di Google Drive
+ * Cari atau buat folder di Google Drive (opsional dengan parentId)
  */
-async function getOrCreateFolder(token: string, folderName: string): Promise<string | null> {
+async function getOrCreateFolder(token: string, folderName: string, parentId?: string): Promise<string | null> {
   try {
-    // Cek apakah folder sudah ada
+    let q = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    if (parentId) {
+      q += ` and '${parentId}' in parents`;
+    }
+
     const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
-        `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-      )}&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -141,16 +148,21 @@ async function getOrCreateFolder(token: string, folderName: string): Promise<str
     }
 
     // Buat folder baru
+    const bodyPayload: Record<string, any> = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+    };
+    if (parentId) {
+      bodyPayload.parents = [parentId];
+    }
+
     const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-      }),
+      body: JSON.stringify(bodyPayload),
     });
 
     if (createRes.ok) {
@@ -165,11 +177,13 @@ async function getOrCreateFolder(token: string, folderName: string): Promise<str
 
 /**
  * Upload gambar struk ke Google Drive (Serverless API / Direct REST API)
+ * Disimpan di: ScanFinance > Foto Struk > [Tahun] > [09 - September] > Tanggal [03]
  */
 export async function uploadReceiptToGoogleDrive(
   base64Image: string,
   fileName: string,
-  mimeType = 'image/jpeg'
+  mimeType = 'image/jpeg',
+  receiptDate?: string | Date
 ): Promise<{ fileId: string; webViewLink: string; webContentLink?: string } | null> {
   // 1. Coba lewat Vercel Serverless API jika di Web
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -177,7 +191,12 @@ export async function uploadReceiptToGoogleDrive(
       const apiRes = await fetch('/api/upload-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64Image, fileName, mimeType }),
+        body: JSON.stringify({
+          base64Image,
+          fileName,
+          mimeType,
+          receiptDate: receiptDate ? (typeof receiptDate === 'string' ? receiptDate : receiptDate.toISOString()) : undefined,
+        }),
       });
       if (apiRes.ok) {
         const result = await apiRes.json();
@@ -202,14 +221,44 @@ export async function uploadReceiptToGoogleDrive(
   }
 
   try {
-    const settings = await getGoogleDriveSettings();
-    let folderId = settings.folderId;
-    if (!folderId) {
-      folderId = (await getOrCreateFolder(token, settings.folderName || 'ScanFinance Receipts')) ?? undefined;
-      if (folderId) {
-        await saveGoogleDriveSettings({ folderId });
+    // Tentukan tanggal
+    let targetDate: Date = new Date();
+    if (receiptDate) {
+      const d = new Date(receiptDate);
+      if (!isNaN(d.getTime())) targetDate = d;
+    } else if (fileName) {
+      const match = fileName.match(/^(\d{1,2})-(Jan|Feb|Mar|Apr|Mei|May|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)-(\d{2,4})/i);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const mStr = match[2].toLowerCase();
+        let yr = parseInt(match[3], 10);
+        if (yr < 100) yr += 2000;
+        const mMap: Record<string, number> = {
+          jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4,
+          jun: 5, jul: 6, agu: 7, aug: 7, sep: 8, okt: 9, oct: 9,
+          nov: 10, des: 11, dec: 11
+        };
+        if (mMap[mStr] !== undefined) {
+          targetDate = new Date(yr, mMap[mStr], day);
+        }
       }
     }
+
+    const yearFolderName = String(targetDate.getFullYear());
+    const monthNum = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const monthName = INDONESIAN_MONTH_NAMES[targetDate.getMonth()] || 'Januari';
+    const monthFolderName = `${monthNum} - ${monthName}`;
+    const dayNum = String(targetDate.getDate()).padStart(2, '0');
+    const dateFolderName = `Tanggal ${dayNum}`;
+
+    // Buat hierarki folder: ScanFinance > Foto Struk > Tahun > Bulan > Tanggal
+    const rootId = await getOrCreateFolder(token, 'ScanFinance');
+    const fotoStrukId = await getOrCreateFolder(token, 'Foto Struk', rootId || undefined);
+    const yearFolderId = await getOrCreateFolder(token, yearFolderName, fotoStrukId || undefined);
+    const monthFolderId = await getOrCreateFolder(token, monthFolderName, yearFolderId || undefined);
+    const dateFolderId = await getOrCreateFolder(token, dateFolderName, monthFolderId || undefined);
+
+    const folderId = dateFolderId || fotoStrukId || undefined;
 
     const boundary = '-------314159265358979323846';
     const delimiter = `\r\n--${boundary}\r\n`;

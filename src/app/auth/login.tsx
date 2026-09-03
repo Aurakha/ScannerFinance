@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  Modal,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Palette, Colors } from '@/constants/theme';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -140,7 +139,7 @@ export default function LoginScreen() {
                     setEmail(val);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder="nama@perusahaan.com"
+                  placeholder="name@gmail.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -212,6 +211,25 @@ export default function LoginScreen() {
               <Ionicons name="sparkles-outline" size={16} color={Palette.primary} />
               <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
                 Masuk Cepat Mode Tamu / Demo
+              </Text>
+            </TouchableOpacity>
+
+            {/* Quick Test Account Button */}
+            <TouchableOpacity
+              style={[
+                styles.secondaryButton,
+                { backgroundColor: 'rgba(88, 101, 242, 0.08)', borderColor: 'rgba(88, 101, 242, 0.3)', marginTop: 8 },
+              ]}
+              onPress={async () => {
+                setEmail('test@gmail.com');
+                setPassword('123456');
+                await signIn('test@gmail.com', '123456');
+                router.replace('/(tabs)');
+              }}
+            >
+              <Ionicons name="person-circle-outline" size={16} color={Palette.primary} />
+              <Text style={[styles.secondaryButtonText, { color: Palette.primary, fontWeight: '600' }]}>
+                Gunakan Akun Contoh (test@gmail.com)
               </Text>
             </TouchableOpacity>
           </View>
@@ -287,7 +305,7 @@ export default function LoginScreen() {
                     setForgotEmail(val);
                     if (forgotStatus) setForgotStatus(null);
                   }}
-                  placeholder="nama@perusahaan.com"
+                  placeholder="name@gmail.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"

@@ -21,18 +21,13 @@ import { formatRupiah } from '@/utils/formatters';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, session, isDemoMode, updateProfile, signOut } = useAuthStore();
+  const { user, session, updateProfile, signOut } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
-  const { t, language, setLanguage } = useLanguageStore();
+  const { t, language } = useLanguageStore();
 
   const [fullName, setFullName] = useState(user?.full_name || 'Guest');
-  const [companyName, setCompanyName] = useState(user?.company_name || 'PT. Nama Perusahaan');
-  const [department, setDepartment] = useState(user?.department || 'Divisi Operasional');
-  const [projectName, setProjectName] = useState(user?.project_name || 'Head Office / Proyek 1');
-  const [city, setCity] = useState(user?.city || 'Jakarta');
-  const [verifierName, setVerifierName] = useState(user?.verifier_name || 'Pemeriksa 1');
-  const [approverName, setApproverName] = useState(user?.approver_name || 'Pimpinan 1');
-  const [cashAdvance, setCashAdvance] = useState(String(user?.cash_advance_amount ?? 5000000));
+  const [companyName, setCompanyName] = useState(user?.company_name || '');
+  const [department, setDepartment] = useState(user?.department || '');
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,27 +36,16 @@ export default function ProfileScreen() {
       setFullName(user.full_name || '');
       setCompanyName(user.company_name || '');
       setDepartment(user.department || '');
-      setProjectName(user.project_name || '');
-      setCity(user.city || '');
-      setVerifierName(user.verifier_name || '');
-      setApproverName(user.approver_name || '');
-      setCashAdvance(String(user.cash_advance_amount ?? 5000000));
     }
   }, [user]);
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
-      const parsedCashAdvance = parseFloat(cashAdvance.replace(/[^0-9]/g, '')) || 0;
       await updateProfile({
         full_name: fullName,
         company_name: companyName,
         department,
-        project_name: projectName,
-        city,
-        verifier_name: verifierName,
-        approver_name: approverName,
-        cash_advance_amount: parsedCashAdvance,
       });
 
       if (Platform.OS === 'web') {
@@ -222,122 +206,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Language Settings Card */}
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.appLanguage')}</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-            {t('profile.appLanguageSubtitle')}
-          </Text>
-
-          <View style={styles.themeSelectorRow}>
-            <TouchableOpacity
-              style={[
-                styles.themeOptionCard,
-                language === 'id' && styles.themeOptionActive,
-                { backgroundColor: theme.background, borderColor: theme.border },
-              ]}
-              onPress={() => language !== 'id' && setLanguage('id')}
-            >
-              <Text style={{ fontSize: 24, marginBottom: 4 }}>🇮🇩</Text>
-              <Text
-                style={[
-                  styles.themeOptionTitle,
-                  { color: language === 'id' ? Palette.primary : theme.text },
-                ]}
-              >
-                {t('profile.indonesian')}
-              </Text>
-              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                {t('profile.indonesianDesc')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.themeOptionCard,
-                language === 'en' && styles.themeOptionActive,
-                { backgroundColor: theme.background, borderColor: theme.border },
-              ]}
-              onPress={() => language !== 'en' && setLanguage('en')}
-            >
-              <Text style={{ fontSize: 24, marginBottom: 4 }}>🇬🇧</Text>
-              <Text
-                style={[
-                  styles.themeOptionTitle,
-                  { color: language === 'en' ? Palette.primary : theme.text },
-                ]}
-              >
-                {t('profile.english')}
-              </Text>
-              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                {t('profile.englishDesc')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Theme Settings Card */}
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.appTheme')}</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-            {t('profile.appThemeSubtitle')}
-          </Text>
-
-          <View style={styles.themeSelectorRow}>
-            <TouchableOpacity
-              style={[
-                styles.themeOptionCard,
-                mode === 'dark' && styles.themeOptionActive,
-                { backgroundColor: theme.background, borderColor: theme.border },
-              ]}
-              onPress={() => mode !== 'dark' && toggleTheme()}
-            >
-              <Ionicons
-                name="moon"
-                size={24}
-                color={mode === 'dark' ? Palette.primary : theme.textMuted}
-              />
-              <Text
-                style={[
-                  styles.themeOptionTitle,
-                  { color: mode === 'dark' ? Palette.primary : theme.text },
-                ]}
-              >
-                {t('profile.darkMode')}
-              </Text>
-              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                {t('profile.darkModeDesc')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.themeOptionCard,
-                mode === 'light' && styles.themeOptionActive,
-                { backgroundColor: theme.background, borderColor: theme.border },
-              ]}
-              onPress={() => mode !== 'light' && toggleTheme()}
-            >
-              <Ionicons
-                name="sunny"
-                size={24}
-                color={mode === 'light' ? Palette.primary : theme.textMuted}
-              />
-              <Text
-                style={[
-                  styles.themeOptionTitle,
-                  { color: mode === 'light' ? Palette.primary : theme.text },
-                ]}
-              >
-                {t('profile.lightMode')}
-              </Text>
-              <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                {t('profile.lightModeDesc')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Company & Reimbursement Profile Form */}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -375,90 +243,59 @@ export default function ProfileScreen() {
               />
             </View>
 
-            <View style={styles.rowTwoCols}>
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.department')}
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={department}
-                  onChangeText={setDepartment}
-                  placeholder="Misal: Operation"
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
-
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.projectName')}
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={projectName}
-                  onChangeText={setProjectName}
-                  placeholder="Misal: Head Office"
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
+            <View style={styles.formField}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+                {t('profile.department')}
+              </Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                value={department}
+                onChangeText={setDepartment}
+                placeholder="Misal: Divisi Operasional & Lapangan"
+                placeholderTextColor={theme.textMuted}
+              />
             </View>
 
-            <View style={styles.rowTwoCols}>
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.city')}
+            {/* Banner Penjelasan Pemindahan Cash Advance ke Menu Input */}
+            <View
+              style={{
+                backgroundColor: 'rgba(88, 101, 242, 0.08)',
+                borderColor: 'rgba(88, 101, 242, 0.25)',
+                borderWidth: 1,
+                borderRadius: 14,
+                padding: 16,
+                marginTop: 8,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
+                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>
+                  {language === 'id' ? 'Kelola Proyek & Multi-Cash Advance' : 'Manage Projects & Multi-Cash Advance'}
                 </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Misal: Tangerang"
-                  placeholderTextColor={theme.textMuted}
-                />
               </View>
-
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.cashAdvance')}
+              <Text style={{ fontSize: 12, lineHeight: 18, color: theme.textSecondary, marginBottom: 12 }}>
+                {language === 'id'
+                  ? 'Pengaturan nama proyek, lokasi kota, nominal cash advance awal, pemeriksa, penyetuju, dan kolaborator kini dikelola secara dinamis (bisa lebih dari 1 cash advance) di menu Input.'
+                  : 'Project name, city, initial cash advance, verifier, approver, and collaborators are now dynamically managed in the Input menu.'}
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Palette.primary,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 10,
+                  gap: 6,
+                }}
+                onPress={() => router.push('/(tabs)/analytics')}
+              >
+                <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>
+                  {language === 'id' ? 'Buka Menu Input Cash Advance ➔' : 'Open Input Cash Advance ➔'}
                 </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={cashAdvance}
-                  onChangeText={setCashAdvance}
-                  keyboardType="numeric"
-                  placeholder="5000000"
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
-            </View>
-
-            {/* Verificators */}
-            <View style={styles.rowTwoCols}>
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.verifierName')}
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={verifierName}
-                  onChangeText={setVerifierName}
-                  placeholder="Misal: Yunitha"
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
-
-              <View style={[styles.formField, { flex: 1 }]}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
-                  {t('profile.approverName')}
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  value={approverName}
-                  onChangeText={setApproverName}
-                  placeholder="Misal: Dwi Hartanto"
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 

@@ -37,8 +37,23 @@ export interface Transaction {
   notes?: string;
   receipt_image_url?: string;
   items?: TransactionItem[];
+  cash_advance_id?: string;
   created_at: string;
   updated_at?: string;
+}
+
+export interface CashAdvance {
+  id: string;
+  user_id: string;
+  project_name: string; // Nama project / lokasi penugasan
+  initial_amount: number; // Cash advance awal (Rp)
+  city: string; // Kota
+  verifier_name: string; // Nama pemeriksa
+  approver_name: string; // Nama penyetuju
+  collaborators: string[]; // Daftar nama / email kolaborator
+  created_at: string;
+  status: 'active' | 'completed';
+  notes?: string;
 }
 
 export interface ReceiptScanResult {

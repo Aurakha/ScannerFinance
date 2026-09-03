@@ -73,7 +73,46 @@ module.exports = async function handler(req, res) {
     }
     const cleanMime = mimeType || 'image/jpeg';
 
-    // 2. Cari atau buat folder "ScanFinance" -> subfolder "Foto Struk"
+    // 2. Tentukan Tahun, Bulan (09 - September), dan Tanggal (Tanggal 03) sesuai instruksi user
+    const INDONESIAN_MONTH_NAMES = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    let targetDate = null;
+    if (req.body?.receiptDate || req.body?.transactionDate) {
+      const parsed = new Date(req.body.receiptDate || req.body.transactionDate);
+      if (!isNaN(parsed.getTime())) targetDate = parsed;
+    }
+    if (!targetDate && cleanFileName) {
+      const match = cleanFileName.match(/^(\d{1,2})-(Jan|Feb|Mar|Apr|Mei|May|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)-(\d{2,4})/i);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const mStr = match[2].toLowerCase();
+        let yr = parseInt(match[3], 10);
+        if (yr < 100) yr += 2000;
+        const mMap = {
+          jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4,
+          jun: 5, jul: 6, agu: 7, aug: 7, sep: 8, okt: 9, oct: 9,
+          nov: 10, des: 11, dec: 11
+        };
+        if (mMap[mStr] !== undefined) {
+          targetDate = new Date(yr, mMap[mStr], day);
+        }
+      }
+    }
+    if (!targetDate) {
+      targetDate = new Date();
+    }
+
+    const yearFolderName = String(targetDate.getFullYear());
+    const monthNum = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const monthName = INDONESIAN_MONTH_NAMES[targetDate.getMonth()] || 'Januari';
+    const monthFolderName = `${monthNum} - ${monthName}`;
+    const dayNum = String(targetDate.getDate()).padStart(2, '0');
+    const dateFolderName = `Tanggal ${dayNum}`;
+
+    // 3. Cari atau buat hierarki folder on-demand: ScanFinance -> Foto Struk -> [Tahun] -> [Bulan] -> [Tanggal]
     let folderId = null;
     try {
       const getOrCreateFolder = async (name, parentId = null) => {
@@ -114,7 +153,10 @@ module.exports = async function handler(req, res) {
       };
 
       const rootId = await getOrCreateFolder('ScanFinance');
-      folderId = await getOrCreateFolder('Foto Struk', rootId);
+      const fotoStrukId = await getOrCreateFolder('Foto Struk', rootId);
+      const yearFolderId = await getOrCreateFolder(yearFolderName, fotoStrukId);
+      const monthFolderId = await getOrCreateFolder(monthFolderName, yearFolderId);
+      folderId = await getOrCreateFolder(dateFolderName, monthFolderId);
     } catch (fErr) {
       console.warn('Folder find/create notice:', fErr);
     }

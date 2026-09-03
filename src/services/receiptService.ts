@@ -150,7 +150,7 @@ export async function processReceiptImages(
   let driveLink: string | undefined;
   const driveUploadPromise = (async () => {
     try {
-      const driveRes = await uploadReceiptToGoogleDrive(validBase64[0], fileName);
+      const driveRes = await uploadReceiptToGoogleDrive(validBase64[0], fileName, 'image/jpeg', today);
       if (driveRes?.webViewLink) {
         driveLink = driveRes.webViewLink;
       }

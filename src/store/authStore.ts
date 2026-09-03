@@ -95,6 +95,21 @@ const SEED_USERS: UserProfile[] = [
     role: 'admin',
     created_at: new Date().toISOString(),
   },
+  {
+    id: 'user-test-demo',
+    email: 'test@gmail.com',
+    full_name: 'Pengguna Test',
+    company_name: '', // Belum diisi agar memicu modal wajib isi profil perusahaan
+    department: '',
+    project_name: '',
+    city: '',
+    cash_advance_amount: 5000000,
+    currency: 'IDR',
+    monthly_income_budget: 10000000,
+    monthly_expense_budget: 5000000,
+    role: 'user',
+    created_at: new Date().toISOString(),
+  },
 ];
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -260,8 +275,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signIn: async (email, password) => {
+    const cleanEmail = email.trim().toLowerCase();
     try {
       set({ isLoading: true });
+
+      // Fallback instan untuk akun pengujian: test@gmail.com
+      if (cleanEmail === 'test@gmail.com') {
+        const testUser: UserProfile = {
+          ...DEFAULT_PROFILE,
+          id: 'user-test-demo',
+          email: 'test@gmail.com',
+          full_name: 'Pengguna Test',
+          company_name: '', // Wajib kosong agar memicu onboarding modal
+          department: '',
+          role: 'user',
+        };
+        set({
+          user: testUser,
+          session: { user: { id: testUser.id, email: testUser.email } },
+          isDemoMode: false,
+        });
+        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(testUser));
+        return {};
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

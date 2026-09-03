@@ -6,7 +6,8 @@ export const translations = {
       home: 'Beranda',
       transactions: 'Transaksi',
       scanner: 'Unggah Struk',
-      analytics: 'Analisis',
+      analytics: 'Input',
+      input: 'Input',
       profile: 'Profil',
     },
     common: {
@@ -234,7 +235,8 @@ export const translations = {
       home: 'Home',
       transactions: 'Transactions',
       scanner: 'Scan Receipt',
-      analytics: 'Analytics',
+      analytics: 'Input',
+      input: 'Input',
       profile: 'Profile',
     },
     common: {

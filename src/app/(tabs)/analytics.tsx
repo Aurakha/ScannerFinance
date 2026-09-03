@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  TextInput,
+  Modal,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '@/components/common/Header';
@@ -13,18 +17,165 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart';
 import { SpendingBarChart } from '@/components/charts/SpendingBarChart';
 import { Palette } from '@/constants/theme';
 import { useTransactionStore } from '@/store/transactionStore';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
+import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { getLocalizedCategoryName, translations } from '@/i18n/translations';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
+import { CashAdvance } from '@/types';
 
-export default function AnalyticsScreen() {
+export default function InputScreen() {
+  const { user } = useAuthStore();
   const { stats, transactions } = useTransactionStore();
+  const {
+    cashAdvances,
+    activeCashAdvanceId,
+    loadCashAdvances,
+    createCashAdvance,
+    updateCashAdvance,
+    deleteCashAdvance,
+    setActiveCashAdvanceId,
+    getActiveCashAdvance,
+  } = useCashAdvanceStore();
+
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t, language } = useLanguageStore();
-  const [activePeriod, setActivePeriod] = useState<'month' | 'week'>('month');
 
-  // Siapkan data pengeluaran 7 hari terakhir
+  // Mode Sub-Tab: 'cash_advance' (Kelola Cash Advance & Proyek) atau 'statistics' (Statistik & Pengeluaran)
+  const [activeSubTab, setActiveSubTab] = useState<'cash_advance' | 'statistics'>('cash_advance');
+
+  // State Modal Tambah / Ubah Cash Advance
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState('');
+  const [initialAmount, setInitialAmount] = useState('');
+  const [city, setCity] = useState('');
+  const [verifierName, setVerifierName] = useState('');
+  const [approverName, setApproverName] = useState('');
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [collaboratorInput, setCollaboratorInput] = useState('');
+  const [notes, setNotes] = useState('');
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    loadCashAdvances(user?.id);
+  }, [user]);
+
+  const activeCA = getActiveCashAdvance();
+
+  // Buka Modal Tambah Baru
+  const handleOpenCreateModal = () => {
+    setEditingId(null);
+    setProjectName('');
+    setInitialAmount('5000000');
+    setCity(user?.city || 'Jakarta');
+    setVerifierName(user?.verifier_name || 'Pemeriksa 1');
+    setApproverName(user?.approver_name || 'Pimpinan 1');
+    setCollaborators([]);
+    setCollaboratorInput('');
+    setNotes('');
+    setFormError('');
+    setIsModalOpen(true);
+  };
+
+  // Buka Modal Edit
+  const handleOpenEditModal = (ca: CashAdvance) => {
+    setEditingId(ca.id);
+    setProjectName(ca.project_name);
+    setInitialAmount(String(ca.initial_amount));
+    setCity(ca.city);
+    setVerifierName(ca.verifier_name);
+    setApproverName(ca.approver_name);
+    setCollaborators([...ca.collaborators]);
+    setCollaboratorInput('');
+    setNotes(ca.notes || '');
+    setFormError('');
+    setIsModalOpen(true);
+  };
+
+  // Tambah Kolaborator
+  const handleAddCollaborator = () => {
+    const trimmed = collaboratorInput.trim();
+    if (!trimmed) return;
+    if (collaborators.includes(trimmed)) {
+      setCollaboratorInput('');
+      return;
+    }
+    setCollaborators([...collaborators, trimmed]);
+    setCollaboratorInput('');
+  };
+
+  // Hapus Kolaborator
+  const handleRemoveCollaborator = (target: string) => {
+    setCollaborators(collaborators.filter((c) => c !== target));
+  };
+
+  // Simpan Cash Advance
+  const handleSaveCashAdvance = async () => {
+    if (!projectName.trim()) {
+      setFormError(language === 'id' ? 'Nama Project / Lokasi Penugasan wajib diisi.' : 'Project Name is required.');
+      return;
+    }
+    const parsedAmount = parseFloat(initialAmount.replace(/[^0-9]/g, '')) || 0;
+    if (parsedAmount <= 0) {
+      setFormError(language === 'id' ? 'Nominal Cash Advance harus lebih dari 0.' : 'Cash Advance amount must be > 0.');
+      return;
+    }
+
+    setFormError('');
+    if (editingId) {
+      await updateCashAdvance(editingId, {
+        project_name: projectName.trim(),
+        initial_amount: parsedAmount,
+        city: city.trim() || 'Jakarta',
+        verifier_name: verifierName.trim() || 'Pemeriksa',
+        approver_name: approverName.trim() || 'Penyetuju',
+        collaborators,
+        notes: notes.trim(),
+      });
+    } else {
+      await createCashAdvance(
+        {
+          project_name: projectName.trim(),
+          initial_amount: parsedAmount,
+          city: city.trim() || 'Jakarta',
+          verifier_name: verifierName.trim() || 'Pemeriksa',
+          approver_name: approverName.trim() || 'Penyetuju',
+          collaborators,
+          status: 'active',
+          notes: notes.trim(),
+        },
+        user?.id
+      );
+    }
+    setIsModalOpen(false);
+  };
+
+  // Hapus Cash Advance
+  const handleDeleteCashAdvance = (id: string, name: string) => {
+    const confirmMsg = language === 'id'
+      ? `Apakah Anda yakin ingin menghapus cash advance "${name}"?`
+      : `Are you sure you want to delete cash advance "${name}"?`;
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(confirmMsg)) {
+        deleteCashAdvance(id);
+      }
+      return;
+    }
+
+    Alert.alert(
+      language === 'id' ? 'Hapus Cash Advance' : 'Delete Cash Advance',
+      confirmMsg,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: () => deleteCashAdvance(id) },
+      ]
+    );
+  };
+
+  // Siapkan data pengeluaran 7 hari terakhir untuk sub-tab statistik
   const daysOfWeek = translations[language].months.daysShort;
   const now = new Date();
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
@@ -33,7 +184,6 @@ export default function AnalyticsScreen() {
     const dayLabel = daysOfWeek[d.getDay()];
     const dateNumber = d.getDate();
 
-    // Hitung pengeluaran pada tanggal tersebut
     const dayTotal = transactions
       .filter((t) => {
         const txDate = new Date(t.transaction_date);
@@ -62,8 +212,12 @@ export default function AnalyticsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Header
-          title={t('analytics.title')}
-          subtitle={t('analytics.subtitle')}
+          title={language === 'id' ? 'Input & Kelola Data' : 'Input & Management'}
+          subtitle={
+            language === 'id'
+              ? 'Kelola multi-cash advance, proyek, kolaborator, & statistik pengeluaran'
+              : 'Manage multiple cash advances, projects, collaborators, & analytics'
+          }
           rightAction={
             <TouchableOpacity
               style={[styles.themeToggleBtn, { backgroundColor: theme.cardHover }]}
@@ -78,170 +232,599 @@ export default function AnalyticsScreen() {
           }
         />
 
-        {/* Budget Health Card */}
-        <View
-          style={[
-            styles.budgetCard,
-            { backgroundColor: theme.card, borderColor: theme.border },
-          ]}
-        >
-          <View style={styles.budgetCardHeader}>
-            <View>
-              <Text style={[styles.budgetCardTitle, { color: theme.text }]}>
-                {t('analytics.budgetStatusTitle')}
-              </Text>
-              <Text style={[styles.budgetCardSub, { color: theme.textSecondary }]}>
-                {language === 'id' ? 'Batas: ' : 'Limit: '}{formatRupiah(stats.budgetLimit)}
-              </Text>
-            </View>
-
-            <View
+        {/* Sub-Tab Navigation Switcher */}
+        <View style={[styles.subTabContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <TouchableOpacity
+            style={[
+              styles.subTabBtn,
+              activeSubTab === 'cash_advance' && {
+                backgroundColor: Palette.primary,
+              },
+            ]}
+            onPress={() => setActiveSubTab('cash_advance')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="wallet-outline"
+              size={16}
+              color={activeSubTab === 'cash_advance' ? '#FFFFFF' : theme.textSecondary}
+            />
+            <Text
               style={[
-                styles.statusPill,
-                {
-                  backgroundColor:
-                    stats.budgetUsedPercentage > 90
-                      ? 'rgba(239, 68, 68, 0.15)'
-                      : stats.budgetUsedPercentage > 70
-                      ? 'rgba(245, 158, 11, 0.15)'
-                      : 'rgba(16, 185, 129, 0.15)',
-                },
+                styles.subTabBtnText,
+                { color: activeSubTab === 'cash_advance' ? '#FFFFFF' : theme.textSecondary },
               ]}
             >
-              <Text
-                style={[
-                  styles.statusPillText,
-                  {
-                    color:
-                      stats.budgetUsedPercentage > 90
-                        ? Palette.coral
-                        : stats.budgetUsedPercentage > 70
-                        ? Palette.amber
-                        : Palette.primary,
-                  },
-                ]}
-              >
-                {stats.budgetUsedPercentage > 90
-                  ? (language === 'id' ? 'Kritis' : 'Critical')
-                  : stats.budgetUsedPercentage > 70
-                  ? (language === 'id' ? 'Waspada' : 'Warning')
-                  : (language === 'id' ? 'Aman' : 'Safe')}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.budgetMetricsRow,
-              { backgroundColor: theme.background, borderColor: theme.border },
-            ]}
-          >
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>
-                {language === 'id' ? 'Terpakai' : 'Used'}
-              </Text>
-              <Text style={[styles.metricVal, { color: theme.text }]}>
-                {formatRupiah(stats.totalExpense)}
-              </Text>
-            </View>
-            <View style={[styles.metricDivider, { backgroundColor: theme.border }]} />
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>
-                {language === 'id' ? 'Sisa Anggaran' : 'Remaining Budget'}
-              </Text>
-              <Text
-                style={[
-                  styles.metricVal,
-                  { color: stats.balance < 0 ? Palette.coral : Palette.primary },
-                ]}
-              >
-                {formatRupiah(stats.balance)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 7 Days Spending Bar Chart */}
-        <View style={styles.sectionMargin}>
-          <SpendingBarChart data={last7Days} />
-        </View>
-
-        {/* Category Breakdown Donut */}
-        <View style={styles.sectionMargin}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              {t('analytics.categoryDistribution')}
+              {language === 'id' ? 'Kelola Cash Advance & Proyek' : 'Manage Cash Advance'}
             </Text>
-          </View>
-          <CategoryPieChart
-            data={stats.categoryBreakdown}
-            totalAmount={stats.totalExpense}
-          />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.subTabBtn,
+              activeSubTab === 'statistics' && {
+                backgroundColor: Palette.primary,
+              },
+            ]}
+            onPress={() => setActiveSubTab('statistics')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="pie-chart-outline"
+              size={16}
+              color={activeSubTab === 'statistics' ? '#FFFFFF' : theme.textSecondary}
+            />
+            <Text
+              style={[
+                styles.subTabBtnText,
+                { color: activeSubTab === 'statistics' ? '#FFFFFF' : theme.textSecondary },
+              ]}
+            >
+              {language === 'id' ? 'Statistik & Pengeluaran' : 'Stats & Expenses'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Top Expense Breakdown List */}
-        <View style={styles.sectionMargin}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              {t('analytics.highestCategoryBreakdown')}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.breakdownCard,
-              { backgroundColor: theme.card, borderColor: theme.border },
-            ]}
-          >
-            {stats.categoryBreakdown.map((cat, idx) => (
-              <View
-                key={cat.categoryId}
-                style={[
-                  styles.breakdownRow,
-                  idx !== stats.categoryBreakdown.length - 1 && {
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.border,
-                  },
-                ]}
-              >
-                <View style={[styles.catIconBox, { backgroundColor: `${cat.categoryColor}20` }]}>
-                  <Ionicons name={cat.categoryIcon as any} size={20} color={cat.categoryColor} />
+        {/* TAB 1: KELOLA CASH ADVANCE & PROYEK */}
+        {activeSubTab === 'cash_advance' ? (
+          <View style={styles.tabContent}>
+            {/* Header Action Banner */}
+            <View
+              style={[
+                styles.caBannerCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.caBannerLeft}>
+                <View style={styles.caIconWrap}>
+                  <Ionicons name="briefcase" size={24} color={Palette.primary} />
                 </View>
-
-                <View style={styles.catInfo}>
-                  <View style={styles.catNameRow}>
-                    <Text style={[styles.catName, { color: theme.text }]}>
-                      {getLocalizedCategoryName(cat.categoryName, language)}
-                    </Text>
-                    <Text style={[styles.catAmount, { color: theme.text }]}>
-                      {formatRupiah(cat.amount)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.progressRow}>
-                    <View
-                      style={[styles.catProgressBg, { backgroundColor: theme.background }]}
-                    >
-                      <View
-                        style={[
-                          styles.catProgressFill,
-                          {
-                            width: `${cat.percentage}%`,
-                            backgroundColor: cat.categoryColor,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={[styles.catPercentText, { color: theme.textSecondary }]}>
-                      {formatPercent(cat.percentage)}
-                    </Text>
-                  </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.caBannerTitle, { color: theme.text }]}>
+                    {language === 'id' ? 'Daftar Pengajuan Cash Advance' : 'Cash Advance Applications'}
+                  </Text>
+                  <Text style={[styles.caBannerSub, { color: theme.textSecondary }]}>
+                    {language === 'id'
+                      ? 'Tiap akun dapat memiliki lebih dari 1 cash advance untuk tujuan proyek berbeda bersama kolaborator.'
+                      : 'You can hold multiple cash advances for different projects with multiple collaborators.'}
+                  </Text>
                 </View>
               </View>
-            ))}
+
+              <TouchableOpacity
+                style={styles.createCABtn}
+                onPress={handleOpenCreateModal}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.createCABtnText}>
+                  {language === 'id' ? '+ Tambah Cash Advance' : '+ New Cash Advance'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* List of Cash Advances */}
+            <View style={styles.caList}>
+              {cashAdvances.map((ca) => {
+                const isActive = ca.id === activeCashAdvanceId;
+                return (
+                  <View
+                    key={ca.id}
+                    style={[
+                      styles.caItemCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: isActive ? Palette.primary : theme.border,
+                        borderWidth: isActive ? 1.5 : 1,
+                      },
+                    ]}
+                  >
+                    {/* Header Card */}
+                    <View style={styles.caItemHeader}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <Text style={[styles.caProjectTitle, { color: theme.text }]}>
+                            {ca.project_name}
+                          </Text>
+                          {isActive ? (
+                            <View style={styles.activePill}>
+                              <Ionicons name="checkmark-circle" size={12} color="#FFFFFF" />
+                              <Text style={styles.activePillText}>
+                                {language === 'id' ? 'Aktif Digunakan' : 'Active'}
+                              </Text>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              style={styles.setAsActiveBtn}
+                              onPress={() => setActiveCashAdvanceId(ca.id)}
+                            >
+                              <Text style={styles.setAsActiveBtnText}>
+                                {language === 'id' ? 'Jadikan Aktif' : 'Set as Active'}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <Text style={[styles.caItemCity, { color: theme.textSecondary }]}>
+                          📍 {ca.city || 'Kota belum diisi'}
+                        </Text>
+                      </View>
+
+                      {/* Action buttons (Edit & Delete) */}
+                      <View style={styles.caItemActions}>
+                        <TouchableOpacity
+                          style={[styles.iconActionBtn, { backgroundColor: theme.cardHover }]}
+                          onPress={() => handleOpenEditModal(ca)}
+                        >
+                          <Ionicons name="pencil-outline" size={16} color={Palette.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.iconActionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                          onPress={() => handleDeleteCashAdvance(ca.id, ca.project_name)}
+                        >
+                          <Ionicons name="trash-outline" size={16} color={Palette.coral} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Plafon Amount */}
+                    <View style={[styles.caAmountBox, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.caAmountLabel, { color: theme.textSecondary }]}>
+                        {language === 'id' ? 'Plafon Cash Advance Awal' : 'Initial Cash Advance Amount'}
+                      </Text>
+                      <Text style={[styles.caAmountValue, { color: Palette.primary }]}>
+                        {formatRupiah(ca.initial_amount)}
+                      </Text>
+                    </View>
+
+                    {/* Metadata: Pemeriksa & Penyetuju */}
+                    <View style={styles.caMetaRow}>
+                      <View style={styles.caMetaCol}>
+                        <Text style={[styles.caMetaLabel, { color: theme.textMuted }]}>
+                          {language === 'id' ? 'Pemeriksa:' : 'Verifier:'}
+                        </Text>
+                        <Text style={[styles.caMetaVal, { color: theme.text }]}>
+                          {ca.verifier_name || '-'}
+                        </Text>
+                      </View>
+                      <View style={styles.caMetaCol}>
+                        <Text style={[styles.caMetaLabel, { color: theme.textMuted }]}>
+                          {language === 'id' ? 'Penyetuju:' : 'Approver:'}
+                        </Text>
+                        <Text style={[styles.caMetaVal, { color: theme.text }]}>
+                          {ca.approver_name || '-'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Kolaborator Chips */}
+                    <View style={styles.collaboratorsWrap}>
+                      <Text style={[styles.collabSectionTitle, { color: theme.textSecondary }]}>
+                        👥 {language === 'id' ? 'Kolaborator' : 'Collaborators'} ({ca.collaborators.length}):
+                      </Text>
+                      <View style={styles.collabChipsList}>
+                        {ca.collaborators.length > 0 ? (
+                          ca.collaborators.map((c, idx) => (
+                            <View
+                              key={`${c}-${idx}`}
+                              style={[
+                                styles.collabChip,
+                                { backgroundColor: 'rgba(88, 101, 242, 0.1)', borderColor: 'rgba(88, 101, 242, 0.25)' },
+                              ]}
+                            >
+                              <Ionicons name="person-circle" size={14} color={Palette.primary} />
+                              <Text style={[styles.collabChipText, { color: Palette.primary }]}>
+                                {c}
+                              </Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={[styles.emptyCollabText, { color: theme.textMuted }]}>
+                            {language === 'id'
+                              ? 'Belum ada kolaborator ditambahkan'
+                              : 'No collaborators added yet'}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : (
+          /* TAB 2: STATISTIK & PENGELUARAN (PRESERVED ALL EXISTING CHARTS) */
+          <View style={styles.tabContent}>
+            {/* Budget Health Card */}
+            <View
+              style={[
+                styles.budgetCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.budgetCardHeader}>
+                <View>
+                  <Text style={[styles.budgetCardTitle, { color: theme.text }]}>
+                    {t('analytics.budgetStatusTitle')}
+                  </Text>
+                  <Text style={[styles.budgetCardSub, { color: theme.textSecondary }]}>
+                    {language === 'id' ? 'Batas: ' : 'Limit: '}{formatRupiah(activeCA?.initial_amount || stats.budgetLimit)}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.statusPill,
+                    {
+                      backgroundColor:
+                        stats.budgetUsedPercentage >= 100
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : stats.budgetUsedPercentage >= 80
+                          ? 'rgba(240, 178, 50, 0.15)'
+                          : 'rgba(35, 165, 90, 0.15)',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      {
+                        color:
+                          stats.budgetUsedPercentage >= 100
+                            ? Palette.coral
+                            : stats.budgetUsedPercentage >= 80
+                            ? Palette.amber
+                            : Palette.greenOnline,
+                      },
+                    ]}
+                  >
+                    {stats.budgetUsedPercentage >= 100
+                      ? t('analytics.budgetHealthDanger')
+                      : stats.budgetUsedPercentage >= 80
+                      ? t('analytics.budgetHealthWarning')
+                      : t('analytics.budgetHealthGood')}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Progress Bar */}
+              <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${Math.min(stats.budgetUsedPercentage, 100)}%`,
+                      backgroundColor:
+                        stats.budgetUsedPercentage >= 100
+                          ? Palette.coral
+                          : stats.budgetUsedPercentage >= 80
+                          ? Palette.amber
+                          : Palette.primary,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.progressMetrics}>
+                <Text style={[styles.progressMetricText, { color: theme.textSecondary }]}>
+                  {t('dashboard.budgetUsed', {
+                    used: formatRupiah(stats.totalExpense),
+                    limit: formatRupiah(activeCA?.initial_amount || stats.budgetLimit),
+                  })}
+                </Text>
+                <Text style={[styles.progressPercentage, { color: Palette.primary }]}>
+                  {formatPercent(stats.budgetUsedPercentage)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Daily Spending Trend (Last 7 Days) */}
+            <View
+              style={[
+                styles.chartCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.cardHeaderRow}>
+                <View>
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>
+                    {t('analytics.spending7Days')}
+                  </Text>
+                  <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                    {t('analytics.dailyAverageLabel')} {formatRupiah(stats.dailyAverage)}
+                  </Text>
+                </View>
+
+                <View style={[styles.badgeDaily, { backgroundColor: theme.cardHover }]}>
+                  <Text style={[styles.badgeDailyText, { color: Palette.primary }]}>
+                    {language === 'id' ? '7 Hari Terakhir' : 'Last 7 Days'}
+                  </Text>
+                </View>
+              </View>
+
+              <SpendingBarChart data={last7Days} />
+            </View>
+
+            {/* Category Breakdown Pie Chart */}
+            <View
+              style={[
+                styles.chartCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.cardHeaderRow}>
+                <View>
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>
+                    {t('analytics.categoryDistribution')}
+                  </Text>
+                  <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                    {language === 'id' ? 'Distribusi pengeluaran berdasarkan kategori pos anggaran' : 'Distribution across expense categories'}
+                  </Text>
+                </View>
+              </View>
+
+              <CategoryPieChart data={stats.categoryBreakdown} totalAmount={stats.totalExpense} />
+            </View>
+
+            {/* Category Detail List */}
+            <View
+              style={[
+                styles.chartCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 14 }]}>
+                {t('analytics.highestCategoryBreakdown')}
+              </Text>
+
+              <View style={styles.categoryList}>
+                {stats.categoryBreakdown.length > 0 ? (
+                  stats.categoryBreakdown.map((cat) => (
+                    <View
+                      key={cat.categoryId}
+                      style={[
+                        styles.categoryRow,
+                        { borderBottomColor: theme.border },
+                      ]}
+                    >
+                      <View style={styles.categoryInfoLeft}>
+                        <View
+                          style={[
+                            styles.categoryColorDot,
+                            { backgroundColor: cat.categoryColor },
+                          ]}
+                        />
+                        <Text style={[styles.categoryNameText, { color: theme.text }]}>
+                          {getLocalizedCategoryName(cat.categoryName, language)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.categoryInfoRight}>
+                        <Text style={[styles.categoryAmountText, { color: theme.text }]}>
+                          {formatRupiah(cat.amount)}
+                        </Text>
+                        <Text style={[styles.categoryPercentText, { color: theme.textSecondary }]}>
+                          {formatPercent(cat.percentage)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+                    {t('transactions.noTransactionsFound')}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* MODAL FORM TAMBAH / UBAH CASH ADVANCE */}
+      <Modal visible={isModalOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {/* Header Modal */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                  {editingId
+                    ? (language === 'id' ? 'Ubah Cash Advance' : 'Edit Cash Advance')
+                    : (language === 'id' ? 'Tambah Cash Advance Baru' : 'New Cash Advance')}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsModalOpen(false)}>
+                <Ionicons name="close" size={22} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 520 }}>
+              {formError ? (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle-outline" size={16} color={Palette.coral} />
+                  <Text style={styles.errorText}>{formError}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Nama Project / Lokasi Penugasan *' : 'Project Name / Duty Location *'}
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={projectName}
+                  onChangeText={(val) => {
+                    setProjectName(val);
+                    if (formError) setFormError('');
+                  }}
+                  placeholder="Misal: Tangerang Project / Head Office"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Nominal Cash Advance Awal (Rp) *' : 'Initial Cash Advance Amount (Rp) *'}
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={initialAmount}
+                  onChangeText={(val) => {
+                    setInitialAmount(val);
+                    if (formError) setFormError('');
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Misal: 7117500"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Kota Penugasan' : 'City'}
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="Misal: Tangerang / Jakarta"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              <View style={styles.rowTwoInputs}>
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                    {language === 'id' ? 'Nama Pemeriksa' : 'Verifier Name'}
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                    value={verifierName}
+                    onChangeText={setVerifierName}
+                    placeholder="Misal: Yunitha"
+                    placeholderTextColor={theme.textMuted}
+                  />
+                </View>
+
+                <View style={[styles.formGroup, { flex: 1 }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                    {language === 'id' ? 'Nama Penyetuju' : 'Approver Name'}
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                    value={approverName}
+                    onChangeText={setApproverName}
+                    placeholder="Misal: Dwi Hartanto"
+                    placeholderTextColor={theme.textMuted}
+                  />
+                </View>
+              </View>
+
+              {/* Kolaborator Input */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Kolaborator (Bisa lebih dari 1 akun)' : 'Collaborators (Multiple accounts)'}
+                </Text>
+                <View style={styles.addCollabRow}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { flex: 1, backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+                    ]}
+                    value={collaboratorInput}
+                    onChangeText={setCollaboratorInput}
+                    placeholder="Ketik email / nama kolaborator..."
+                    placeholderTextColor={theme.textMuted}
+                    onSubmitEditing={handleAddCollaborator}
+                  />
+                  <TouchableOpacity
+                    style={styles.addCollabBtn}
+                    onPress={handleAddCollaborator}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="add" size={18} color="#FFFFFF" />
+                    <Text style={styles.addCollabBtnText}>
+                      {language === 'id' ? 'Tambah' : 'Add'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Chips Kolaborator */}
+                <View style={styles.collabChipsWrapper}>
+                  {collaborators.map((c, idx) => (
+                    <View
+                      key={`${c}-${idx}`}
+                      style={[
+                        styles.chipWithDelete,
+                        { backgroundColor: 'rgba(88, 101, 242, 0.12)', borderColor: Palette.primary },
+                      ]}
+                    >
+                      <Text style={[styles.chipText, { color: Palette.primary }]}>{c}</Text>
+                      <TouchableOpacity onPress={() => handleRemoveCollaborator(c)}>
+                        <Ionicons name="close-circle" size={16} color={Palette.coral} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Catatan Tambahan (Opsional)' : 'Notes (Optional)'}
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Kebutuhan khusus atau info proyek..."
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { borderColor: theme.border }]}
+                onPress={() => setIsModalOpen(false)}
+              >
+                <Text style={[styles.cancelBtnText, { color: theme.textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleSaveCashAdvance}
+              >
+                <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.submitBtnText}>
+                  {language === 'id' ? 'Simpan Cash Advance' : 'Save Cash Advance'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -254,7 +837,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingHorizontal: 16,
+    paddingBottom: 90,
   },
   themeToggleBtn: {
     width: 36,
@@ -263,21 +847,204 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  budgetCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 18,
+  subTabContainer: {
+    flexDirection: 'row',
+    borderRadius: 14,
     borderWidth: 1,
+    padding: 4,
     marginBottom: 16,
+    gap: 6,
+  },
+  subTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  subTabBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tabContent: {
+    gap: 16,
+  },
+  caBannerCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  caBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  caIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  caBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  caBannerSub: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  createCABtn: {
+    backgroundColor: Palette.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  createCABtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  caList: {
+    gap: 14,
+  },
+  caItemCard: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  caItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  caProjectTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Palette.greenOnline,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  activePillText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  setAsActiveBtn: {
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  setAsActiveBtnText: {
+    color: Palette.primary,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  caItemCity: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  caItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  caAmountBox: {
+    borderRadius: 12,
+    padding: 12,
+  },
+  caAmountLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  caAmountValue: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  caMetaRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  caMetaCol: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  caMetaLabel: {
+    fontSize: 12,
+  },
+  caMetaVal: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  collaboratorsWrap: {
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150, 150, 150, 0.1)',
+    paddingTop: 10,
+  },
+  collabSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  collabChipsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  collabChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  collabChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  emptyCollabText: {
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  budgetCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
   },
   budgetCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   budgetCardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   budgetCardSub: {
@@ -287,97 +1054,228 @@ const styles = StyleSheet.create({
   statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 20,
   },
   statusPillText: {
     fontSize: 11,
     fontWeight: '700',
   },
-  budgetMetricsRow: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
+  progressBarTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
   },
-  metricBox: {
-    flex: 1,
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  metricDivider: {
-    width: 1,
-  },
-  metricLabel: {
+  progressMetricText: {
     fontSize: 11,
-    marginBottom: 4,
   },
-  metricVal: {
-    fontSize: 14,
-    fontWeight: '800',
+  progressPercentage: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  sectionMargin: {
-    marginHorizontal: 16,
+  chartCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
-  sectionHeader: {
-    marginBottom: 10,
-  },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 15,
     fontWeight: '700',
   },
-  breakdownCard: {
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
+  cardSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
-  breakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
+  badgeDaily: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  catIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  catInfo: {
-    flex: 1,
-  },
-  catNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  catName: {
-    fontSize: 13,
+  badgeDailyText: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  catAmount: {
-    fontSize: 13,
-    fontWeight: '700',
+  categoryList: {
+    gap: 8,
   },
-  progressRow: {
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  categoryInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  catProgressBg: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
+  categoryColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  catProgressFill: {
-    height: '100%',
-    borderRadius: 3,
+  categoryNameText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
-  catPercentText: {
-    fontSize: 11,
+  categoryInfoRight: {
+    alignItems: 'flex-end',
+  },
+  categoryAmountText: {
+    fontSize: 13,
     fontWeight: '600',
-    width: 34,
-    textAlign: 'right',
+  },
+  categoryPercentText: {
+    fontSize: 11,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 13,
+    marginVertical: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(242, 63, 67, 0.1)',
+    borderColor: Palette.coral,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: Palette.coral,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  formGroup: {
+    gap: 6,
+    marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    fontSize: 13,
+  },
+  rowTwoInputs: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  addCollabRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  addCollabBtn: {
+    backgroundColor: Palette.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  addCollabBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  collabChipsWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
+  chipWithDelete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  submitBtn: {
+    flex: 2,
+    backgroundColor: Palette.primary,
+    borderRadius: 12,
+    height: 44,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

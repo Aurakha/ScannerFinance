@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  Modal,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -153,7 +152,7 @@ export default function RegisterScreen() {
                     style={[styles.input, { color: theme.text }]}
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="nama@perusahaan.com"
+                    placeholder="name@gmail.com"
                     placeholderTextColor={theme.textMuted}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -252,7 +251,7 @@ export default function RegisterScreen() {
             <Text style={[styles.modalSuccessTitle, { color: theme.text }]}>
               Pendaftaran Berhasil! 🎉
             </Text>
-            
+
             <Text style={[styles.modalSuccessSubtitle, { color: theme.textSecondary }]}>
               Akun Anda telah berhasil didaftarkan di sistem.
             </Text>

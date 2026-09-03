@@ -5,12 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { CompanyInfoRequiredModal } from '@/components/modals/CompanyInfoRequiredModal';
 
 export default function TabLayout() {
   const { theme } = useThemeStore();
   const { t, language } = useLanguageStore();
 
   return (
+    <>
     <Tabs
       key={`tab-layout-${language}`}
       screenOptions={{
@@ -84,13 +86,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="analytics"
         options={{
-          title: t('tabs.analytics'),
+          title: t('tabs.input') || 'Input',
           tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.analytics')}</Text>
+            <Text style={[styles.tabLabelText, { color }]}>{t('tabs.input') || 'Input'}</Text>
           ),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'pie-chart' : 'pie-chart-outline'}
+              name={focused ? 'wallet' : 'wallet-outline'}
               size={22}
               color={color}
             />
@@ -115,6 +117,8 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    <CompanyInfoRequiredModal />
+    </>
   );
 }
 

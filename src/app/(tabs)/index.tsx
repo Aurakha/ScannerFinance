@@ -18,18 +18,29 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user, isDemoMode, impersonatingUser, exitImpersonation } = useAuthStore();
   const { transactions, stats, loadData } = useTransactionStore();
+  const {
+    cashAdvances,
+    activeCashAdvanceId,
+    setActiveCashAdvanceId,
+    getActiveCashAdvance,
+    loadCashAdvances,
+  } = useCashAdvanceStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t, language } = useLanguageStore();
 
   useEffect(() => {
     loadData(user?.id);
+    loadCashAdvances(user?.id);
   }, [user]);
+
+  const activeCA = getActiveCashAdvance();
 
   const handleReturnToAdmin = () => {
     exitImpersonation();
@@ -82,6 +93,140 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           }
         />
+
+        {/* Multi-Cash Advance Switcher & Status Card */}
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: 'rgba(88, 101, 242, 0.3)',
+              marginBottom: 16,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="wallet-outline" size={18} color={Palette.primary} />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
+                {language === 'id' ? 'Tanggungan Cash Advance Proyek' : 'Project Cash Advance'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/analytics')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: Palette.primary }}>
+                {language === 'id' ? 'Kelola di Menu Input ➔' : 'Manage in Input ➔'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Horizontal Cash Advance Switcher Pills */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {cashAdvances.map((ca) => {
+                const isSelected = ca.id === activeCashAdvanceId;
+                return (
+                  <TouchableOpacity
+                    key={ca.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: isSelected ? Palette.primary : theme.cardHover,
+                      borderColor: isSelected ? Palette.primary : theme.border,
+                      borderWidth: 1,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                    }}
+                    onPress={() => setActiveCashAdvanceId(ca.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={isSelected ? 'checkmark-circle' : 'briefcase-outline'}
+                      size={14}
+                      color={isSelected ? '#FFFFFF' : theme.textSecondary}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '700',
+                        color: isSelected ? '#FFFFFF' : theme.text,
+                      }}
+                    >
+                      {ca.project_name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          {/* Selected Cash Advance Details */}
+          {activeCA ? (
+            <View style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, gap: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                    {language === 'id' ? 'Plafon Awal Proyek' : 'Initial Budget'}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>
+                    {formatRupiah(activeCA.initial_amount)}
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                    {language === 'id' ? 'Sisa Saldo Klaim' : 'Remaining Balance'}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '800',
+                      color:
+                        activeCA.initial_amount - stats.totalExpense < 0
+                          ? Palette.coral
+                          : Palette.greenOnline,
+                    }}
+                  >
+                    {formatRupiah(activeCA.initial_amount - stats.totalExpense)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={{ fontSize: 11, color: theme.textMuted }}>
+                  📍 {activeCA.city} • Pemeriksa: {activeCA.verifier_name} • Penyetuju: {activeCA.approver_name}
+                </Text>
+              </View>
+
+              {/* Kolaborator List */}
+              {activeCA.collaborators.length > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.border }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textSecondary }}>
+                    👥 Kolaborator:
+                  </Text>
+                  {activeCA.collaborators.map((collab, idx) => (
+                    <View
+                      key={`${collab}-${idx}`}
+                      style={{
+                        backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: Palette.primary }}>
+                        {collab}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : null}
+        </View>
 
         {/* Discord Hero Financial Overview */}
         <View
