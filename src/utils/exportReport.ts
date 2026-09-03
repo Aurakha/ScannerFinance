@@ -2,7 +2,7 @@ import { Transaction, UserProfile } from '@/types';
 import { formatDateShort, formatRupiah } from './formatters';
 import { Platform, Linking } from 'react-native';
 import { exportToGoogleSpreadsheet as cloudExportToGDrive } from '@/services/googleDriveService';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 
 export interface CompanyReportOptions {
   profile?: UserProfile;
@@ -840,7 +840,7 @@ export function buildCompanyExpenseWorksheet(
   transactions: Transaction[],
   profile?: UserProfile,
   reportDateOverride?: string
-): XLSX.WorkSheet {
+): any {
   const companyName = profile?.company_name || 'PT. San Kawan Abadi';
   const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
   const department = profile?.department || 'Operation';
@@ -855,53 +855,160 @@ export function buildCompanyExpenseWorksheet(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
   );
 
-  const ws: XLSX.WorkSheet = {};
+  const ws: any = {};
 
-  const setCell = (r: number, c: number, cell: XLSX.CellObject) => {
+  const setCell = (r: number, c: number, cell: any) => {
     const ref = XLSX.utils.encode_cell({ r, c });
     ws[ref] = cell;
   };
 
+  // Border standard 1px black
+  const borderAll = {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } },
+  };
+
+  const fontRegular = { name: 'Calibri', sz: 10, color: { rgb: '000000' } };
+  const fontBold = { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } };
+  const fontSubHeader = { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '000000' } };
+  const fontUnderlineBold = { name: 'Calibri', sz: 10, bold: true, underline: true, color: { rgb: '000000' } };
+
   const idrFormat = '"Rp "#,##0;("Rp "#,##0);"-"';
 
-  // Metadata (Rows 0 to 4)
-  setCell(0, 0, { t: 's', v: 'Nama Perusahaan' });
-  setCell(0, 1, { t: 's', v: ':' });
-  setCell(0, 2, { t: 's', v: companyName });
+  // Metadata styling
+  const metaLabelStyle = { font: fontBold, alignment: { vertical: 'center', horizontal: 'left' } };
+  const metaColonStyle = { font: fontBold, alignment: { vertical: 'center', horizontal: 'center' } };
+  const metaValBoldStyle = { font: fontBold, alignment: { vertical: 'center', horizontal: 'left' } };
+  const metaValStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'left' } };
 
-  setCell(1, 0, { t: 's', v: 'Nama' });
-  setCell(1, 1, { t: 's', v: ':' });
-  setCell(1, 2, { t: 's', v: employeeName });
+  setCell(0, 0, { t: 's', v: 'Nama Perusahaan', s: metaLabelStyle });
+  setCell(0, 1, { t: 's', v: ':', s: metaColonStyle });
+  setCell(0, 2, { t: 's', v: companyName, s: metaValBoldStyle });
 
-  setCell(2, 0, { t: 's', v: 'Dept/Divisi' });
-  setCell(2, 1, { t: 's', v: ':' });
-  setCell(2, 2, { t: 's', v: department });
+  setCell(1, 0, { t: 's', v: 'Nama', s: metaLabelStyle });
+  setCell(1, 1, { t: 's', v: ':', s: metaColonStyle });
+  setCell(1, 2, { t: 's', v: employeeName, s: metaValStyle });
 
-  setCell(3, 0, { t: 's', v: 'Tanggal' });
-  setCell(3, 1, { t: 's', v: ':' });
-  setCell(3, 2, { t: 's', v: reportDate });
+  setCell(2, 0, { t: 's', v: 'Dept/Divisi', s: metaLabelStyle });
+  setCell(2, 1, { t: 's', v: ':', s: metaColonStyle });
+  setCell(2, 2, { t: 's', v: department, s: metaValStyle });
 
-  setCell(4, 0, { t: 's', v: 'Project' });
-  setCell(4, 1, { t: 's', v: ':' });
-  setCell(4, 2, { t: 's', v: projectName });
+  setCell(3, 0, { t: 's', v: 'Tanggal', s: metaLabelStyle });
+  setCell(3, 1, { t: 's', v: ':', s: metaColonStyle });
+  setCell(3, 2, { t: 's', v: reportDate, s: metaValStyle });
 
-  // Table Headers (Row 6)
-  setCell(6, 0, { t: 's', v: 'TANGGAL' });
-  setCell(6, 1, { t: 's', v: 'NO' });
-  setCell(6, 2, { t: 's', v: 'KETERANGAN' });
-  setCell(6, 3, { t: 's', v: 'JUMLAH ITEM' });
-  setCell(6, 4, { t: 's', v: 'Operational' });
-  setCell(6, 5, { t: 's', v: 'Pantry' });
-  setCell(6, 6, { t: 's', v: 'Fasilitas' });
-  setCell(6, 7, { t: 's', v: 'Lain-Lain' });
-  setCell(6, 8, { t: 's', v: 'TOTAL' });
+  setCell(4, 0, { t: 's', v: 'Project', s: metaLabelStyle });
+  setCell(4, 1, { t: 's', v: ':', s: metaColonStyle });
+  setCell(4, 2, { t: 's', v: projectName, s: metaValStyle });
 
-  // Subheaders (Row 7)
-  setCell(7, 4, { t: 's', v: '(Rp) - B' });
-  setCell(7, 5, { t: 's', v: '(Rp) - C' });
-  setCell(7, 6, { t: 's', v: '(Rp) - D' });
-  setCell(7, 7, { t: 's', v: '(Rp) - F' });
-  setCell(7, 8, { t: 's', v: '(Rp) - G' });
+  // Header 2 Rows (Row 6 and 7, 0-indexed)
+  const headerWhiteStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'FFFFFF' } },
+  };
+
+  const opHeaderStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'FEF08A' } }, // Pastel Yellow
+  };
+  const opSubHeaderStyle = {
+    font: fontSubHeader,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'FEF08A' } },
+  };
+
+  const pantryHeaderStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'BBF7D0' } }, // Pastel Green
+  };
+  const pantrySubHeaderStyle = {
+    font: fontSubHeader,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'BBF7D0' } },
+  };
+
+  const fasHeaderStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'FBCFE8' } }, // Pastel Pink
+  };
+  const fasSubHeaderStyle = {
+    font: fontSubHeader,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'FBCFE8' } },
+  };
+
+  const lainHeaderStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'BAE6FD' } }, // Pastel Blue
+  };
+  const lainSubHeaderStyle = {
+    font: fontSubHeader,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'BAE6FD' } },
+  };
+
+  const totalHeaderStyle = {
+    font: fontBold,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'E2E8F0' } }, // Pastel Gray
+  };
+  const totalSubHeaderStyle = {
+    font: fontSubHeader,
+    alignment: { vertical: 'center', horizontal: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'E2E8F0' } },
+  };
+
+  // Row 6 Headers
+  setCell(6, 0, { t: 's', v: 'TANGGAL', s: headerWhiteStyle });
+  setCell(6, 1, { t: 's', v: 'NO', s: headerWhiteStyle });
+  setCell(6, 2, { t: 's', v: 'KETERANGAN', s: headerWhiteStyle });
+  setCell(6, 3, { t: 's', v: 'JUMLAH ITEM', s: headerWhiteStyle });
+  setCell(6, 4, { t: 's', v: 'Operational', s: opHeaderStyle });
+  setCell(6, 5, { t: 's', v: 'Pantry', s: pantryHeaderStyle });
+  setCell(6, 6, { t: 's', v: 'Fasilitas', s: fasHeaderStyle });
+  setCell(6, 7, { t: 's', v: 'Lain-Lain', s: lainHeaderStyle });
+  setCell(6, 8, { t: 's', v: 'TOTAL', s: totalHeaderStyle });
+
+  // Row 7 Subheaders (including blank bottom cells for merged headers)
+  setCell(7, 0, { t: 's', v: '', s: headerWhiteStyle });
+  setCell(7, 1, { t: 's', v: '', s: headerWhiteStyle });
+  setCell(7, 2, { t: 's', v: '', s: headerWhiteStyle });
+  setCell(7, 3, { t: 's', v: '', s: headerWhiteStyle });
+  setCell(7, 4, { t: 's', v: '(Rp) - B', s: opSubHeaderStyle });
+  setCell(7, 5, { t: 's', v: '(Rp) - C', s: pantrySubHeaderStyle });
+  setCell(7, 6, { t: 's', v: '(Rp) - D', s: fasSubHeaderStyle });
+  setCell(7, 7, { t: 's', v: '(Rp) - F', s: lainSubHeaderStyle });
+  setCell(7, 8, { t: 's', v: '(Rp) - G', s: totalSubHeaderStyle });
+
+  // Data cell styles
+  const cellDateStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'center' }, border: borderAll };
+  const cellNoStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'center' }, border: borderAll };
+  const cellDescStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'left' }, border: borderAll };
+  const cellDescRedStyle = { font: { ...fontRegular, color: { rgb: 'DC2626' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: borderAll };
+  const cellQtyStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'center' }, border: borderAll };
+  const cellAmountStyle = { font: fontRegular, alignment: { vertical: 'center', horizontal: 'right' }, border: borderAll };
+  const cellAmountRedStyle = { font: { ...fontRegular, color: { rgb: 'DC2626' } }, alignment: { vertical: 'center', horizontal: 'right' }, border: borderAll };
+  const cellEmptyStyle = { font: fontRegular, border: borderAll };
+  const cellRowTotalStyle = { font: fontBold, alignment: { vertical: 'center', horizontal: 'right' }, border: borderAll };
+  const cellRowTotalRedStyle = { font: { ...fontBold, color: { rgb: 'DC2626' } }, alignment: { vertical: 'center', horizontal: 'right' }, border: borderAll };
 
   let rIdx = 8;
   let rowNo = 1;
@@ -921,10 +1028,10 @@ export function buildCompanyExpenseWorksheet(
         grandTotal += itTotal;
         const qtyStr = it.quantity ? `${it.quantity} Pcs` : '1 Pcs';
 
-        setCell(rIdx, 0, { t: 's', v: txDateStr });
-        setCell(rIdx, 1, { t: 'n', v: rowNo });
-        setCell(rIdx, 2, { t: 's', v: it.item_name });
-        setCell(rIdx, 3, { t: 's', v: qtyStr });
+        setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+        setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+        setCell(rIdx, 2, { t: 's', v: it.item_name, s: cellDescStyle });
+        setCell(rIdx, 3, { t: 's', v: qtyStr, s: cellQtyStyle });
 
         let colIdx = 4;
         if (catCol === 'operational') {
@@ -940,13 +1047,21 @@ export function buildCompanyExpenseWorksheet(
           colIdx = 7;
           sumLainLain += itTotal;
         }
-        setCell(rIdx, colIdx, { t: 'n', v: itTotal, z: idrFormat });
+
+        for (let c = 4; c <= 7; c++) {
+          if (c === colIdx) {
+            setCell(rIdx, c, { t: 'n', v: itTotal, s: cellAmountStyle, z: idrFormat });
+          } else {
+            setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+          }
+        }
 
         const excelRow = rIdx + 1;
         setCell(rIdx, 8, {
           t: 'n',
           v: itTotal,
           f: `SUM(E${excelRow}:H${excelRow})`,
+          s: cellRowTotalStyle,
           z: idrFormat,
         });
 
@@ -957,10 +1072,10 @@ export function buildCompanyExpenseWorksheet(
       const total = Number(tx.total_amount) || 0;
       grandTotal += total;
 
-      setCell(rIdx, 0, { t: 's', v: txDateStr });
-      setCell(rIdx, 1, { t: 'n', v: rowNo });
-      setCell(rIdx, 2, { t: 's', v: tx.merchant_name });
-      setCell(rIdx, 3, { t: 's', v: '1 Paket' });
+      setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+      setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+      setCell(rIdx, 2, { t: 's', v: tx.merchant_name, s: cellDescStyle });
+      setCell(rIdx, 3, { t: 's', v: '1 Paket', s: cellQtyStyle });
 
       let colIdx = 4;
       if (catCol === 'operational') {
@@ -976,13 +1091,21 @@ export function buildCompanyExpenseWorksheet(
         colIdx = 7;
         sumLainLain += total;
       }
-      setCell(rIdx, colIdx, { t: 'n', v: total, z: idrFormat });
+
+      for (let c = 4; c <= 7; c++) {
+        if (c === colIdx) {
+          setCell(rIdx, c, { t: 'n', v: total, s: cellAmountStyle, z: idrFormat });
+        } else {
+          setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+        }
+      }
 
       const excelRow = rIdx + 1;
       setCell(rIdx, 8, {
         t: 'n',
         v: total,
         f: `SUM(E${excelRow}:H${excelRow})`,
+        s: cellRowTotalStyle,
         z: idrFormat,
       });
 
@@ -996,10 +1119,10 @@ export function buildCompanyExpenseWorksheet(
       const negVal = -discVal;
       grandTotal += negVal;
 
-      setCell(rIdx, 0, { t: 's', v: txDateStr });
-      setCell(rIdx, 1, { t: 'n', v: rowNo });
-      setCell(rIdx, 2, { t: 's', v: `Diskon / Potongan Promo (${tx.merchant_name})` });
-      setCell(rIdx, 3, { t: 's', v: '1x' });
+      setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+      setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+      setCell(rIdx, 2, { t: 's', v: `Diskon / Potongan Promo (${tx.merchant_name})`, s: cellDescRedStyle });
+      setCell(rIdx, 3, { t: 's', v: '1x', s: cellQtyStyle });
 
       let colIdx = 4;
       if (catCol === 'operational') {
@@ -1015,13 +1138,21 @@ export function buildCompanyExpenseWorksheet(
         colIdx = 7;
         sumLainLain += negVal;
       }
-      setCell(rIdx, colIdx, { t: 'n', v: negVal, z: idrFormat });
+
+      for (let c = 4; c <= 7; c++) {
+        if (c === colIdx) {
+          setCell(rIdx, c, { t: 'n', v: negVal, s: cellAmountRedStyle, z: idrFormat });
+        } else {
+          setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+        }
+      }
 
       const excelRow = rIdx + 1;
       setCell(rIdx, 8, {
         t: 'n',
         v: negVal,
         f: `SUM(E${excelRow}:H${excelRow})`,
+        s: cellRowTotalRedStyle,
         z: idrFormat,
       });
 
@@ -1035,17 +1166,25 @@ export function buildCompanyExpenseWorksheet(
       grandTotal += feeVal;
       sumLainLain += feeVal;
 
-      setCell(rIdx, 0, { t: 's', v: txDateStr });
-      setCell(rIdx, 1, { t: 'n', v: rowNo });
-      setCell(rIdx, 2, { t: 's', v: `Biaya Layanan / Admin (${tx.merchant_name})` });
-      setCell(rIdx, 3, { t: 's', v: '1x' });
-      setCell(rIdx, 7, { t: 'n', v: feeVal, z: idrFormat });
+      setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+      setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+      setCell(rIdx, 2, { t: 's', v: `Biaya Layanan / Admin (${tx.merchant_name})`, s: cellDescStyle });
+      setCell(rIdx, 3, { t: 's', v: '1x', s: cellQtyStyle });
+
+      for (let c = 4; c <= 7; c++) {
+        if (c === 7) {
+          setCell(rIdx, c, { t: 'n', v: feeVal, s: cellAmountStyle, z: idrFormat });
+        } else {
+          setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+        }
+      }
 
       const excelRow = rIdx + 1;
       setCell(rIdx, 8, {
         t: 'n',
         v: feeVal,
         f: `SUM(E${excelRow}:H${excelRow})`,
+        s: cellRowTotalStyle,
         z: idrFormat,
       });
 
@@ -1059,17 +1198,25 @@ export function buildCompanyExpenseWorksheet(
       grandTotal += shipVal;
       sumOperational += shipVal;
 
-      setCell(rIdx, 0, { t: 's', v: txDateStr });
-      setCell(rIdx, 1, { t: 'n', v: rowNo });
-      setCell(rIdx, 2, { t: 's', v: `Ongkos Kirim (${tx.merchant_name})` });
-      setCell(rIdx, 3, { t: 's', v: '1x' });
-      setCell(rIdx, 4, { t: 'n', v: shipVal, z: idrFormat });
+      setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+      setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+      setCell(rIdx, 2, { t: 's', v: `Ongkos Kirim (${tx.merchant_name})`, s: cellDescStyle });
+      setCell(rIdx, 3, { t: 's', v: '1x', s: cellQtyStyle });
+
+      for (let c = 4; c <= 7; c++) {
+        if (c === 4) {
+          setCell(rIdx, c, { t: 'n', v: shipVal, s: cellAmountStyle, z: idrFormat });
+        } else {
+          setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+        }
+      }
 
       const excelRow = rIdx + 1;
       setCell(rIdx, 8, {
         t: 'n',
         v: shipVal,
         f: `SUM(E${excelRow}:H${excelRow})`,
+        s: cellRowTotalStyle,
         z: idrFormat,
       });
 
@@ -1083,17 +1230,25 @@ export function buildCompanyExpenseWorksheet(
       grandTotal += taxVal;
       sumLainLain += taxVal;
 
-      setCell(rIdx, 0, { t: 's', v: txDateStr });
-      setCell(rIdx, 1, { t: 'n', v: rowNo });
-      setCell(rIdx, 2, { t: 's', v: `Pajak / PPN (${tx.merchant_name})` });
-      setCell(rIdx, 3, { t: 's', v: '1x' });
-      setCell(rIdx, 7, { t: 'n', v: taxVal, z: idrFormat });
+      setCell(rIdx, 0, { t: 's', v: txDateStr, s: cellDateStyle });
+      setCell(rIdx, 1, { t: 'n', v: rowNo, s: cellNoStyle });
+      setCell(rIdx, 2, { t: 's', v: `Pajak / PPN (${tx.merchant_name})`, s: cellDescStyle });
+      setCell(rIdx, 3, { t: 's', v: '1x', s: cellQtyStyle });
+
+      for (let c = 4; c <= 7; c++) {
+        if (c === 7) {
+          setCell(rIdx, c, { t: 'n', v: taxVal, s: cellAmountStyle, z: idrFormat });
+        } else {
+          setCell(rIdx, c, { t: 's', v: '', s: cellEmptyStyle });
+        }
+      }
 
       const excelRow = rIdx + 1;
       setCell(rIdx, 8, {
         t: 'n',
         v: taxVal,
         f: `SUM(E${excelRow}:H${excelRow})`,
+        s: cellRowTotalStyle,
         z: idrFormat,
       });
 
@@ -1105,63 +1260,116 @@ export function buildCompanyExpenseWorksheet(
   const startDataRow = 9;
   const endDataRow = rIdx; // 1-based index
   const totalRow = rIdx + 1;
+  const totalR = rIdx;
 
   // Row TOTAL (rIdx)
-  setCell(rIdx, 0, { t: 's', v: 'TOTAL' });
-  setCell(rIdx, 4, { t: 'n', v: sumOperational, f: `SUM(E${startDataRow}:E${endDataRow})`, z: idrFormat });
-  setCell(rIdx, 5, { t: 'n', v: sumPantry, f: `SUM(F${startDataRow}:F${endDataRow})`, z: idrFormat });
-  setCell(rIdx, 6, { t: 'n', v: sumFasilitas, f: `SUM(G${startDataRow}:G${endDataRow})`, z: idrFormat });
-  setCell(rIdx, 7, { t: 'n', v: sumLainLain, f: `SUM(H${startDataRow}:H${endDataRow})`, z: idrFormat });
-  setCell(rIdx, 8, { t: 'n', v: grandTotal, f: `SUM(I${startDataRow}:I${endDataRow})`, z: idrFormat });
+  const totalFillStyle = {
+    font: fontBold,
+    border: borderAll,
+    fill: { fgColor: { rgb: 'F8FAFC' } },
+  };
+  const totalCenterStyle = {
+    ...totalFillStyle,
+    alignment: { vertical: 'center', horizontal: 'center' },
+  };
+  const totalRightStyle = {
+    ...totalFillStyle,
+    alignment: { vertical: 'center', horizontal: 'right' },
+  };
+
+  setCell(totalR, 0, { t: 's', v: 'TOTAL', s: totalCenterStyle });
+  setCell(totalR, 1, { t: 's', v: '', s: totalCenterStyle });
+  setCell(totalR, 2, { t: 's', v: '', s: totalCenterStyle });
+  setCell(totalR, 3, { t: 's', v: '', s: totalCenterStyle });
+
+  setCell(totalR, 4, { t: 'n', v: sumOperational, f: `SUM(E${startDataRow}:E${endDataRow})`, s: totalRightStyle, z: idrFormat });
+  setCell(totalR, 5, { t: 'n', v: sumPantry, f: `SUM(F${startDataRow}:F${endDataRow})`, s: totalRightStyle, z: idrFormat });
+  setCell(totalR, 6, { t: 'n', v: sumFasilitas, f: `SUM(G${startDataRow}:G${endDataRow})`, s: totalRightStyle, z: idrFormat });
+  setCell(totalR, 7, { t: 'n', v: sumLainLain, f: `SUM(H${startDataRow}:H${endDataRow})`, s: totalRightStyle, z: idrFormat });
+  setCell(totalR, 8, { t: 'n', v: grandTotal, f: `SUM(I${startDataRow}:I${endDataRow})`, s: totalRightStyle, z: idrFormat });
   rIdx += 2; // skip 1 row
 
   // Summary section
   const summaryRow1 = rIdx + 1; // 1-based
-  setCell(rIdx, 0, { t: 's', v: 'Total Pengeluaran (f)' });
-  setCell(rIdx, 3, { t: 's', v: ':' });
-  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `I${totalRow}`, z: idrFormat });
+  setCell(rIdx, 0, { t: 's', v: 'Total Pengeluaran (f)', s: { font: fontBold, alignment: { horizontal: 'left', vertical: 'center' } } });
+  setCell(rIdx, 3, { t: 's', v: ':', s: { font: fontBold, alignment: { horizontal: 'center', vertical: 'center' } } });
+  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `I${totalRow}`, s: { font: fontBold, alignment: { horizontal: 'right', vertical: 'center' } }, z: idrFormat });
   rIdx++;
 
   const summaryRow2 = rIdx + 1; // 1-based
-  setCell(rIdx, 0, { t: 's', v: 'Jumlah Cash Advance' });
-  setCell(rIdx, 3, { t: 's', v: ':' });
-  setCell(rIdx, 4, { t: 'n', v: cashAdvance, z: idrFormat });
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah Cash Advance', s: { font: fontRegular, alignment: { horizontal: 'left', vertical: 'center' } } });
+  setCell(rIdx, 3, { t: 's', v: ':', s: { font: fontRegular, alignment: { horizontal: 'center', vertical: 'center' } } });
+  setCell(rIdx, 4, { t: 'n', v: cashAdvance, s: { font: fontRegular, alignment: { horizontal: 'right', vertical: 'center' } }, z: idrFormat });
   rIdx++;
 
   const summaryRow3 = rIdx + 1; // 1-based
-  setCell(rIdx, 0, { t: 's', v: 'Jumlah yang diklaim' });
-  setCell(rIdx, 3, { t: 's', v: ':' });
-  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `E${summaryRow1}`, z: idrFormat });
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah yang diklaim', s: { font: fontRegular, alignment: { horizontal: 'left', vertical: 'center' } } });
+  setCell(rIdx, 3, { t: 's', v: ':', s: { font: fontRegular, alignment: { horizontal: 'center', vertical: 'center' } } });
+  setCell(rIdx, 4, { t: 'n', v: grandTotal, f: `E${summaryRow1}`, s: { font: fontRegular, alignment: { horizontal: 'right', vertical: 'center' } }, z: idrFormat });
   rIdx++;
 
   const refund = cashAdvance - grandTotal;
-  setCell(rIdx, 0, { t: 's', v: 'Jumlah pengembalian dana' });
-  setCell(rIdx, 3, { t: 's', v: ':' });
-  setCell(rIdx, 4, { t: 'n', v: refund, f: `E${summaryRow2}-E${summaryRow3}`, z: idrFormat });
+  setCell(rIdx, 0, { t: 's', v: 'Jumlah pengembalian dana', s: { font: fontBold, alignment: { horizontal: 'left', vertical: 'center' } } });
+  setCell(rIdx, 3, { t: 's', v: ':', s: { font: fontBold, alignment: { horizontal: 'center', vertical: 'center' } } });
+  setCell(rIdx, 4, { t: 'n', v: refund, f: `E${summaryRow2}-E${summaryRow3}`, s: { font: fontBold, alignment: { horizontal: 'right', vertical: 'center' } }, z: idrFormat });
   rIdx += 2;
 
   // Signatures
-  setCell(rIdx, 0, { t: 's', v: `${city}, ${reportDate}` });
+  setCell(rIdx, 0, { t: 's', v: `${city}, ${reportDate}`, s: { font: fontBold, alignment: { horizontal: 'left', vertical: 'center' } } });
   rIdx++;
 
-  setCell(rIdx, 0, { t: 's', v: 'Dibuat oleh,' });
-  setCell(rIdx, 2, { t: 's', v: 'Diperiksa' });
-  setCell(rIdx, 4, { t: 's', v: 'Diperiksa & Diketahui oleh,' });
-  rIdx += 3;
+  const sigHeaderRow = rIdx;
+  const sigHeaderStyle = {
+    font: fontBold,
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: borderAll,
+    fill: { fgColor: { rgb: 'F8FAFC' } },
+  };
 
-  setCell(rIdx, 0, { t: 's', v: employeeName });
-  setCell(rIdx, 2, { t: 's', v: verifierName });
-  setCell(rIdx, 4, { t: 's', v: approverName });
+  setCell(sigHeaderRow, 0, { t: 's', v: 'Dibuat oleh,', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 1, { t: 's', v: '', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 2, { t: 's', v: 'Diperiksa', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 3, { t: 's', v: '', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 4, { t: 's', v: 'Diperiksa & Diketahui oleh,', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 5, { t: 's', v: '', s: sigHeaderStyle });
+  setCell(sigHeaderRow, 6, { t: 's', v: '', s: sigHeaderStyle });
+
+  // Signature box rows
+  const sigBoxRow1 = sigHeaderRow + 1;
+  const sigBoxRow2 = sigHeaderRow + 2;
+  const sigBoxEmptyStyle = { border: borderAll };
+
+  for (let r = sigBoxRow1; r <= sigBoxRow2; r++) {
+    for (let c = 0; c <= 6; c++) {
+      setCell(r, c, { t: 's', v: '', s: sigBoxEmptyStyle });
+    }
+  }
+
+  // Names row
+  const sigNameRow = sigBoxRow2 + 1;
+  const sigNameStyle = {
+    font: fontUnderlineBold,
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: borderAll,
+  };
+
+  setCell(sigNameRow, 0, { t: 's', v: employeeName, s: sigNameStyle });
+  setCell(sigNameRow, 1, { t: 's', v: '', s: sigNameStyle });
+  setCell(sigNameRow, 2, { t: 's', v: verifierName, s: sigNameStyle });
+  setCell(sigNameRow, 3, { t: 's', v: '', s: sigNameStyle });
+  setCell(sigNameRow, 4, { t: 's', v: approverName, s: sigNameStyle });
+  setCell(sigNameRow, 5, { t: 's', v: '', s: sigNameStyle });
+  setCell(sigNameRow, 6, { t: 's', v: '', s: sigNameStyle });
 
   // Range and Merges
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rIdx, c: 8 } });
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: sigNameRow, c: 8 } });
 
   // Column widths:
   ws['!cols'] = [
     { wch: 15 }, // A: TANGGAL
     { wch: 7 },  // B: NO
-    { wch: 52 }, // C: KETERANGAN
-    { wch: 17 }, // D: JUMLAH ITEM
+    { wch: 48 }, // C: KETERANGAN
+    { wch: 16 }, // D: JUMLAH ITEM
     { wch: 16 }, // E: Operational
     { wch: 16 }, // F: Pantry
     { wch: 16 }, // G: Fasilitas
@@ -1170,22 +1378,26 @@ export function buildCompanyExpenseWorksheet(
   ];
 
   // Merges:
-  const totalR = totalRow - 1;
   ws['!merges'] = [
-    // Header Row merges
+    // Header Row merges (vertical 6 to 7)
     { s: { r: 6, c: 0 }, e: { r: 7, c: 0 } }, // TANGGAL
     { s: { r: 6, c: 1 }, e: { r: 7, c: 1 } }, // NO
     { s: { r: 6, c: 2 }, e: { r: 7, c: 2 } }, // KETERANGAN
     { s: { r: 6, c: 3 }, e: { r: 7, c: 3 } }, // JUMLAH ITEM
     // Total Row merge
     { s: { r: totalR, c: 0 }, e: { r: totalR, c: 3 } }, // TOTAL (A..D)
-    // Signatures merges
-    { s: { r: rIdx - 4, c: 0 }, e: { r: rIdx - 4, c: 1 } },
-    { s: { r: rIdx - 4, c: 2 }, e: { r: rIdx - 4, c: 3 } },
-    { s: { r: rIdx - 4, c: 4 }, e: { r: rIdx - 4, c: 6 } },
-    { s: { r: rIdx, c: 0 }, e: { r: rIdx, c: 1 } },
-    { s: { r: rIdx, c: 2 }, e: { r: rIdx, c: 3 } },
-    { s: { r: rIdx, c: 4 }, e: { r: rIdx, c: 6 } },
+    // Signatures Header merges
+    { s: { r: sigHeaderRow, c: 0 }, e: { r: sigHeaderRow, c: 1 } },
+    { s: { r: sigHeaderRow, c: 2 }, e: { r: sigHeaderRow, c: 3 } },
+    { s: { r: sigHeaderRow, c: 4 }, e: { r: sigHeaderRow, c: 6 } },
+    // Signature Box merges
+    { s: { r: sigBoxRow1, c: 0 }, e: { r: sigBoxRow2, c: 1 } },
+    { s: { r: sigBoxRow1, c: 2 }, e: { r: sigBoxRow2, c: 3 } },
+    { s: { r: sigBoxRow1, c: 4 }, e: { r: sigBoxRow2, c: 6 } },
+    // Signature Names merges
+    { s: { r: sigNameRow, c: 0 }, e: { r: sigNameRow, c: 1 } },
+    { s: { r: sigNameRow, c: 2 }, e: { r: sigNameRow, c: 3 } },
+    { s: { r: sigNameRow, c: 4 }, e: { r: sigNameRow, c: 6 } },
   ];
 
   return ws;
@@ -1291,7 +1503,7 @@ export function exportMultiSheetExcelReport(
 }
 
 /**
- * Fungsi Ekspor 1: Download File Excel (.xls)
+ * Fungsi Ekspor 1: Download File Excel (.xlsx) dengan styling lengkap & formula
  */
 export function exportExcelReport(
   transactions: Transaction[],
@@ -1299,9 +1511,9 @@ export function exportExcelReport(
   fileName?: string
 ) {
   const baseName = fileName || generateReportFileName(profile);
-  const name = baseName.endsWith('.xls') ? baseName : `${baseName.replace(/\.xlsx?$/i, '')}.xls`;
-  const xlsContent = generateCompanyExpenseReportXLS(transactions, profile);
-  downloadFile(xlsContent, name, 'application/vnd.ms-excel;charset=utf-8;');
+  const name = `${baseName.replace(/\.xlsx?$/i, '')}.xlsx`;
+  const binary = generateCompanyExpenseReportXLSXBinary(transactions, profile);
+  downloadFile(binary, name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 /**
