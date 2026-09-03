@@ -50,7 +50,7 @@ export default function AdminPanelScreen() {
   const [department, setDepartment] = useState('Divisi Operasional');
   const [projectName, setProjectName] = useState('Head Office / Proyek 1');
   const [city, setCity] = useState('Jakarta');
-  const [cashAdvance, setCashAdvance] = useState('5000000');
+  const [cashAdvance, setCashAdvance] = useState('7000000');
 
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
@@ -84,7 +84,7 @@ export default function AdminPanelScreen() {
       department: department.trim(),
       project_name: projectName.trim(),
       city: city.trim(),
-      cash_advance_amount: Number(cashAdvance) || 5000000,
+      cash_advance_amount: Number(cashAdvance) || 7000000,
     });
     setIsSubmitting(false);
 
@@ -323,7 +323,7 @@ export default function AdminPanelScreen() {
                       Cash Advance
                     </Text>
                     <Text style={[styles.cashAdvanceVal, { color: theme.text }]}>
-                      {formatRupiah(u.cash_advance_amount ?? 5000000)}
+                      {formatRupiah(u.cash_advance_amount ?? 7000000)}
                     </Text>
                   </View>
 
@@ -558,7 +558,7 @@ export default function AdminPanelScreen() {
                     value={cashAdvance}
                     onChangeText={setCashAdvance}
                     keyboardType="numeric"
-                    placeholder="5000000"
+                      placeholder="7000000"
                     placeholderTextColor={theme.textMuted}
                   />
                 </View>

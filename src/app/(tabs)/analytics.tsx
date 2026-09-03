@@ -76,7 +76,7 @@ export default function InputScreen() {
   const handleOpenCreateModal = () => {
     setEditingId(null);
     setProjectName('');
-    setInitialAmount(new Intl.NumberFormat('id-ID').format(5000000));
+    setInitialAmount(new Intl.NumberFormat('id-ID').format(7000000));
     setCity(user?.city || 'Jakarta');
     setVerifierName(user?.verifier_name || 'Yunitha');
     setApproverName(user?.approver_name || 'Dwi Hartanto');
@@ -1087,6 +1087,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
   },
   caProjectTitle: {
     fontSize: 16,
@@ -1125,6 +1127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginLeft: 'auto',
   },
   iconActionBtn: {
     width: 32,
@@ -1149,11 +1152,13 @@ const styles = StyleSheet.create({
   caMetaRow: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
   },
   caMetaCol: {
     flex: 1,
     flexDirection: 'row',
     gap: 4,
+    minWidth: 140,
   },
   caMetaLabel: {
     fontSize: 12,

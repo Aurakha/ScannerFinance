@@ -77,7 +77,7 @@ export function generateCompanyExpenseReportXLS(
   const city = profile?.city || 'Tangerang';
   const verifierName = profile?.verifier_name || 'Yunitha';
   const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7117500;
+  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
 
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
@@ -472,7 +472,7 @@ export function generateCompanyExpenseReportCSV(
   const city = profile?.city || 'Tangerang';
   const verifierName = profile?.verifier_name || 'Yunitha';
   const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7117500;
+  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
 
   const escapeCSV = (str: string | number | undefined | null) => {
     if (str === undefined || str === null) return '""';
@@ -849,7 +849,7 @@ export function buildCompanyExpenseWorksheet(
   const city = profile?.city || 'Tangerang';
   const verifierName = profile?.verifier_name || 'Yunitha';
   const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7117500;
+  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
 
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()

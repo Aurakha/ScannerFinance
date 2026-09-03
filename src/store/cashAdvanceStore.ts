@@ -25,17 +25,23 @@ const DEFAULT_CASH_ADVANCES: CashAdvance[] = [
   {
     id: 'ca-default-1',
     user_id: 'user-default-1',
-    project_name: 'Contoh Proyek',
-    initial_amount: 5000000,
-    city: 'Jakarta',
-    verifier_name: 'Nama Pemeriksa',
-    approver_name: 'Nama Penyetuju',
-    collaborators: [],
+    project_name: 'Tangerang Project',
+    initial_amount: 7000000,
+    city: 'Tangerang',
+    verifier_name: 'Yunitha',
+    approver_name: 'Dwi Hartanto',
+    collaborators: ['aurakharere@gmail.com', 'haharakha@gmail.com'],
     created_at: new Date().toISOString(),
     status: 'active',
-    notes: 'Ini adalah contoh cash advance. Silakan edit atau tambahkan yang baru.',
+    notes: 'Operasional lapangan proyek Tangerang',
   },
 ];
+
+const isLegacyDefaultData = (value: unknown): value is CashAdvance[] => {
+  if (!Array.isArray(value) || value.length !== 2) return false;
+  const ids = value.map((item) => item?.id).sort();
+  return ids[0] === 'ca-default-1' && ids[1] === 'ca-default-2';
+};
 
 export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
   cashAdvances: DEFAULT_CASH_ADVANCES,
@@ -52,6 +58,11 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          if (isLegacyDefaultData(parsed)) {
+            set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
+            await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
+            return;
+          }
           set({
             cashAdvances: parsed,
             activeCashAdvanceId: get().activeCashAdvanceId || parsed[0].id,

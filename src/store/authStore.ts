@@ -53,7 +53,7 @@ const DEFAULT_PROFILE: UserProfile = {
   city: 'Jakarta',
   verifier_name: 'Pemeriksa 1',
   approver_name: 'Pimpinan 1',
-  cash_advance_amount: 5000000,
+  cash_advance_amount: 7000000,
   currency: 'IDR',
   monthly_income_budget: 10000000,
   monthly_expense_budget: 5000000,
@@ -402,7 +402,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           cash_advance_amount:
             dbProfile?.cash_advance_amount !== undefined
               ? Number(dbProfile.cash_advance_amount)
-              : 5000000,
+              : 7000000,
         };
 
         set({ user: newProf, session: data.session, isDemoMode: false });
@@ -525,7 +525,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             city: p.city || 'Jakarta',
             verifier_name: p.verifier_name || 'Yunitha',
             approver_name: p.approver_name || 'Dwi Hartanto',
-            cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 5000000,
+            cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 7000000,
             role: p.role || 'user',
             created_at: p.created_at,
           };
@@ -564,7 +564,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       department: userData.department || 'Divisi Operasional',
       project_name: userData.project_name || 'Head Office / Proyek 1',
       city: userData.city || 'Jakarta',
-      cash_advance_amount: userData.cash_advance_amount ?? 5000000,
+      cash_advance_amount: userData.cash_advance_amount ?? 7000000,
       role: userData.role || 'user',
       created_at: new Date().toISOString(),
     };
