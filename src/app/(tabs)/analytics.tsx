@@ -76,10 +76,10 @@ export default function InputScreen() {
   const handleOpenCreateModal = () => {
     setEditingId(null);
     setProjectName('');
-    setInitialAmount('5000000');
+    setInitialAmount(new Intl.NumberFormat('id-ID').format(5000000));
     setCity(user?.city || 'Jakarta');
-    setVerifierName(user?.verifier_name || 'Pemeriksa 1');
-    setApproverName(user?.approver_name || 'Pimpinan 1');
+    setVerifierName(user?.verifier_name || 'Yunitha');
+    setApproverName(user?.approver_name || 'Dwi Hartanto');
     setCollaborators([]);
     setCollaboratorInput('');
     setNotes('');
@@ -91,7 +91,7 @@ export default function InputScreen() {
   const handleOpenEditModal = (ca: CashAdvance) => {
     setEditingId(ca.id);
     setProjectName(ca.project_name);
-    setInitialAmount(String(ca.initial_amount));
+    setInitialAmount(new Intl.NumberFormat('id-ID').format(ca.initial_amount));
     setCity(ca.city);
     setVerifierName(ca.verifier_name);
     setApproverName(ca.approver_name);
@@ -100,6 +100,18 @@ export default function InputScreen() {
     setNotes(ca.notes || '');
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  // Format angka uang secara dinamis di input (hanya tampilan front-end)
+  const handleAmountChange = (rawText: string) => {
+    const digitsOnly = rawText.replace(/[^0-9]/g, '');
+    if (!digitsOnly) {
+      setInitialAmount('');
+      return;
+    }
+    const formatted = new Intl.NumberFormat('id-ID').format(Number(digitsOnly));
+    setInitialAmount(formatted);
+    if (formError) setFormError('');
   };
 
   // Tambah Kolaborator
@@ -717,12 +729,9 @@ export default function InputScreen() {
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={initialAmount}
-                  onChangeText={(val) => {
-                    setInitialAmount(val);
-                    if (formError) setFormError('');
-                  }}
+                  onChangeText={handleAmountChange}
                   keyboardType="numeric"
-                  placeholder="Misal: 7117500"
+                  placeholder="Misal: 7.117.500"
                   placeholderTextColor={theme.textMuted}
                 />
               </View>
