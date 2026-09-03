@@ -213,25 +213,6 @@ export default function LoginScreen() {
                 Masuk Cepat Mode Tamu / Demo
               </Text>
             </TouchableOpacity>
-
-            {/* Quick Test Account Button */}
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                { backgroundColor: 'rgba(88, 101, 242, 0.08)', borderColor: 'rgba(88, 101, 242, 0.3)', marginTop: 8 },
-              ]}
-              onPress={async () => {
-                setEmail('test@gmail.com');
-                setPassword('123456');
-                await signIn('test@gmail.com', '123456');
-                router.replace('/(tabs)');
-              }}
-            >
-              <Ionicons name="person-circle-outline" size={16} color={Palette.primary} />
-              <Text style={[styles.secondaryButtonText, { color: Palette.primary, fontWeight: '600' }]}>
-                Gunakan Akun Contoh (test@gmail.com)
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer Register Link */}
