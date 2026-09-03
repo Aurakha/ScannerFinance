@@ -279,11 +279,6 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                   </View>
                 )}
               </View>
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {drafts.length > 1
-                  ? `Memeriksa struk ke-${activeIndex + 1}. Anda bisa bolak-balik memeriksa struk sebelum menyimpan.`
-                  : 'Verifikasi tanggal, jam, dan rincian transaksi'}
-              </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
