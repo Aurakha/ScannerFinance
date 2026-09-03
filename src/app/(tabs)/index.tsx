@@ -105,84 +105,96 @@ export default function DashboardScreen() {
             },
           ]}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="wallet-outline" size={18} color={Palette.primary} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
-                {language === 'id' ? 'Tanggungan Cash Advance Proyek' : 'Project Cash Advance'}
-              </Text>
+          {/* Header Row */}
+          <View style={{ marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+                <Ionicons name="wallet-outline" size={16} color={Palette.primary} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }} numberOfLines={1}>
+                  {language === 'id' ? 'Cash Advance Proyek' : 'Project Cash Advance'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/analytics')}
+                style={{ paddingLeft: 8 }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '600', color: Palette.primary }}>
+                  {language === 'id' ? 'Kelola ➔' : 'Manage ➔'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(tabs)/analytics')}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '600', color: Palette.primary }}>
-                {language === 'id' ? 'Kelola di Menu Input ➔' : 'Manage in Input ➔'}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Horizontal Cash Advance Switcher Pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {cashAdvances.map((ca) => {
-                const isSelected = ca.id === activeCashAdvanceId;
-                return (
-                  <TouchableOpacity
-                    key={ca.id}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                      backgroundColor: isSelected ? Palette.primary : theme.cardHover,
-                      borderColor: isSelected ? Palette.primary : theme.border,
-                      borderWidth: 1,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                    }}
-                    onPress={() => setActiveCashAdvanceId(ca.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={isSelected ? 'checkmark-circle' : 'briefcase-outline'}
-                      size={14}
-                      color={isSelected ? '#FFFFFF' : theme.textSecondary}
-                    />
-                    <Text
+          {cashAdvances.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {cashAdvances.map((ca) => {
+                  const isSelected = ca.id === activeCashAdvanceId;
+                  return (
+                    <TouchableOpacity
+                      key={ca.id}
                       style={{
-                        fontSize: 12,
-                        fontWeight: '700',
-                        color: isSelected ? '#FFFFFF' : theme.text,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 5,
+                        backgroundColor: isSelected ? Palette.primary : theme.cardHover,
+                        borderColor: isSelected ? Palette.primary : theme.border,
+                        borderWidth: 1,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 10,
                       }}
+                      onPress={() => setActiveCashAdvanceId(ca.id)}
+                      activeOpacity={0.8}
                     >
-                      {ca.project_name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
+                      <Ionicons
+                        name={isSelected ? 'checkmark-circle' : 'briefcase-outline'}
+                        size={12}
+                        color={isSelected ? '#FFFFFF' : theme.textSecondary}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: '700',
+                          color: isSelected ? '#FFFFFF' : theme.text,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {ca.project_name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
 
           {/* Selected Cash Advance Details */}
           {activeCA ? (
-            <View style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, gap: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View>
+            <View style={{ backgroundColor: theme.background, borderRadius: 10, padding: 12, gap: 10 }}>
+              {/* Project Name */}
+              <Text style={{ fontSize: 14, fontWeight: '800', color: theme.text }} numberOfLines={1}>
+                {activeCA.project_name}
+              </Text>
+
+              {/* Plafon & Sisa — Stacked Vertically for Mobile */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                    {language === 'id' ? 'Plafon Awal Proyek' : 'Initial Budget'}
+                    {language === 'id' ? 'Plafon Awal' : 'Initial Budget'}
                   </Text>
-                  <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>
                     {formatRupiah(activeCA.initial_amount)}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                    {language === 'id' ? 'Sisa Saldo Klaim' : 'Remaining Balance'}
+                    {language === 'id' ? 'Sisa Saldo' : 'Remaining'}
                   </Text>
                   <Text
                     style={{
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: '800',
                       color:
                         activeCA.initial_amount - stats.totalExpense < 0
@@ -195,33 +207,42 @@ export default function DashboardScreen() {
                 </View>
               </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <Text style={{ fontSize: 11, color: theme.textMuted }}>
-                  📍 {activeCA.city} • Pemeriksa: {activeCA.verifier_name} • Penyetuju: {activeCA.approver_name}
-                </Text>
+              {/* Meta Info */}
+              <View style={{ gap: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.border }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                  <Ionicons name="location-outline" size={12} color={theme.textMuted} />
+                  <Text style={{ fontSize: 11, color: theme.textMuted }}>{activeCA.city}</Text>
+                  <Text style={{ fontSize: 11, color: theme.textMuted }}>•</Text>
+                  <Ionicons name="person-outline" size={12} color={theme.textMuted} />
+                  <Text style={{ fontSize: 11, color: theme.textMuted }} numberOfLines={1}>
+                    {activeCA.verifier_name}
+                  </Text>
+                </View>
               </View>
 
               {/* Kolaborator List */}
               {activeCA.collaborators.length > 0 && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.border }}>
+                <View style={{ gap: 6 }}>
                   <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textSecondary }}>
-                    👥 Kolaborator:
+                    👥 {language === 'id' ? 'Kolaborator' : 'Collaborators'} ({activeCA.collaborators.length}):
                   </Text>
-                  {activeCA.collaborators.map((collab, idx) => (
-                    <View
-                      key={`${collab}-${idx}`}
-                      style={{
-                        backgroundColor: 'rgba(88, 101, 242, 0.1)',
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 6,
-                      }}
-                    >
-                      <Text style={{ fontSize: 10, fontWeight: '600', color: Palette.primary }}>
-                        {collab}
-                      </Text>
-                    </View>
-                  ))}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                    {activeCA.collaborators.map((collab, idx) => (
+                      <View
+                        key={`${collab}-${idx}`}
+                        style={{
+                          backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: Palette.primary }} numberOfLines={1}>
+                          {collab}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               )}
             </View>
