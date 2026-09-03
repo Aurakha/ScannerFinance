@@ -23,10 +23,10 @@ import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { getLocalizedCategoryName, translations } from '@/i18n/translations';
 import { formatPercent, formatRupiah } from '@/utils/formatters';
-import { CashAdvance } from '@/types';
+import { CashAdvance, UserProfile } from '@/types';
 
 export default function InputScreen() {
-  const { user } = useAuthStore();
+  const { user, getAllUsers } = useAuthStore();
   const { stats, transactions } = useTransactionStore();
   const {
     cashAdvances,
@@ -45,6 +45,9 @@ export default function InputScreen() {
   // Mode Sub-Tab: 'cash_advance' (Kelola Cash Advance & Proyek) atau 'statistics' (Statistik & Pengeluaran)
   const [activeSubTab, setActiveSubTab] = useState<'cash_advance' | 'statistics'>('cash_advance');
 
+  // Daftar Pengguna Terdaftar untuk Pilihan Kolaborator
+  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
+
   // State Modal Tambah / Ubah Cash Advance
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,6 +63,11 @@ export default function InputScreen() {
 
   useEffect(() => {
     loadCashAdvances(user?.id);
+    getAllUsers().then((users) => {
+      if (users && users.length > 0) {
+        setAvailableUsers(users);
+      }
+    });
   }, [user]);
 
   const activeCA = getActiveCashAdvance();
@@ -95,14 +103,14 @@ export default function InputScreen() {
   };
 
   // Tambah Kolaborator
-  const handleAddCollaborator = () => {
-    const trimmed = collaboratorInput.trim();
-    if (!trimmed) return;
-    if (collaborators.includes(trimmed)) {
+  const handleAddCollaborator = (customEmail?: string) => {
+    const target = (typeof customEmail === 'string' ? customEmail : collaboratorInput).trim();
+    if (!target) return;
+    if (collaborators.includes(target)) {
       setCollaboratorInput('');
       return;
     }
-    setCollaborators([...collaborators, trimmed]);
+    setCollaborators([...collaborators, target]);
     setCollaboratorInput('');
   };
 
@@ -203,6 +211,26 @@ export default function InputScreen() {
       isToday: i === 6,
     };
   });
+
+  // Filter akun terdaftar yang belum ditambahkan sebagai kolaborator
+  const unaddedRegisteredUsers = availableUsers.filter(
+    (u) => u.email && !collaborators.includes(u.email)
+  );
+
+  // Batasi hanya 3 akun terbaru saat belum mengetik agar tidak ramai
+  const recentUserSuggestions = unaddedRegisteredUsers.slice(0, 3);
+
+  // Autocomplete saat mengetik (mulai dari 1 huruf, maks 4 hasil)
+  const isTyping = collaboratorInput.trim().length > 0;
+  const filteredSuggestions = isTyping
+    ? unaddedRegisteredUsers
+        .filter(
+          (u) =>
+            u.email.toLowerCase().includes(collaboratorInput.toLowerCase()) ||
+            (u.full_name && u.full_name.toLowerCase().includes(collaboratorInput.toLowerCase()))
+        )
+        .slice(0, 4)
+    : [];
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -755,11 +783,11 @@ export default function InputScreen() {
                     onChangeText={setCollaboratorInput}
                     placeholder="Ketik email / nama kolaborator..."
                     placeholderTextColor={theme.textMuted}
-                    onSubmitEditing={handleAddCollaborator}
+                    onSubmitEditing={() => handleAddCollaborator()}
                   />
                   <TouchableOpacity
                     style={styles.addCollabBtn}
-                    onPress={handleAddCollaborator}
+                    onPress={() => handleAddCollaborator()}
                     activeOpacity={0.8}
                   >
                     <Ionicons name="add" size={18} color="#FFFFFF" />
@@ -769,7 +797,132 @@ export default function InputScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Chips Kolaborator */}
+                {/* Autocomplete Dropdown saat mengetik (hanya muncul saat user mengetik) */}
+                {isTyping && (
+                  filteredSuggestions.length > 0 ? (
+                    <View
+                      style={{
+                        backgroundColor: theme.card,
+                        borderColor: Palette.primary,
+                        borderWidth: 1.5,
+                        borderRadius: 12,
+                        marginTop: 6,
+                        overflow: 'hidden',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.15,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}
+                    >
+                      {filteredSuggestions.map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            borderBottomWidth: 1,
+                            borderBottomColor: theme.border,
+                          }}
+                          onPress={() => handleAddCollaborator(item.email)}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                            <View
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 14,
+                                backgroundColor: 'rgba(88, 101, 242, 0.12)',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Ionicons name="person" size={14} color={Palette.primary} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
+                                {item.email}
+                              </Text>
+                              {item.full_name ? (
+                                <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                                  {item.full_name} {item.department ? `• ${item.department}` : ''}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
+                          <View
+                            style={{
+                              backgroundColor: 'rgba(88, 101, 242, 0.12)',
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: Palette.primary }}>
+                              {language === 'id' ? '+ Tambah' : '+ Add'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        padding: 8,
+                        marginTop: 4,
+                        borderRadius: 8,
+                        backgroundColor: theme.cardHover,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: theme.textMuted }}>
+                        {language === 'id'
+                          ? '💡 Email belum terdaftar di sistem. Klik tombol "+ Tambah" di samping untuk tetap menambahkannya.'
+                          : '💡 Email not registered yet. Click "+ Add" to add it manually.'}
+                      </Text>
+                    </View>
+                  )
+                )}
+
+                {/* Rekomendasi 2-3 Akun Terbaru (Hanya muncul saat belum mengetik agar tidak ramai) */}
+                {!isTyping && recentUserSuggestions.length > 0 && (
+                  <View style={{ marginTop: 8, gap: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textMuted }}>
+                      {language === 'id'
+                        ? '⚡ Saran Akun Terbaru:'
+                        : '⚡ Recent Accounts:'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {recentUserSuggestions.map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            backgroundColor: theme.cardHover,
+                            borderColor: theme.border,
+                            borderWidth: 1,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 8,
+                          }}
+                          onPress={() => handleAddCollaborator(item.email)}
+                        >
+                          <Ionicons name="person-outline" size={12} color={Palette.primary} />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.text }}>
+                            {item.email}
+                          </Text>
+                          <Ionicons name="add" size={12} color={Palette.primary} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Chips Kolaborator yang sudah dipilih */}
                 <View style={styles.collabChipsWrapper}>
                   {collaborators.map((c, idx) => (
                     <View
