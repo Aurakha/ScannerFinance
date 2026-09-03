@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t, language, setLanguage } = useLanguageStore();
 
-  const [fullName, setFullName] = useState(user?.full_name || 'User 1');
+  const [fullName, setFullName] = useState(user?.full_name || 'Guest');
   const [companyName, setCompanyName] = useState(user?.company_name || 'PT. Nama Perusahaan');
   const [department, setDepartment] = useState(user?.department || 'Divisi Operasional');
   const [projectName, setProjectName] = useState(user?.project_name || 'Head Office / Proyek 1');
@@ -132,13 +132,13 @@ export default function ProfileScreen() {
           <View style={styles.userHeaderRow}>
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarInitial}>
-                {fullName.charAt(0).toUpperCase() || 'U'}
+                {fullName ? fullName.charAt(0).toUpperCase() : 'G'}
               </Text>
             </View>
             <View style={styles.userInfoCol}>
-              <Text style={[styles.userName, { color: theme.text }]}>{fullName}</Text>
+              <Text style={[styles.userName, { color: theme.text }]}>{fullName || 'Guest'}</Text>
               <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
-                {user?.email || 'demo@scanfinance.app'}
+                {user?.email || 'guest@scanfinance.com'}
               </Text>
               <View style={styles.badgeRow}>
                 <View

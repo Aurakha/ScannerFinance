@@ -22,7 +22,7 @@ import { formatPercent, formatRupiah } from '@/utils/formatters';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { user, impersonatingUser, exitImpersonation } = useAuthStore();
+  const { user, isDemoMode, impersonatingUser, exitImpersonation } = useAuthStore();
   const { transactions, stats, loadData } = useTransactionStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t, language } = useLanguageStore();
@@ -66,7 +66,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <Header
           title={t('header.greeting', {
-            name: user?.full_name?.split(' ')[0] || (language === 'id' ? 'Pengguna' : 'User'),
+            name: isDemoMode || !user?.full_name ? 'Guest' : (user.full_name.split(' ')[0] || 'Guest'),
           })}
           subtitle={user?.company_name || t('header.defaultSubtitle')}
           rightAction={

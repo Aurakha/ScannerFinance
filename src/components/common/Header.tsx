@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'G'}
           </Text>
         </View>
       </View>

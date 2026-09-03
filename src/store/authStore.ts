@@ -45,8 +45,8 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const DEFAULT_PROFILE: UserProfile = {
   id: 'user-default-1',
-  email: 'user@scanfinance.com',
-  full_name: 'Pengguna ScanFinance',
+  email: 'guest@scanfinance.com',
+  full_name: 'Guest',
   company_name: 'PT. Nama Perusahaan',
   department: 'Divisi Operasional',
   project_name: 'Head Office / Proyek 1',
@@ -63,8 +63,8 @@ const DEFAULT_PROFILE: UserProfile = {
 const SEED_USERS: UserProfile[] = [
   {
     id: 'user-default-1',
-    email: 'user1@company.com',
-    full_name: 'User 1',
+    email: 'guest@company.com',
+    full_name: 'Guest',
     company_name: 'PT. Nama Perusahaan',
     department: 'Divisi Operasional',
     project_name: 'Head Office / Proyek 1',
@@ -130,7 +130,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let localProfile: UserProfile = DEFAULT_PROFILE;
       if (savedProfRaw) {
         try {
-          localProfile = { ...DEFAULT_PROFILE, ...JSON.parse(savedProfRaw) };
+          const parsed = JSON.parse(savedProfRaw);
+          if (
+            parsed.full_name === 'Pengguna ScanFinance' ||
+            parsed.full_name === 'Pengguna' ||
+            parsed.full_name === 'User 1'
+          ) {
+            parsed.full_name = 'Guest';
+          }
+          localProfile = { ...DEFAULT_PROFILE, ...parsed };
           set({ user: localProfile });
         } catch {}
       }
@@ -170,6 +178,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ user: merged, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
+      } else {
+        // Jika tidak ada sesi login, pastikan user berada di mode guest/demo dengan nama Guest
+        const guestProfile: UserProfile = {
+          ...localProfile,
+          full_name: localProfile.full_name === 'Pengguna ScanFinance' || !localProfile.full_name ? 'Guest' : localProfile.full_name,
+        };
+        set({ user: guestProfile, isDemoMode: true });
       }
     } catch (e) {
       console.warn('Auth init note:', e);
@@ -179,12 +194,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginAsDemo: () => {
+    const guestUser: UserProfile = {
+      ...DEFAULT_PROFILE,
+      full_name: 'Guest',
+      email: 'guest@scanfinance.com',
+    };
     set({
-      user: DEFAULT_PROFILE,
+      user: guestUser,
       session: null,
       isDemoMode: true,
       impersonatingUser: null,
     });
+    if (!isSSR) {
+      AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(guestUser)).catch(() => {});
+    }
   },
 
   signUp: async (email, password, fullName) => {
@@ -332,10 +355,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true });
       await supabase.auth.signOut();
       await AsyncStorage.removeItem(PROFILE_STORAGE_KEY);
+      const guestUser: UserProfile = {
+        ...DEFAULT_PROFILE,
+        full_name: 'Guest',
+        email: 'guest@scanfinance.com',
+      };
       set({
-        user: null,
+        user: guestUser,
         session: null,
-        isDemoMode: false,
+        isDemoMode: true,
         impersonatingUser: null,
       });
     } catch (e) {
