@@ -23,8 +23,9 @@ import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
-import { downloadCSV, exportExcelReport, categorizeColumn } from '@/utils/exportReport';
+import { downloadCSV, exportExcelReport, categorizeColumn, MonthExpenseGroup } from '@/utils/exportReport';
 import { ExcelPreviewModal } from '@/components/modals/ExcelPreviewModal';
+import { ExcelExportOptionsModal } from '@/components/modals/ExcelExportOptionsModal';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 
 import {
@@ -76,6 +77,9 @@ export default function TransactionsScreen() {
   } = useTransactionStore();
 
   const [showExcelPreview, setShowExcelPreview] = useState(false);
+  const [showExportOptionsModal, setShowExportOptionsModal] = useState(false);
+  const [previewMonthGroups, setPreviewMonthGroups] = useState<MonthExpenseGroup[]>([]);
+  const [previewScopeTitle, setPreviewScopeTitle] = useState<string>('');
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -319,7 +323,7 @@ export default function TransactionsScreen() {
             {/* Tombol Pratinjau Excel */}
             <TouchableOpacity
               style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
-              onPress={() => setShowExcelPreview(true)}
+              onPress={() => setShowExportOptionsModal(true)}
               activeOpacity={0.8}
             >
               <Ionicons name="eye-outline" size={15} color="#FFFFFF" />
@@ -329,18 +333,11 @@ export default function TransactionsScreen() {
             {/* Tombol Unduh Excel */}
             <TouchableOpacity
               style={[styles.openSpreadsheetBtn, { backgroundColor: '#107C41' }]}
-              onPress={handleExportExcel}
-              disabled={isExportingExcel}
+              onPress={() => setShowExportOptionsModal(true)}
               activeOpacity={0.8}
             >
-              {isExportingExcel ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="download-outline" size={15} color="#FFFFFF" />
-                  <Text style={styles.openSpreadsheetBtnText}>{t('transactions.downloadExcel')}</Text>
-                </>
-              )}
+              <Ionicons name="download-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.openSpreadsheetBtnText}>{t('transactions.downloadExcel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -936,11 +933,27 @@ export default function TransactionsScreen() {
           </TouchableOpacity>
         </Modal>
 
-        {/* Modal Pratinjau Excel (.xlsx / .xls) */}
+        {/* Modal Opsi Ekspor & Pratinjau Excel (Bulan Ini, Semua Data Multi-Sheet, Kustom) */}
+        <ExcelExportOptionsModal
+          visible={showExportOptionsModal}
+          onClose={() => setShowExportOptionsModal(false)}
+          transactions={transactions}
+          user={user}
+          currentMonthKey={selectedMonth === 'all' ? getCurrentMonthKey() : selectedMonth}
+          onOpenPreview={(groups, scopeTitle) => {
+            setPreviewMonthGroups(groups);
+            setPreviewScopeTitle(scopeTitle);
+            setShowExcelPreview(true);
+          }}
+        />
+
+        {/* Modal Pratinjau Excel (.xlsx / .xls) Multi-Sheet */}
         <ExcelPreviewModal
           visible={showExcelPreview}
           onClose={() => setShowExcelPreview(false)}
           transactions={filteredTransactions}
+          monthGroups={previewMonthGroups}
+          scopeTitle={previewScopeTitle}
           user={user}
           selectedMonth={selectedMonth}
         />

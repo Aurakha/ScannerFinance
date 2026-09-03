@@ -66,12 +66,13 @@ export function categorizeColumn(catNameRaw: string): 'operational' | 'pantry' |
  */
 export function generateCompanyExpenseReportXLS(
   transactions: Transaction[],
-  profile?: UserProfile
+  profile?: UserProfile,
+  reportDateOverride?: string
 ): string {
   const companyName = profile?.company_name || 'PT. San Kawan Abadi';
   const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
   const department = profile?.department || 'Operation';
-  const reportDate = profile?.submission_date || '1 Agustus 2026';
+  const reportDate = reportDateOverride || profile?.submission_date || '1 Agustus 2026';
   const projectName = profile?.project_name || 'Head Office';
   const city = profile?.city || 'Tangerang';
   const verifierName = profile?.verifier_name || 'Yunitha';
@@ -826,19 +827,24 @@ export function generateReportFileName(profile?: UserProfile): string {
   return `${day}-${month}-${year}_${cleanName}_${timeSuffix}`;
 }
 
+export interface MonthExpenseGroup {
+  monthKey: string;     // e.g. '2026-09'
+  monthLabel: string;   // e.g. 'September 2026' or 'Sep 2026'
+  transactions: Transaction[];
+}
+
 /**
- * Mengonversi seluruh data transaksi dan rincian item ke format Microsoft Excel murni (.xlsx binary)
- * Menggunakan format OpenXML standar sehingga tidak memicu Protected View Rp 0 di Excel
- * dan seluruh formula rumus adaptif tetap reaktif saat diedit.
+ * Membangun satu worksheet XLSX lengkap dengan format laporan resmi SKA
  */
-export function generateCompanyExpenseReportXLSXBinary(
+export function buildCompanyExpenseWorksheet(
   transactions: Transaction[],
-  profile?: UserProfile
-): Uint8Array {
+  profile?: UserProfile,
+  reportDateOverride?: string
+): XLSX.WorkSheet {
   const companyName = profile?.company_name || 'PT. San Kawan Abadi';
   const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
   const department = profile?.department || 'Operation';
-  const reportDate = profile?.submission_date || '1 Agustus 2026';
+  const reportDate = reportDateOverride || profile?.submission_date || '1 Agustus 2026';
   const projectName = profile?.project_name || 'Head Office';
   const city = profile?.city || 'Tangerang';
   const verifierName = profile?.verifier_name || 'Yunitha';
@@ -849,7 +855,6 @@ export function generateCompanyExpenseReportXLSXBinary(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
   );
 
-  const wb = XLSX.utils.book_new();
   const ws: XLSX.WorkSheet = {};
 
   const setCell = (r: number, c: number, cell: XLSX.CellObject) => {
@@ -955,7 +960,7 @@ export function generateCompanyExpenseReportXLSXBinary(
       setCell(rIdx, 0, { t: 's', v: txDateStr });
       setCell(rIdx, 1, { t: 'n', v: rowNo });
       setCell(rIdx, 2, { t: 's', v: tx.merchant_name });
-      setCell(rIdx, 3, { t: 's', v: '1x' });
+      setCell(rIdx, 3, { t: 's', v: '1 Paket' });
 
       let colIdx = 4;
       if (catCol === 'operational') {
@@ -985,7 +990,7 @@ export function generateCompanyExpenseReportXLSXBinary(
       rowNo++;
     }
 
-    // Diskon
+    // Catat Diskon / Potongan Promo (jika ada)
     if (tx.discount_amount && Number(tx.discount_amount) > 0) {
       const discVal = Number(tx.discount_amount);
       const negVal = -discVal;
@@ -1151,7 +1156,7 @@ export function generateCompanyExpenseReportXLSXBinary(
   // Range and Merges
   ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rIdx, c: 8 } });
 
-  // Column widths (lega dan tidak terpotong):
+  // Column widths:
   ws['!cols'] = [
     { wch: 15 }, // A: TANGGAL
     { wch: 7 },  // B: NO
@@ -1183,9 +1188,106 @@ export function generateCompanyExpenseReportXLSXBinary(
     { s: { r: rIdx, c: 4 }, e: { r: rIdx, c: 6 } },
   ];
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Expense Report');
+  return ws;
+}
+
+/**
+ * Mengelompokkan transaksi ke dalam grup bulanan secara terurut
+ */
+export function groupTransactionsByMonth(
+  transactions: Transaction[],
+  monthKeys?: string[],
+  lang: 'id' | 'en' = 'id'
+): MonthExpenseGroup[] {
+  const monthNamesId = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const names = lang === 'en' ? monthNamesEn : monthNamesId;
+
+  const map = new Map<string, Transaction[]>();
+
+  transactions.forEach((tx) => {
+    try {
+      const d = new Date(tx.transaction_date);
+      if (!isNaN(d.getTime())) {
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthKeys || monthKeys.includes(key)) {
+          if (!map.has(key)) map.set(key, []);
+          map.get(key)!.push(tx);
+        }
+      }
+    } catch {}
+  });
+
+  // Jika monthKeys ditentukan tetapi ada bulan yang tidak punya transaksi, pastikan tetap ada (opsional) atau hanya yang punya data
+  const targetKeys = monthKeys || Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
+
+  return targetKeys
+    .filter((key) => map.has(key) && (map.get(key) || []).length > 0)
+    .sort((a, b) => b.localeCompare(a))
+    .map((key) => {
+      const [year, m] = key.split('-').map(Number);
+      const mLabel = `${names[m - 1]} ${year}`;
+      return {
+        monthKey: key,
+        monthLabel: mLabel,
+        transactions: map.get(key) || [],
+      };
+    });
+}
+
+/**
+ * Mengonversi seluruh data transaksi dan rincian item ke format Microsoft Excel murni (.xlsx binary) 1 Sheet
+ */
+export function generateCompanyExpenseReportXLSXBinary(
+  transactions: Transaction[],
+  profile?: UserProfile,
+  sheetName = 'Expense Report'
+): Uint8Array {
+  const wb = XLSX.utils.book_new();
+  const ws = buildCompanyExpenseWorksheet(transactions, profile);
+  const safeSheetName = sheetName.replace(/[\\/?*\[\]:]/g, ' ').trim().slice(0, 31) || 'Expense Report';
+  XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   return new Uint8Array(wbout);
+}
+
+/**
+ * Mengonversi transaksi ke format Microsoft Excel Multi-Sheet (.xlsx) di mana 1 Sheet = 1 Bulan
+ */
+export function generateMultiSheetExpenseReportXLSXBinary(
+  monthGroups: MonthExpenseGroup[],
+  profile?: UserProfile
+): Uint8Array {
+  const wb = XLSX.utils.book_new();
+
+  // Jika tidak ada data bulanan, buat sheet kosong dengan format resmi
+  if (monthGroups.length === 0) {
+    const ws = buildCompanyExpenseWorksheet([], profile);
+    XLSX.utils.book_append_sheet(wb, ws, 'Expense Report');
+  } else {
+    monthGroups.forEach((group) => {
+      const ws = buildCompanyExpenseWorksheet(group.transactions, profile, group.monthLabel);
+      const safeSheetName = group.monthLabel.replace(/[\\/?*\[\]:]/g, ' ').trim().slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+    });
+  }
+
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Uint8Array(wbout);
+}
+
+/**
+ * Fungsi Ekspor Multi-Sheet: Download File Excel (.xlsx) dengan 1 Sheet per Bulan
+ */
+export function exportMultiSheetExcelReport(
+  monthGroups: MonthExpenseGroup[],
+  profile?: UserProfile,
+  fileName?: string
+) {
+  const baseName = fileName || generateReportFileName(profile);
+  const name = `${baseName.replace(/\.xlsx?$/i, '')}.xlsx`;
+  const binary = generateMultiSheetExpenseReportXLSXBinary(monthGroups, profile);
+  downloadFile(binary, name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 /**

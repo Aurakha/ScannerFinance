@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import {
+  MonthExpenseGroup,
   generateCompanyExpenseReportXLS,
   exportExcelReport,
+  exportMultiSheetExcelReport,
   generateReportFileName,
 } from '@/utils/exportReport';
 import { formatRupiah } from '@/utils/formatters';
@@ -25,33 +27,67 @@ import { formatRupiah } from '@/utils/formatters';
 interface ExcelPreviewModalProps {
   visible: boolean;
   onClose: () => void;
-  transactions: Transaction[];
+  transactions?: Transaction[];
+  monthGroups?: MonthExpenseGroup[];
   user?: UserProfile | null;
   selectedMonth?: string;
+  scopeTitle?: string;
 }
 
 export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
   visible,
   onClose,
-  transactions,
+  transactions = [],
+  monthGroups = [],
   user,
   selectedMonth,
+  scopeTitle,
 }) => {
   const { theme, mode } = useThemeStore();
   const { t, language } = useLanguageStore();
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [activeSheetIndex, setActiveSheetIndex] = useState(0);
   const iframeRef = useRef<any>(null);
 
-  if (!visible) return null;
+  // Jika monthGroups diberikan, gunakan sheet yang aktif
+  const hasMultipleSheets = monthGroups.length > 1;
+  const currentSheetGroup = monthGroups[activeSheetIndex] || (monthGroups.length > 0 ? monthGroups[0] : null);
 
-  const totalExpense = transactions.reduce(
+  const activeTransactions = currentSheetGroup ? currentSheetGroup.transactions : transactions;
+  const activeReportDate = currentSheetGroup ? currentSheetGroup.monthLabel : selectedMonth;
+
+  const totalExpense = activeTransactions.reduce(
     (sum, tx) => sum + (Number(tx.total_amount) || 0),
     0
   );
 
-  const reportFileName = `${generateReportFileName(user || undefined)}.xls`;
-  const rawHtml = generateCompanyExpenseReportXLS(transactions, user || undefined);
+  const allExpenseTotal = useMemo(() => {
+    if (hasMultipleSheets) {
+      return monthGroups.reduce(
+        (sum, g) =>
+          sum + g.transactions.reduce((s, tx) => s + (Number(tx.total_amount) || 0), 0),
+        0
+      );
+    }
+    return totalExpense;
+  }, [hasMultipleSheets, monthGroups, totalExpense]);
+
+  const allTxCount = useMemo(() => {
+    if (hasMultipleSheets) {
+      return monthGroups.reduce((sum, g) => sum + g.transactions.length, 0);
+    }
+    return activeTransactions.length;
+  }, [hasMultipleSheets, monthGroups, activeTransactions]);
+
+  if (!visible) return null;
+
+  const reportFileName = `${generateReportFileName(user || undefined)}.xlsx`;
+  const rawHtml = generateCompanyExpenseReportXLS(
+    activeTransactions,
+    user || undefined,
+    activeReportDate
+  );
 
   // Extract table markup
   const tableStartIndex = rawHtml.indexOf('<table>');
@@ -120,7 +156,11 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
   const handleDownload = () => {
     try {
       setIsDownloading(true);
-      exportExcelReport(transactions, user || undefined);
+      if (hasMultipleSheets) {
+        exportMultiSheetExcelReport(monthGroups, user || undefined);
+      } else {
+        exportExcelReport(activeTransactions, user || undefined);
+      }
     } finally {
       setTimeout(() => setIsDownloading(false), 600);
     }
@@ -162,11 +202,15 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
                     {t('transactions.excelPreviewModalTitle')}
                   </Text>
                   <View style={styles.excelPill}>
-                    <Text style={styles.excelPillText}>.XLS EXCEL</Text>
+                    <Text style={styles.excelPillText}>
+                      {hasMultipleSheets ? '.XLSX MULTI-SHEET' : '.XLS EXCEL'}
+                    </Text>
                   </View>
                 </View>
                 <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-                  {t('transactions.excelPreviewModalSubtitle')}
+                  {scopeTitle
+                    ? `${scopeTitle} • ${t('transactions.excelPreviewModalSubtitle')}`
+                    : t('transactions.excelPreviewModalSubtitle')}
                 </Text>
               </View>
             </View>
@@ -178,7 +222,6 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
                   style={[styles.actionBtn, { backgroundColor: theme.cardHover, borderColor: theme.border }]}
                   onPress={handlePrint}
                   activeOpacity={0.7}
-                  accessibilityLabel="Cetak"
                 >
                   <Ionicons name="print-outline" size={16} color={theme.text} />
                   <Text style={[styles.actionBtnText, { color: theme.text }]}>
@@ -188,18 +231,20 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
               )}
 
               <TouchableOpacity
-                style={styles.downloadBtn}
+                style={[styles.downloadBtn, isDownloading && { opacity: 0.6 }]}
                 onPress={handleDownload}
                 disabled={isDownloading}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 {isDownloading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Ionicons name="download-outline" size={17} color="#FFFFFF" />
+                    <Ionicons name="download" size={16} color="#FFFFFF" />
                     <Text style={styles.downloadBtnText}>
-                      {t('transactions.downloadNow')}
+                      {hasMultipleSheets
+                        ? `${t('transactions.downloadNow')} (${monthGroups.length} Sheets)`
+                        : t('transactions.downloadNow')}
                     </Text>
                   </>
                 )}
@@ -215,20 +260,98 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
             </View>
           </View>
 
+          {/* Tab Selector Sheet jika Multi-Sheet */}
+          {hasMultipleSheets && (
+            <View style={[styles.multiSheetTabBar, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+              <View style={styles.sheetTabNotice}>
+                <Ionicons name="folder-open-outline" size={14} color="#107C41" />
+                <Text style={[styles.sheetTabNoticeText, { color: theme.textSecondary }]}>
+                  {language === 'id'
+                    ? `Pilih Sheet (${activeSheetIndex + 1} dari ${monthGroups.length} bulan):`
+                    : `Select Sheet (${activeSheetIndex + 1} of ${monthGroups.length} months):`}
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.multiSheetTabsScroll}
+              >
+                {monthGroups.map((group, idx) => {
+                  const isCur = idx === activeSheetIndex;
+                  return (
+                    <TouchableOpacity
+                      key={group.monthKey}
+                      style={[
+                        styles.sheetTabBtn,
+                        { backgroundColor: theme.card, borderColor: theme.border },
+                        isCur && styles.sheetTabBtnActive,
+                      ]}
+                      onPress={() => setActiveSheetIndex(idx)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name={isCur ? 'document-text' : 'document-outline'}
+                        size={13}
+                        color={isCur ? '#FFFFFF' : '#107C41'}
+                      />
+                      <Text
+                        style={[
+                          styles.sheetTabBtnText,
+                          { color: theme.text },
+                          isCur && styles.sheetTabBtnTextActive,
+                        ]}
+                      >
+                        {group.monthLabel}
+                      </Text>
+                      <View
+                        style={[
+                          styles.sheetCountPill,
+                          isCur && styles.sheetCountPillActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.sheetCountPillText,
+                            isCur && styles.sheetCountPillTextActive,
+                          ]}
+                        >
+                          {group.transactions.length}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Sub-toolbar (Stats & Zoom controls) */}
           <View style={[styles.subToolbar, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
             <View style={styles.statBadgesRow}>
+              {hasMultipleSheets && (
+                <View style={[styles.infoBadge, { backgroundColor: '#107C41' }]}>
+                  <Ionicons name="layers" size={13} color="#FFFFFF" />
+                  <Text style={[styles.infoBadgeText, { color: '#FFFFFF', fontWeight: '800' }]}>
+                    {monthGroups.length} Sheets (1/Bulan)
+                  </Text>
+                </View>
+              )}
+
               <View style={[styles.infoBadge, { backgroundColor: theme.card }]}>
                 <Ionicons name="receipt-outline" size={14} color={Palette.primary} />
                 <Text style={[styles.infoBadgeText, { color: theme.text }]}>
-                  {transactions.length} Transaksi
+                  {hasMultipleSheets
+                    ? `${activeTransactions.length} Transaksi (Sheet ${activeSheetIndex + 1})`
+                    : `${activeTransactions.length} Transaksi`}
                 </Text>
               </View>
 
               <View style={[styles.infoBadge, { backgroundColor: theme.card }]}>
                 <Ionicons name="wallet-outline" size={14} color={Palette.greenOnline} />
                 <Text style={[styles.infoBadgeText, { color: theme.text }]}>
-                  Total: {formatRupiah(totalExpense)}
+                  {hasMultipleSheets
+                    ? `Sheet Ini: ${formatRupiah(totalExpense)}`
+                    : `Total: ${formatRupiah(totalExpense)}`}
                 </Text>
               </View>
 
@@ -538,5 +661,71 @@ const styles = StyleSheet.create({
   },
   statusHintText: {
     fontSize: 11,
+  },
+  multiSheetTabBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  sheetTabNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  sheetTabNoticeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  multiSheetTabsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 16,
+  },
+  sheetTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  sheetTabBtnActive: {
+    backgroundColor: '#107C41',
+    borderColor: '#107C41',
+    shadowColor: '#107C41',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sheetTabBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  sheetTabBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  sheetCountPill: {
+    backgroundColor: 'rgba(16, 124, 65, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  sheetCountPillActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  sheetCountPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#107C41',
+  },
+  sheetCountPillTextActive: {
+    color: '#FFFFFF',
   },
 });
