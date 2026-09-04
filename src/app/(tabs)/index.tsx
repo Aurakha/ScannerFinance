@@ -24,7 +24,7 @@ import { formatPercent, formatRupiah } from '@/utils/formatters';
 export default function DashboardScreen() {
   const router = useRouter();
   const { user, isDemoMode, impersonatingUser, exitImpersonation } = useAuthStore();
-  const { transactions, stats, loadData } = useTransactionStore();
+  const { transactions, stats, loadData, setBudgetLimit } = useTransactionStore();
   const {
     cashAdvances,
     activeCashAdvanceId,
@@ -41,6 +41,13 @@ export default function DashboardScreen() {
   }, [user]);
 
   const activeCA = getActiveCashAdvance();
+
+  // Sinkronisasi batas anggaran (budget limit) dengan plafon Cash Advance aktif
+  useEffect(() => {
+    if (activeCA?.initial_amount && stats.budgetLimit !== activeCA.initial_amount) {
+      setBudgetLimit(activeCA.initial_amount);
+    }
+  }, [activeCA?.initial_amount, stats.budgetLimit, setBudgetLimit]);
 
   const handleReturnToAdmin = () => {
     exitImpersonation();
@@ -259,7 +266,7 @@ export default function DashboardScreen() {
               <Text style={[styles.budgetSubText, { color: theme.textSecondary }]}>
                 {t('dashboard.budgetUsed', {
                   used: formatPercent(stats.budgetUsedPercentage),
-                  limit: formatRupiah(stats.budgetLimit),
+                  limit: formatRupiah(activeCA?.initial_amount || stats.budgetLimit),
                 })}
               </Text>
               <Text

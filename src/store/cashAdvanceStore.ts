@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { CashAdvance } from '@/types';
+import { useTransactionStore } from './transactionStore';
+
+const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
+  const targetBudget = activeCA?.initial_amount || 7000000;
+  const currentBudget = useTransactionStore.getState().budgetLimit;
+  if (currentBudget !== targetBudget) {
+    useTransactionStore.getState().setBudgetLimit(targetBudget);
+  }
+};
 
 interface CashAdvanceState {
   cashAdvances: CashAdvance[];
@@ -77,6 +86,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       console.warn('Load cash advances notice:', err);
     } finally {
       set({ isLoading: false });
+      syncBudgetWithActiveCA(get().getActiveCashAdvance());
     }
   },
 
@@ -95,6 +105,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       cashAdvances: updated,
       activeCashAdvanceId: newCA.id,
     });
+    syncBudgetWithActiveCA(newCA);
 
     if (!isSSR) {
       try {
@@ -110,6 +121,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
     const current = get().cashAdvances;
     const updated = current.map((ca) => (ca.id === id ? { ...ca, ...data } : ca));
     set({ cashAdvances: updated });
+    syncBudgetWithActiveCA(get().getActiveCashAdvance());
 
     if (!isSSR) {
       const activeCA = updated.find((ca) => ca.id === id);
@@ -134,6 +146,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
         : get().activeCashAdvanceId;
 
     set({ cashAdvances: updated, activeCashAdvanceId: newActiveId });
+    syncBudgetWithActiveCA(get().getActiveCashAdvance());
 
     if (!isSSR) {
       const storageKey = `${STORAGE_KEY_PREFIX}${deletedCA?.user_id || 'user-default-1'}`;
@@ -147,6 +160,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
   setActiveCashAdvanceId: (id) => {
     set({ activeCashAdvanceId: id });
+    syncBudgetWithActiveCA(get().getActiveCashAdvance());
   },
 
   getActiveCashAdvance: () => {

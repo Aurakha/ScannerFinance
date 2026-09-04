@@ -395,7 +395,7 @@ export async function getCategories(): Promise<Category[]> {
  */
 export function calculateMonthlyStats(
   transactions: Transaction[],
-  budgetLimit: number = 5000000
+  budgetLimit: number = 7000000
 ): MonthlyStats {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();

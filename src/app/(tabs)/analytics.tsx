@@ -27,7 +27,7 @@ import { CashAdvance, UserProfile } from '@/types';
 
 export default function InputScreen() {
   const { user, getAllUsers } = useAuthStore();
-  const { stats, transactions } = useTransactionStore();
+  const { stats, transactions, setBudgetLimit } = useTransactionStore();
   const {
     cashAdvances,
     activeCashAdvanceId,
@@ -71,6 +71,13 @@ export default function InputScreen() {
   }, [user]);
 
   const activeCA = getActiveCashAdvance();
+
+  // Sinkronisasi batas anggaran (budget limit) dengan plafon Cash Advance aktif
+  useEffect(() => {
+    if (activeCA?.initial_amount && stats.budgetLimit !== activeCA.initial_amount) {
+      setBudgetLimit(activeCA.initial_amount);
+    }
+  }, [activeCA?.initial_amount, stats.budgetLimit, setBudgetLimit]);
 
   // Buka Modal Tambah Baru
   const handleOpenCreateModal = () => {

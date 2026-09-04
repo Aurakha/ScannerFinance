@@ -30,8 +30,8 @@ interface TransactionState {
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: [],
   categories: DEFAULT_CATEGORIES,
-  budgetLimit: 5000000,
-  stats: calculateMonthlyStats([], 5000000),
+  budgetLimit: 7000000,
+  stats: calculateMonthlyStats([], 7000000),
   isLoading: false,
   activeFilter: 'all',
   searchQuery: '',
