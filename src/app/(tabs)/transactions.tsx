@@ -77,8 +77,13 @@ export default function TransactionsScreen() {
     loadData,
   } = useTransactionStore();
 
-  const { getActiveCashAdvance, loadCashAdvances } = useCashAdvanceStore();
-  const activeCA = getActiveCashAdvance();
+  const cashAdvances = useCashAdvanceStore((state) => state.cashAdvances);
+  const activeCashAdvanceId = useCashAdvanceStore((state) => state.activeCashAdvanceId);
+  const loadCashAdvances = useCashAdvanceStore((state) => state.loadCashAdvances);
+  const activeCA = useMemo(() => {
+    if (!activeCashAdvanceId) return cashAdvances[0] || null;
+    return cashAdvances.find((ca) => ca.id === activeCashAdvanceId) || cashAdvances[0] || null;
+  }, [cashAdvances, activeCashAdvanceId]);
 
   const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [showExportOptionsModal, setShowExportOptionsModal] = useState(false);

@@ -18,8 +18,9 @@ export function resolveReportMetadata(
   reportDateOverride?: string
 ) {
   // Selalu prioritaskan Cash Advance aktif dari store jika tidak dipassing langsung
-  const storeActiveCA = useCashAdvanceStore.getState().getActiveCashAdvance();
-  const storeFirstCA = useCashAdvanceStore.getState().cashAdvances?.[0];
+  const storeState = useCashAdvanceStore.getState();
+  const storeActiveCA = storeState.getActiveCashAdvance();
+  const storeFirstCA = storeState.cashAdvances?.[0];
   const ca = activeCA || storeActiveCA || storeFirstCA;
 
   const companyName = profile?.company_name || 'PT. KSA';
@@ -27,33 +28,15 @@ export function resolveReportMetadata(
   const department = profile?.department || 'Divisi Operasional';
   const reportDate = reportDateOverride || profile?.submission_date || 'Agustus 2026';
 
-  // Wajib prioritaskan data Cash Advance Proyek aktif daripada profil dummy
-  const projectName =
-    ca?.project_name ||
-    (profile?.project_name && !profile.project_name.includes('Head Office')
-      ? profile.project_name
-      : 'Tangerang Project');
-
-  const city =
-    ca?.city ||
-    (profile?.city && profile.city !== 'Jakarta' ? profile.city : 'Tangerang');
-
-  const verifierName =
-    ca?.verifier_name ||
-    (profile?.verifier_name && !profile.verifier_name.includes('Pemeriksa 1')
-      ? profile.verifier_name
-      : 'Yunitha');
-
-  const approverName =
-    ca?.approver_name ||
-    (profile?.approver_name && !profile.approver_name.includes('Pimpinan 1')
-      ? profile.approver_name
-      : 'Dwi Hartanto');
-
+  // Wajib prioritaskan data Cash Advance Proyek aktif
+  const projectName = ca?.project_name || profile?.project_name || 'Tangerang Project';
+  const city = ca?.city || profile?.city || 'Tangerang';
+  const verifierName = ca?.verifier_name || profile?.verifier_name || 'Yunitha';
+  const approverName = ca?.approver_name || profile?.approver_name || 'Dwi Hartanto';
   const cashAdvance =
     ca?.initial_amount !== undefined && Number(ca.initial_amount) > 0
       ? Number(ca.initial_amount)
-      : profile?.cash_advance_amount && Number(profile.cash_advance_amount) !== 5000000
+      : profile?.cash_advance_amount && Number(profile.cash_advance_amount) > 0
       ? Number(profile.cash_advance_amount)
       : 7000000;
 

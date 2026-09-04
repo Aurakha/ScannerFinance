@@ -3,32 +3,39 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { CashAdvance } from '@/types';
 import { useTransactionStore } from './transactionStore';
+import { useAuthStore } from './authStore';
+
+const STORAGE_KEY_PREFIX = '@scanfinance_cash_advances_';
+const ACTIVE_ID_KEY_PREFIX = '@scanfinance_active_ca_id_';
+const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
-  const targetBudget = activeCA?.initial_amount || 7000000;
+  if (!activeCA) return;
+  const targetBudget = activeCA.initial_amount || 7000000;
   const currentBudget = useTransactionStore.getState().budgetLimit;
   if (currentBudget !== targetBudget) {
     useTransactionStore.getState().setBudgetLimit(targetBudget);
   }
+
+  // Sinkronkan data active CA ke profil akun aktif
+  const currentUser = useAuthStore.getState().user;
+  if (
+    currentUser &&
+    (currentUser.project_name !== activeCA.project_name ||
+      currentUser.cash_advance_amount !== activeCA.initial_amount ||
+      currentUser.city !== activeCA.city ||
+      currentUser.verifier_name !== activeCA.verifier_name ||
+      currentUser.approver_name !== activeCA.approver_name)
+  ) {
+    useAuthStore.getState().updateProfile({
+      project_name: activeCA.project_name,
+      city: activeCA.city,
+      verifier_name: activeCA.verifier_name,
+      approver_name: activeCA.approver_name,
+      cash_advance_amount: activeCA.initial_amount,
+    });
+  }
 };
-
-interface CashAdvanceState {
-  cashAdvances: CashAdvance[];
-  activeCashAdvanceId: string | null;
-  isLoading: boolean;
-  loadCashAdvances: (userId?: string) => Promise<void>;
-  createCashAdvance: (
-    data: Omit<CashAdvance, 'id' | 'created_at' | 'user_id'>,
-    userId?: string
-  ) => Promise<CashAdvance>;
-  updateCashAdvance: (id: string, data: Partial<CashAdvance>) => Promise<void>;
-  deleteCashAdvance: (id: string) => Promise<void>;
-  setActiveCashAdvanceId: (id: string | null) => void;
-  getActiveCashAdvance: () => CashAdvance | null;
-}
-
-const STORAGE_KEY_PREFIX = '@scanfinance_cash_advances_';
-const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const DEFAULT_CASH_ADVANCES: CashAdvance[] = [
   {
@@ -52,6 +59,21 @@ const isLegacyDefaultData = (value: unknown): value is CashAdvance[] => {
   return ids[0] === 'ca-default-1' && ids[1] === 'ca-default-2';
 };
 
+export interface CashAdvanceState {
+  cashAdvances: CashAdvance[];
+  activeCashAdvanceId: string | null;
+  isLoading: boolean;
+  loadCashAdvances: (userId?: string) => Promise<void>;
+  createCashAdvance: (
+    data: Omit<CashAdvance, 'id' | 'user_id' | 'created_at'>,
+    userId?: string
+  ) => Promise<CashAdvance>;
+  updateCashAdvance: (id: string, data: Partial<CashAdvance>) => Promise<void>;
+  deleteCashAdvance: (id: string) => Promise<void>;
+  setActiveCashAdvanceId: (id: string | null) => void;
+  getActiveCashAdvance: () => CashAdvance | null;
+}
+
 export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
   cashAdvances: DEFAULT_CASH_ADVANCES,
   activeCashAdvanceId: 'ca-default-1',
@@ -59,22 +81,33 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
   loadCashAdvances: async (userId?: string) => {
     if (isSSR) return;
-    const targetUserId = userId || 'user-default-1';
+    const targetUserId = userId || useAuthStore.getState().user?.id || 'user-default-1';
     const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
+    const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
     try {
       set({ isLoading: true });
-      const raw = await AsyncStorage.getItem(storageKey);
+      const [raw, savedActiveId] = await Promise.all([
+        AsyncStorage.getItem(storageKey),
+        AsyncStorage.getItem(activeIdKey),
+      ]);
+
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           if (isLegacyDefaultData(parsed)) {
             set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
             await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
+            await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
             return;
           }
+
+          const hasSavedActive = savedActiveId && parsed.some((c: CashAdvance) => c.id === savedActiveId);
+          const hasCurrentActive = get().activeCashAdvanceId && parsed.some((c: CashAdvance) => c.id === get().activeCashAdvanceId);
+          const resolvedActiveId = hasSavedActive ? savedActiveId : (hasCurrentActive ? get().activeCashAdvanceId : parsed[0].id);
+
           set({
             cashAdvances: parsed,
-            activeCashAdvanceId: get().activeCashAdvanceId || parsed[0].id,
+            activeCashAdvanceId: resolvedActiveId,
           });
           return;
         }
@@ -82,6 +115,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       // Simpan default jika belum ada
       set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
       await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
+      await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
     } catch (err) {
       console.warn('Load cash advances notice:', err);
     } finally {
@@ -91,8 +125,9 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
   },
 
   createCashAdvance: async (data, userId) => {
-    const targetUserId = userId || 'user-default-1';
+    const targetUserId = userId || useAuthStore.getState().user?.id || 'user-default-1';
     const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
+    const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
     const newCA: CashAdvance = {
       ...data,
       id: `ca-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -109,7 +144,10 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
     if (!isSSR) {
       try {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+        await Promise.all([
+          AsyncStorage.setItem(storageKey, JSON.stringify(updated)),
+          AsyncStorage.setItem(activeIdKey, newCA.id),
+        ]);
       } catch (err) {
         console.warn('Save cash advance error:', err);
       }
@@ -125,7 +163,8 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
     if (!isSSR) {
       const activeCA = updated.find((ca) => ca.id === id);
-      const storageKey = `${STORAGE_KEY_PREFIX}${activeCA?.user_id || 'user-default-1'}`;
+      const targetUserId = activeCA?.user_id || useAuthStore.getState().user?.id || 'user-default-1';
+      const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
       try {
         await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
       } catch (err) {
@@ -149,9 +188,16 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
     syncBudgetWithActiveCA(get().getActiveCashAdvance());
 
     if (!isSSR) {
-      const storageKey = `${STORAGE_KEY_PREFIX}${deletedCA?.user_id || 'user-default-1'}`;
+      const targetUserId = deletedCA?.user_id || useAuthStore.getState().user?.id || 'user-default-1';
+      const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
+      const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
       try {
         await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+        if (newActiveId) {
+          await AsyncStorage.setItem(activeIdKey, newActiveId);
+        } else {
+          await AsyncStorage.removeItem(activeIdKey);
+        }
       } catch (err) {
         console.warn('Delete cash advance error:', err);
       }
@@ -160,7 +206,20 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
   setActiveCashAdvanceId: (id) => {
     set({ activeCashAdvanceId: id });
-    syncBudgetWithActiveCA(get().getActiveCashAdvance());
+    const active = get().getActiveCashAdvance();
+    syncBudgetWithActiveCA(active);
+
+    if (!isSSR) {
+      const targetUserId = active?.user_id || useAuthStore.getState().user?.id || 'user-default-1';
+      const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
+      if (id) {
+        AsyncStorage.setItem(activeIdKey, id).catch((err) => {
+          console.warn('Save active CA ID error:', err);
+        });
+      } else {
+        AsyncStorage.removeItem(activeIdKey).catch(() => {});
+      }
+    }
   },
 
   getActiveCashAdvance: () => {

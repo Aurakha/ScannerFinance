@@ -48,8 +48,13 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
 }) => {
   const { theme, mode } = useThemeStore();
   const { t, language } = useLanguageStore();
-  const { getActiveCashAdvance } = useCashAdvanceStore();
-  const activeCA = propActiveCA || getActiveCashAdvance();
+  const cashAdvances = useCashAdvanceStore((state) => state.cashAdvances);
+  const activeCashAdvanceId = useCashAdvanceStore((state) => state.activeCashAdvanceId);
+  const storeActiveCA = useMemo(() => {
+    if (!activeCashAdvanceId) return cashAdvances[0] || null;
+    return cashAdvances.find((ca) => ca.id === activeCashAdvanceId) || cashAdvances[0] || null;
+  }, [cashAdvances, activeCashAdvanceId]);
+  const activeCA = propActiveCA || storeActiveCA;
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);

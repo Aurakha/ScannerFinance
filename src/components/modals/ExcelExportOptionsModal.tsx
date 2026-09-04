@@ -44,8 +44,13 @@ export const ExcelExportOptionsModal: React.FC<ExcelExportOptionsModalProps> = (
 }) => {
   const { theme } = useThemeStore();
   const { language } = useLanguageStore();
-  const { getActiveCashAdvance } = useCashAdvanceStore();
-  const activeCA = propActiveCA || getActiveCashAdvance();
+  const cashAdvances = useCashAdvanceStore((state) => state.cashAdvances);
+  const activeCashAdvanceId = useCashAdvanceStore((state) => state.activeCashAdvanceId);
+  const storeActiveCA = useMemo(() => {
+    if (!activeCashAdvanceId) return cashAdvances[0] || null;
+    return cashAdvances.find((ca) => ca.id === activeCashAdvanceId) || cashAdvances[0] || null;
+  }, [cashAdvances, activeCashAdvanceId]);
+  const activeCA = propActiveCA || storeActiveCA;
 
   const [scopeMode, setScopeMode] = useState<ExportScopeMode>('current');
   const [selectedCustomKeys, setSelectedCustomKeys] = useState<string[]>([]);
