@@ -40,6 +40,7 @@ interface AuthState {
 
 const PROFILE_STORAGE_KEY = '@scanfinance_user_profile';
 const REGISTERED_USERS_KEY = '@scanfinance_registered_users_list';
+const KNOWN_EMAILS_STORAGE_KEY = '@scanfinance_known_user_emails';
 const GEMINI_API_KEY_STORAGE = '@scanfinance_gemini_key';
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
@@ -246,6 +247,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ user: merged, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
+
+        // Sinkronkan email aktif ke known emails map & database
+        if (u.id && u.email) {
+          try {
+            const rawKnown = await AsyncStorage.getItem(KNOWN_EMAILS_STORAGE_KEY);
+            const known = rawKnown ? JSON.parse(rawKnown) : {};
+            known[u.id] = u.email;
+            await AsyncStorage.setItem(KNOWN_EMAILS_STORAGE_KEY, JSON.stringify(known));
+            await supabase.from('profiles').update({ avatar_url: `email:${u.email}` }).eq('id', u.id);
+          } catch {}
+        }
       } else {
         // Jika tidak ada sesi login, pastikan user berada di mode guest/demo dengan nama Guest
         const guestProfile: UserProfile = {
@@ -313,6 +325,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
         set({ user: newProf, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProf));
+
+        // Simpan email asli ke known emails map
+        try {
+          const rawKnown = await AsyncStorage.getItem(KNOWN_EMAILS_STORAGE_KEY);
+          const known = rawKnown ? JSON.parse(rawKnown) : {};
+          known[data.user.id] = data.user.email || email;
+          await AsyncStorage.setItem(KNOWN_EMAILS_STORAGE_KEY, JSON.stringify(known));
+          await supabase.from('profiles').update({ avatar_url: `email:${email}` }).eq('id', data.user.id);
+        } catch {}
 
         // Simpan ke local list user
         const users = await get().getAllUsers();
@@ -408,6 +429,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: newProf, session: data.session, isDemoMode: false });
         await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProf));
 
+        // Simpan email asli ke known emails map & database
+        try {
+          const rawKnown = await AsyncStorage.getItem(KNOWN_EMAILS_STORAGE_KEY);
+          const known = rawKnown ? JSON.parse(rawKnown) : {};
+          known[u.id] = u.email || email;
+          await AsyncStorage.setItem(KNOWN_EMAILS_STORAGE_KEY, JSON.stringify(known));
+          if (u.email || email) {
+            await supabase.from('profiles').update({ avatar_url: `email:${u.email || email}` }).eq('id', u.id);
+          }
+        } catch {}
+
         // Update di daftar all users
         const users = await get().getAllUsers();
         const updated = [newProf, ...users.filter((usr) => usr.email !== newProf.email)];
@@ -502,7 +534,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   getAllUsers: async () => {
     try {
-      // Coba ambil dari Supabase profiles jika koneksi aktif
+      // 1. Ambil data lokal terlebih dahulu untuk menjaga data email asli
+      let localKnownEmails: Record<string, string> = {};
+      let localUsers: UserProfile[] = [];
+      try {
+        const [rawKnown, rawLocalUsers] = await Promise.all([
+          AsyncStorage.getItem(KNOWN_EMAILS_STORAGE_KEY),
+          AsyncStorage.getItem(REGISTERED_USERS_KEY),
+        ]);
+        if (rawKnown) localKnownEmails = JSON.parse(rawKnown);
+        if (rawLocalUsers) localUsers = JSON.parse(rawLocalUsers);
+      } catch {}
+
+      // Masukkan akun user saat ini ke known emails jika ada
+      const currentUser = get().user;
+      if (currentUser?.id && currentUser?.email) {
+        localKnownEmails[currentUser.id] = currentUser.email;
+      }
+      localUsers.forEach((u) => {
+        if (u.id && u.email && !u.email.endsWith('@scanfinance.com')) {
+          localKnownEmails[u.id] = u.email;
+        }
+      });
+
+      // 2. Coba ambil dari Supabase profiles jika koneksi aktif
       const { data: dbUsers, error } = await supabase
         .from('profiles')
         .select('*')
@@ -511,24 +566,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!error && dbUsers && dbUsers.length > 0) {
         const mappedUsers: UserProfile[] = dbUsers.map((p: any) => {
           const authUser = SUPABASE_AUTH_USERS_MAP[p.id];
-          const realEmail = authUser?.email || p.email || (p.full_name?.includes('@') ? p.full_name : `${p.full_name?.toLowerCase().replace(/\s+/g, '')}@gmail.com`);
-          const realName = p.full_name || authUser?.full_name || 'Pengguna';
+          const localMatch = localUsers.find((u) => u.id === p.id);
+          const knownEmail = localKnownEmails[p.id];
+
+          // Ambil email asli:
+          // 1. authUser (dari pemetaan Supabase Auth)
+          // 2. knownEmail (dari sesi / registrasi lokal yang pernah tersimpan)
+          // 3. localMatch?.email (dari data user lokal)
+          // 4. p.avatar_url (jika tersimpan dalam format avatar_url email)
+          // 5. p.email (jika ada kolom email)
+          // 6. Jika p.full_name berformat email
+          // CATATAN: JANGAN PERNAH membuat email palsu dari nama seperti `${p.full_name}@gmail.com`!
+          let realEmail =
+            authUser?.email ||
+            knownEmail ||
+            (localMatch?.email && !localMatch.email.endsWith('@scanfinance.com') ? localMatch.email : '') ||
+            (p.avatar_url && p.avatar_url.includes('@') ? p.avatar_url.replace(/^email:/, '') : '') ||
+            p.email ||
+            (p.full_name?.includes('@') ? p.full_name : '');
+
+          if (!realEmail) {
+            if (currentUser && currentUser.id === p.id && currentUser.email) {
+              realEmail = currentUser.email;
+            } else {
+              realEmail = `${p.id.substring(0, 8)}@scanfinance.com`;
+            }
+          }
+
+          const realName = p.full_name || authUser?.full_name || localMatch?.full_name || 'Pengguna';
 
           return {
             ...DEFAULT_PROFILE,
             id: p.id,
             email: realEmail,
             full_name: realName,
-            company_name: p.company_name || 'PT. San Kawan Abadi',
-            department: p.department || 'Divisi Operasional',
-            project_name: p.project_name || 'Head Office / Proyek 1',
-            city: p.city || 'Jakarta',
-            verifier_name: p.verifier_name || 'Yunitha',
-            approver_name: p.approver_name || 'Dwi Hartanto',
+            company_name: p.company_name || localMatch?.company_name || 'PT. San Kawan Abadi',
+            department: p.department || localMatch?.department || 'Divisi Operasional',
+            project_name: p.project_name || localMatch?.project_name || 'Head Office / Proyek 1',
+            city: p.city || localMatch?.city || 'Jakarta',
+            verifier_name: p.verifier_name || localMatch?.verifier_name || 'Yunitha',
+            approver_name: p.approver_name || localMatch?.approver_name || 'Dwi Hartanto',
             cash_advance_amount: p.cash_advance_amount !== undefined ? Number(p.cash_advance_amount) : 7000000,
-            role: p.role || 'user',
-            created_at: p.created_at,
+            role: p.role || localMatch?.role || 'user',
+            created_at: p.created_at || localMatch?.created_at,
           };
+        });
+
+        // Gabungkan juga user lokal yang belum ada di Supabase
+        localUsers.forEach((lu) => {
+          if (!mappedUsers.some((mu) => mu.id === lu.id || mu.email === lu.email)) {
+            mappedUsers.push(lu);
+          }
         });
 
         // Tambahkan akun test jika belum ada
@@ -537,7 +625,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (testSeed) mappedUsers.push(testSeed);
         }
 
-        await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(mappedUsers));
+        // Simpan pemetaan email yang diperbarui
+        mappedUsers.forEach((u) => {
+          if (u.id && u.email && !u.email.endsWith('@scanfinance.com')) {
+            localKnownEmails[u.id] = u.email;
+          }
+        });
+
+        await Promise.all([
+          AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(mappedUsers)),
+          AsyncStorage.setItem(KNOWN_EMAILS_STORAGE_KEY, JSON.stringify(localKnownEmails)),
+        ]);
+
         return mappedUsers;
       }
 
@@ -569,20 +668,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       created_at: new Date().toISOString(),
     };
 
-    // 1. Jika ada Supabase Auth, coba daftarkan
+    // 1. Simpan ke known emails
+    try {
+      const rawKnown = await AsyncStorage.getItem(KNOWN_EMAILS_STORAGE_KEY);
+      const known = rawKnown ? JSON.parse(rawKnown) : {};
+      known[newId] = userData.email;
+      await AsyncStorage.setItem(KNOWN_EMAILS_STORAGE_KEY, JSON.stringify(known));
+    } catch {}
+
+    // 2. Jika ada Supabase Auth, coba daftarkan
     if (userData.password) {
       try {
-        await supabase.auth.signUp({
+        const { data: signUpRes } = await supabase.auth.signUp({
           email: userData.email,
           password: userData.password,
           options: {
-            data: { full_name: userData.full_name },
+            data: {
+              full_name: userData.full_name,
+              email: userData.email,
+              avatar_url: `email:${userData.email}`,
+            },
           },
         });
+        if (signUpRes?.user?.id) {
+          try {
+            await supabase.from('profiles').update({ avatar_url: `email:${userData.email}` }).eq('id', signUpRes.user.id);
+          } catch {}
+        }
       } catch {}
     }
 
-    // 2. Simpan ke local list
+    // 3. Simpan ke local list
     try {
       const existing = await get().getAllUsers();
       const updated = [newUser, ...existing.filter((u) => u.email !== newUser.email)];

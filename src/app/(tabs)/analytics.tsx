@@ -233,7 +233,10 @@ export default function InputScreen() {
 
   // Filter akun terdaftar yang belum ditambahkan sebagai kolaborator
   const unaddedRegisteredUsers = availableUsers.filter(
-    (u) => u.email && !collaborators.includes(u.email)
+    (u) =>
+      (u.email || u.full_name) &&
+      !collaborators.includes(u.email) &&
+      !collaborators.includes(u.full_name)
   );
 
   // Batasi hanya 3 akun terbaru saat belum mengetik agar tidak ramai
@@ -860,13 +863,12 @@ export default function InputScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
-                                {item.email}
+                                {item.full_name && item.full_name !== item.email ? item.full_name : item.email}
                               </Text>
-                              {item.full_name ? (
-                                <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                                  {item.full_name} {item.department ? `• ${item.department}` : ''}
-                                </Text>
-                              ) : null}
+                              <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                                {item.email && item.full_name !== item.email ? `${item.email} • ` : ''}
+                                {item.department || 'Divisi Operasional'}
+                              </Text>
                             </View>
                           </View>
                           <View
@@ -911,29 +913,43 @@ export default function InputScreen() {
                         : '⚡ Recent Accounts:'}
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                      {recentUserSuggestions.map((item) => (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 4,
-                            backgroundColor: theme.cardHover,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 8,
-                          }}
-                          onPress={() => handleAddCollaborator(item.email)}
-                        >
-                          <Ionicons name="person-outline" size={12} color={Palette.primary} />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.text }}>
-                            {item.email}
-                          </Text>
-                          <Ionicons name="add" size={12} color={Palette.primary} />
-                        </TouchableOpacity>
-                      ))}
+                      {recentUserSuggestions.map((item) => {
+                        const displayName = item.full_name || (item.email ? item.email.split('@')[0] : 'Pengguna');
+                        const displayEmail = item.email && !item.email.endsWith('@scanfinance.com') && item.email !== displayName
+                          ? item.email
+                          : '';
+
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              backgroundColor: theme.cardHover,
+                              borderColor: theme.border,
+                              borderWidth: 1,
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderRadius: 8,
+                            }}
+                            onPress={() => handleAddCollaborator(item.email || item.full_name)}
+                          >
+                            <Ionicons name="person-outline" size={13} color={Palette.primary} />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.text }}>
+                                {displayName}
+                              </Text>
+                              {displayEmail ? (
+                                <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                                  ({displayEmail})
+                                </Text>
+                              ) : null}
+                            </View>
+                            <Ionicons name="add" size={13} color={Palette.primary} />
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 )}
