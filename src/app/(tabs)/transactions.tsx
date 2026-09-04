@@ -77,7 +77,7 @@ export default function TransactionsScreen() {
     loadData,
   } = useTransactionStore();
 
-  const { getActiveCashAdvance } = useCashAdvanceStore();
+  const { getActiveCashAdvance, loadCashAdvances } = useCashAdvanceStore();
   const activeCA = getActiveCashAdvance();
 
   const [showExcelPreview, setShowExcelPreview] = useState(false);
@@ -95,6 +95,7 @@ export default function TransactionsScreen() {
 
   React.useEffect(() => {
     loadData(user?.id);
+    loadCashAdvances(user?.id);
   }, [user]);
 
   // Selected category helper
@@ -943,6 +944,7 @@ export default function TransactionsScreen() {
           onClose={() => setShowExportOptionsModal(false)}
           transactions={transactions}
           user={user}
+          activeCA={activeCA}
           currentMonthKey={selectedMonth === 'all' ? getCurrentMonthKey() : selectedMonth}
           onOpenPreview={(groups, scopeTitle) => {
             setPreviewMonthGroups(groups);
@@ -959,6 +961,7 @@ export default function TransactionsScreen() {
           monthGroups={previewMonthGroups}
           scopeTitle={previewScopeTitle}
           user={user}
+          activeCA={activeCA}
           selectedMonth={selectedMonth}
         />
       </View>

@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Transaction, UserProfile } from '@/types';
+import { CashAdvance, Transaction, UserProfile } from '@/types';
 import { Palette } from '@/constants/theme';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
@@ -31,6 +31,7 @@ interface ExcelPreviewModalProps {
   transactions?: Transaction[];
   monthGroups?: MonthExpenseGroup[];
   user?: UserProfile | null;
+  activeCA?: CashAdvance | null;
   selectedMonth?: string;
   scopeTitle?: string;
 }
@@ -41,13 +42,14 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
   transactions = [],
   monthGroups = [],
   user,
+  activeCA: propActiveCA,
   selectedMonth,
   scopeTitle,
 }) => {
   const { theme, mode } = useThemeStore();
   const { t, language } = useLanguageStore();
   const { getActiveCashAdvance } = useCashAdvanceStore();
-  const activeCA = getActiveCashAdvance();
+  const activeCA = propActiveCA || getActiveCashAdvance();
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);

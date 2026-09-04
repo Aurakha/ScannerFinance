@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Transaction, UserProfile } from '@/types';
+import { CashAdvance, Transaction, UserProfile } from '@/types';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import {
@@ -28,6 +28,7 @@ interface ExcelExportOptionsModalProps {
   onClose: () => void;
   transactions: Transaction[];
   user?: UserProfile | null;
+  activeCA?: CashAdvance | null;
   currentMonthKey: string;
   onOpenPreview: (groups: MonthExpenseGroup[], scopeTitle: string) => void;
 }
@@ -37,13 +38,14 @@ export const ExcelExportOptionsModal: React.FC<ExcelExportOptionsModalProps> = (
   onClose,
   transactions,
   user,
+  activeCA: propActiveCA,
   currentMonthKey,
   onOpenPreview,
 }) => {
   const { theme } = useThemeStore();
   const { language } = useLanguageStore();
   const { getActiveCashAdvance } = useCashAdvanceStore();
-  const activeCA = getActiveCashAdvance();
+  const activeCA = propActiveCA || getActiveCashAdvance();
 
   const [scopeMode, setScopeMode] = useState<ExportScopeMode>('current');
   const [selectedCustomKeys, setSelectedCustomKeys] = useState<string[]>([]);
