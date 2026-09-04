@@ -22,6 +22,7 @@ import {
   exportMultiSheetExcelReport,
   generateReportFileName,
 } from '@/utils/exportReport';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
 import { formatRupiah } from '@/utils/formatters';
 
 interface ExcelPreviewModalProps {
@@ -45,6 +46,8 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
 }) => {
   const { theme, mode } = useThemeStore();
   const { t, language } = useLanguageStore();
+  const { getActiveCashAdvance } = useCashAdvanceStore();
+  const activeCA = getActiveCashAdvance();
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
@@ -86,7 +89,8 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
   const rawHtml = generateCompanyExpenseReportXLS(
     activeTransactions,
     user || undefined,
-    activeReportDate
+    activeReportDate,
+    activeCA
   );
 
   // Extract table markup
@@ -157,9 +161,9 @@ export const ExcelPreviewModal: React.FC<ExcelPreviewModalProps> = ({
     try {
       setIsDownloading(true);
       if (hasMultipleSheets) {
-        exportMultiSheetExcelReport(monthGroups, user || undefined);
+        exportMultiSheetExcelReport(monthGroups, user || undefined, undefined, activeCA);
       } else {
-        exportExcelReport(activeTransactions, user || undefined);
+        exportExcelReport(activeTransactions, user || undefined, undefined, activeCA);
       }
     } finally {
       setTimeout(() => setIsDownloading(false), 600);

@@ -1,11 +1,48 @@
-import { Transaction, UserProfile } from '@/types';
+import { CashAdvance, Transaction, UserProfile } from '@/types';
 import { formatDateShort, formatRupiah } from './formatters';
 import { Platform, Linking } from 'react-native';
 import { exportToGoogleSpreadsheet as cloudExportToGDrive } from '@/services/googleDriveService';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
 import XLSX from 'xlsx-js-style';
 
 export interface CompanyReportOptions {
   profile?: UserProfile;
+}
+
+/**
+ * Menyelesaikan metadata laporan berdasarkan Cash Advance aktif dan profil pengguna
+ */
+export function resolveReportMetadata(
+  profile?: UserProfile,
+  activeCA?: CashAdvance | null,
+  reportDateOverride?: string
+) {
+  const ca = activeCA !== undefined ? activeCA : useCashAdvanceStore.getState().getActiveCashAdvance();
+
+  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
+  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
+  const department = profile?.department || 'Operation';
+  const reportDate = reportDateOverride || profile?.submission_date || '1 Agustus 2026';
+  const projectName = ca?.project_name || profile?.project_name || 'Head Office';
+  const city = ca?.city || profile?.city || 'Tangerang';
+  const verifierName = ca?.verifier_name || profile?.verifier_name || 'Yunitha';
+  const approverName = ca?.approver_name || profile?.approver_name || 'Dwi Hartanto';
+  const cashAdvance =
+    ca?.initial_amount !== undefined
+      ? Number(ca.initial_amount)
+      : Number(profile?.cash_advance_amount) || 7000000;
+
+  return {
+    companyName,
+    employeeName,
+    department,
+    reportDate,
+    projectName,
+    city,
+    verifierName,
+    approverName,
+    cashAdvance,
+  };
 }
 
 /**
@@ -67,17 +104,20 @@ export function categorizeColumn(catNameRaw: string): 'operational' | 'pantry' |
 export function generateCompanyExpenseReportXLS(
   transactions: Transaction[],
   profile?: UserProfile,
-  reportDateOverride?: string
+  reportDateOverride?: string,
+  activeCA?: CashAdvance | null
 ): string {
-  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
-  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
-  const department = profile?.department || 'Operation';
-  const reportDate = reportDateOverride || profile?.submission_date || '1 Agustus 2026';
-  const projectName = profile?.project_name || 'Head Office';
-  const city = profile?.city || 'Tangerang';
-  const verifierName = profile?.verifier_name || 'Yunitha';
-  const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
+  const {
+    companyName,
+    employeeName,
+    department,
+    reportDate,
+    projectName,
+    city,
+    verifierName,
+    approverName,
+    cashAdvance,
+  } = resolveReportMetadata(profile, activeCA, reportDateOverride);
 
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
@@ -462,17 +502,20 @@ export function generateCompanyExpenseReportXLS(
  */
 export function generateCompanyExpenseReportCSV(
   transactions: Transaction[],
-  profile?: UserProfile
+  profile?: UserProfile,
+  activeCA?: CashAdvance | null
 ): string {
-  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
-  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
-  const department = profile?.department || 'Operation';
-  const reportDate = profile?.submission_date || '1 Agustus 2026';
-  const projectName = profile?.project_name || 'Head Office';
-  const city = profile?.city || 'Tangerang';
-  const verifierName = profile?.verifier_name || 'Yunitha';
-  const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
+  const {
+    companyName,
+    employeeName,
+    department,
+    reportDate,
+    projectName,
+    city,
+    verifierName,
+    approverName,
+    cashAdvance,
+  } = resolveReportMetadata(profile, activeCA);
 
   const escapeCSV = (str: string | number | undefined | null) => {
     if (str === undefined || str === null) return '""';
@@ -753,12 +796,13 @@ export function generateCompanyExpenseReportCSV(
  */
 export async function copyFormattedTableToClipboard(
   transactions: Transaction[],
-  profile?: UserProfile
+  profile?: UserProfile,
+  activeCA?: CashAdvance | null
 ): Promise<boolean> {
   if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
-      const xlsHTML = generateCompanyExpenseReportXLS(transactions, profile);
-      const csv = generateCompanyExpenseReportCSV(transactions, profile);
+      const xlsHTML = generateCompanyExpenseReportXLS(transactions, profile, undefined, activeCA);
+      const csv = generateCompanyExpenseReportCSV(transactions, profile, activeCA);
 
       if (typeof ClipboardItem !== 'undefined') {
         const textBlob = new Blob([csv], { type: 'text/plain' });
@@ -839,17 +883,20 @@ export interface MonthExpenseGroup {
 export function buildCompanyExpenseWorksheet(
   transactions: Transaction[],
   profile?: UserProfile,
-  reportDateOverride?: string
+  reportDateOverride?: string,
+  activeCA?: CashAdvance | null
 ): any {
-  const companyName = profile?.company_name || 'PT. San Kawan Abadi';
-  const employeeName = profile?.full_name || 'Gabriel Rudra Renata';
-  const department = profile?.department || 'Operation';
-  const reportDate = reportDateOverride || profile?.submission_date || '1 Agustus 2026';
-  const projectName = profile?.project_name || 'Head Office';
-  const city = profile?.city || 'Tangerang';
-  const verifierName = profile?.verifier_name || 'Yunitha';
-  const approverName = profile?.approver_name || 'Dwi Hartanto';
-  const cashAdvance = Number(profile?.cash_advance_amount) || 7000000;
+  const {
+    companyName,
+    employeeName,
+    department,
+    reportDate,
+    projectName,
+    city,
+    verifierName,
+    approverName,
+    cashAdvance,
+  } = resolveReportMetadata(profile, activeCA, reportDateOverride);
 
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
@@ -1453,10 +1500,11 @@ export function groupTransactionsByMonth(
 export function generateCompanyExpenseReportXLSXBinary(
   transactions: Transaction[],
   profile?: UserProfile,
-  sheetName = 'Expense Report'
+  sheetName = 'Expense Report',
+  activeCA?: CashAdvance | null
 ): Uint8Array {
   const wb = XLSX.utils.book_new();
-  const ws = buildCompanyExpenseWorksheet(transactions, profile);
+  const ws = buildCompanyExpenseWorksheet(transactions, profile, undefined, activeCA);
   const safeSheetName = sheetName.replace(/[\\/?*\[\]:]/g, ' ').trim().slice(0, 31) || 'Expense Report';
   XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -1468,17 +1516,18 @@ export function generateCompanyExpenseReportXLSXBinary(
  */
 export function generateMultiSheetExpenseReportXLSXBinary(
   monthGroups: MonthExpenseGroup[],
-  profile?: UserProfile
+  profile?: UserProfile,
+  activeCA?: CashAdvance | null
 ): Uint8Array {
   const wb = XLSX.utils.book_new();
 
   // Jika tidak ada data bulanan, buat sheet kosong dengan format resmi
   if (monthGroups.length === 0) {
-    const ws = buildCompanyExpenseWorksheet([], profile);
+    const ws = buildCompanyExpenseWorksheet([], profile, undefined, activeCA);
     XLSX.utils.book_append_sheet(wb, ws, 'Expense Report');
   } else {
     monthGroups.forEach((group) => {
-      const ws = buildCompanyExpenseWorksheet(group.transactions, profile, group.monthLabel);
+      const ws = buildCompanyExpenseWorksheet(group.transactions, profile, group.monthLabel, activeCA);
       const safeSheetName = group.monthLabel.replace(/[\\/?*\[\]:]/g, ' ').trim().slice(0, 31);
       XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
     });
@@ -1494,11 +1543,12 @@ export function generateMultiSheetExpenseReportXLSXBinary(
 export function exportMultiSheetExcelReport(
   monthGroups: MonthExpenseGroup[],
   profile?: UserProfile,
-  fileName?: string
+  fileName?: string,
+  activeCA?: CashAdvance | null
 ) {
   const baseName = fileName || generateReportFileName(profile);
   const name = `${baseName.replace(/\.xlsx?$/i, '')}.xlsx`;
-  const binary = generateMultiSheetExpenseReportXLSXBinary(monthGroups, profile);
+  const binary = generateMultiSheetExpenseReportXLSXBinary(monthGroups, profile, activeCA);
   downloadFile(binary, name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
@@ -1508,11 +1558,12 @@ export function exportMultiSheetExcelReport(
 export function exportExcelReport(
   transactions: Transaction[],
   profile?: UserProfile,
-  fileName?: string
+  fileName?: string,
+  activeCA?: CashAdvance | null
 ) {
   const baseName = fileName || generateReportFileName(profile);
   const name = `${baseName.replace(/\.xlsx?$/i, '')}.xlsx`;
-  const binary = generateCompanyExpenseReportXLSXBinary(transactions, profile);
+  const binary = generateCompanyExpenseReportXLSXBinary(transactions, profile, 'Expense Report', activeCA);
   downloadFile(binary, name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
@@ -1523,17 +1574,18 @@ export async function exportGoogleSpreadsheetReport(
   transactions: Transaction[],
   profile?: UserProfile,
   fileName?: string,
-  targetWindow?: any
+  targetWindow?: any,
+  activeCA?: CashAdvance | null
 ): Promise<{ success: boolean; message: string; spreadsheetUrl: string }> {
   const name = fileName || generateReportFileName(profile);
 
   // 1. Salin tabel berformat ke clipboard (jika user ingin paste di tempat lain)
   try {
-    await copyFormattedTableToClipboard(transactions, profile);
+    await copyFormattedTableToClipboard(transactions, profile, activeCA);
   } catch {}
 
   // 2. Buat file Google Spreadsheet langsung di Google Drive dengan format & desain tabel Excel lengkap
-  const formattedContent = generateCompanyExpenseReportXLS(transactions, profile);
+  const formattedContent = generateCompanyExpenseReportXLS(transactions, profile, undefined, activeCA);
   const cloudRes = await cloudExportToGDrive(formattedContent, name);
 
   // 3. Buka URL Google Sheets di tab browser

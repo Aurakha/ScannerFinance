@@ -47,16 +47,16 @@ const DEFAULT_PROFILE: UserProfile = {
   id: 'user-default-1',
   email: 'guest@scanfinance.com',
   full_name: 'Guest',
-  company_name: 'PT. Nama Perusahaan',
+  company_name: 'PT. KSA',
   department: 'Divisi Operasional',
-  project_name: 'Head Office / Proyek 1',
-  city: 'Jakarta',
-  verifier_name: 'Pemeriksa 1',
-  approver_name: 'Pimpinan 1',
+  project_name: 'Tangerang Project',
+  city: 'Tangerang',
+  verifier_name: 'Yunitha',
+  approver_name: 'Dwi Hartanto',
   cash_advance_amount: 7000000,
   currency: 'IDR',
   monthly_income_budget: 10000000,
-  monthly_expense_budget: 5000000,
+  monthly_expense_budget: 7000000,
   role: 'user',
 };
 
@@ -393,12 +393,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             u.email?.split('@')[0] ||
             'Pengguna',
           role,
-          company_name: dbProfile?.company_name || 'PT. Nama Perusahaan',
+          company_name: dbProfile?.company_name || 'PT. KSA',
           department: dbProfile?.department || 'Divisi Operasional',
-          project_name: dbProfile?.project_name || 'Head Office / Proyek 1',
-          city: dbProfile?.city || 'Jakarta',
-          verifier_name: dbProfile?.verifier_name || 'Pemeriksa 1',
-          approver_name: dbProfile?.approver_name || 'Pimpinan 1',
+          project_name: dbProfile?.project_name || 'Tangerang Project',
+          city: dbProfile?.city || 'Tangerang',
+          verifier_name: dbProfile?.verifier_name || 'Yunitha',
+          approver_name: dbProfile?.approver_name || 'Dwi Hartanto',
           cash_advance_amount:
             dbProfile?.cash_advance_amount !== undefined
               ? Number(dbProfile.cash_advance_amount)

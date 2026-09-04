@@ -22,6 +22,7 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
 import { formatRupiah } from '@/utils/formatters';
 import { downloadCSV, exportExcelReport, categorizeColumn, MonthExpenseGroup } from '@/utils/exportReport';
 import { ExcelPreviewModal } from '@/components/modals/ExcelPreviewModal';
@@ -75,6 +76,9 @@ export default function TransactionsScreen() {
     removeTransaction,
     loadData,
   } = useTransactionStore();
+
+  const { getActiveCashAdvance } = useCashAdvanceStore();
+  const activeCA = getActiveCashAdvance();
 
   const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [showExportOptionsModal, setShowExportOptionsModal] = useState(false);
@@ -195,7 +199,7 @@ export default function TransactionsScreen() {
   const handleExportExcel = () => {
     try {
       setIsExportingExcel(true);
-      exportExcelReport(filteredTransactions, user || undefined);
+      exportExcelReport(filteredTransactions, user || undefined, undefined, activeCA);
       setTimeout(() => setIsExportingExcel(false), 800);
       if (Platform.OS === 'web') {
         // Otomatis terunduh

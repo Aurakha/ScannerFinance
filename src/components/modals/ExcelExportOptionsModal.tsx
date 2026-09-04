@@ -18,6 +18,7 @@ import {
   exportMultiSheetExcelReport,
   exportExcelReport,
 } from '@/utils/exportReport';
+import { useCashAdvanceStore } from '@/store/cashAdvanceStore';
 import { formatRupiah } from '@/utils/formatters';
 
 export type ExportScopeMode = 'current' | 'all' | 'custom';
@@ -41,6 +42,8 @@ export const ExcelExportOptionsModal: React.FC<ExcelExportOptionsModalProps> = (
 }) => {
   const { theme } = useThemeStore();
   const { language } = useLanguageStore();
+  const { getActiveCashAdvance } = useCashAdvanceStore();
+  const activeCA = getActiveCashAdvance();
 
   const [scopeMode, setScopeMode] = useState<ExportScopeMode>('current');
   const [selectedCustomKeys, setSelectedCustomKeys] = useState<string[]>([]);
@@ -155,9 +158,9 @@ export const ExcelExportOptionsModal: React.FC<ExcelExportOptionsModalProps> = (
     try {
       setIsExporting(true);
       if (targetGroups.length === 1) {
-        exportExcelReport(targetGroups[0].transactions, user || undefined);
+        exportExcelReport(targetGroups[0].transactions, user || undefined, undefined, activeCA);
       } else {
-        exportMultiSheetExcelReport(targetGroups, user || undefined);
+        exportMultiSheetExcelReport(targetGroups, user || undefined, undefined, activeCA);
       }
       onClose();
     } finally {
