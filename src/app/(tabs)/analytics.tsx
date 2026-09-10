@@ -399,7 +399,7 @@ export default function InputScreen() {
                           </Text>
                           {isActive ? (
                             <View style={styles.activePill}>
-                              <Ionicons name="checkmark-circle" size={12} color="#FFFFFF" />
+                              <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
                               <Text style={styles.activePillText}>
                                 {language === 'id' ? 'Aktif Digunakan' : 'Active'}
                               </Text>
@@ -408,9 +408,11 @@ export default function InputScreen() {
                             <TouchableOpacity
                               style={styles.setAsActiveBtn}
                               onPress={() => setActiveCashAdvanceId(ca.id)}
+                              activeOpacity={0.75}
                             >
+                              <Ionicons name="radio-button-off" size={13} color="#FFFFFF" />
                               <Text style={styles.setAsActiveBtnText}>
-                                {language === 'id' ? 'Jadikan Aktif' : 'Set as Active'}
+                                {language === 'id' ? 'Pilih Jadi Aktif' : 'Set as Active'}
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -1126,27 +1128,40 @@ const styles = StyleSheet.create({
   activePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: Palette.greenOnline,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: Palette.greenOnline,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
   },
   activePillText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
   },
   setAsActiveBtn: {
-    backgroundColor: 'rgba(88, 101, 242, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Palette.primary,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 12,
+    shadowColor: Palette.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
   },
   setAsActiveBtnText: {
-    color: Palette.primary,
-    fontSize: 10,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   caItemCity: {
     fontSize: 12,
