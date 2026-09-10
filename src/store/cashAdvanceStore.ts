@@ -47,16 +47,48 @@ const DEFAULT_CASH_ADVANCES: CashAdvance[] = [
     verifier_name: 'Yunitha',
     approver_name: 'Dwi Hartanto',
     collaborators: ['aurakharere@gmail.com', 'haharakha@gmail.com'],
-    created_at: new Date().toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     status: 'active',
     notes: 'Operasional lapangan proyek Tangerang',
+  },
+  {
+    id: 'ca-default-2',
+    user_id: 'user-default-1',
+    project_name: 'Overhaul Plant Balikpapan',
+    initial_amount: 12500000,
+    city: 'Balikpapan',
+    verifier_name: 'Yunitha',
+    approver_name: 'Bambang Soeprapto',
+    collaborators: ['gabrielrudra9@gmail.com', 'scanfinancebucket@gmail.com'],
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+    status: 'active',
+    notes: 'Perbaikan & maintenance unit site Balikpapan',
+  },
+  {
+    id: 'ca-default-3',
+    user_id: 'user-default-1',
+    project_name: 'Survei Lapangan Cilegon',
+    initial_amount: 3500000,
+    city: 'Cilegon',
+    verifier_name: 'Hendra Wijaya',
+    approver_name: 'Dwi Hartanto',
+    collaborators: ['haharakha@gmail.com'],
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    status: 'active',
+    notes: 'Survei awal lokasi fasilitas baru Cilegon',
   },
 ];
 
 const isLegacyDefaultData = (value: unknown): value is CashAdvance[] => {
-  if (!Array.isArray(value) || value.length !== 2) return false;
-  const ids = value.map((item) => item?.id).sort();
-  return ids[0] === 'ca-default-1' && ids[1] === 'ca-default-2';
+  if (!Array.isArray(value)) return false;
+  // Jika masih memakai data single default lama (hanya ca-default-1)
+  if (value.length === 1 && value[0]?.id === 'ca-default-1') return true;
+  // Jika format legacy lama 2 item
+  if (value.length === 2) {
+    const ids = value.map((item) => item?.id).sort();
+    if (ids[0] === 'ca-default-1' && ids[1] === 'ca-default-2') return true;
+  }
+  return false;
 };
 
 export interface CashAdvanceState {

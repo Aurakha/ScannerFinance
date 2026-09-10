@@ -139,7 +139,7 @@ export default function LoginScreen() {
                     setEmail(val);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder="name@gmail.com"
+                  placeholder="@gmail.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -286,7 +286,7 @@ export default function LoginScreen() {
                     setForgotEmail(val);
                     if (forgotStatus) setForgotStatus(null);
                   }}
-                  placeholder="name@gmail.com"
+                  placeholder="@gmail.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
