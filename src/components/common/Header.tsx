@@ -5,6 +5,7 @@ import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { PwaInstallButton } from '@/components/common/PwaInstallButton';
 
 interface HeaderProps {
   title: string;
@@ -36,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
       </View>
 
       <View style={styles.actionsContainer}>
+        {Platform.OS === 'web' && <PwaInstallButton />}
         {showLanguageToggle && <LanguageToggle />}
         {rightAction}
 

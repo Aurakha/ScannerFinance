@@ -1,0 +1,24 @@
+{
+  "name": "ScanFinance — Smart Receipt & Cash Advance",
+  "short_name": "ScanFinance",
+  "description": "Smart Financial Receipt Scanner & Cash Advance Management",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0E14",
+  "theme_color": "#5865F2",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
