@@ -38,16 +38,17 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadData(user?.id);
     loadCashAdvances(user?.id);
-  }, [user]);
+  }, [user?.id]);
 
   const activeCA = getActiveCashAdvance();
 
   // Sinkronisasi batas anggaran (budget limit) dengan plafon Cash Advance aktif
   useEffect(() => {
-    if (activeCA?.initial_amount && stats.budgetLimit !== activeCA.initial_amount) {
-      setBudgetLimit(activeCA.initial_amount);
+    const targetAmount = Number(activeCA?.initial_amount);
+    if (targetAmount && stats.budgetLimit !== targetAmount) {
+      setBudgetLimit(targetAmount);
     }
-  }, [activeCA?.initial_amount, stats.budgetLimit, setBudgetLimit]);
+  }, [activeCA?.id, activeCA?.initial_amount]);
 
   const handleReturnToAdmin = () => {
     exitImpersonation();

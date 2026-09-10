@@ -101,7 +101,7 @@ export default function TransactionsScreen() {
   React.useEffect(() => {
     loadData(user?.id);
     loadCashAdvances(user?.id);
-  }, [user]);
+  }, [user?.id]);
 
   // Selected category helper
   const selectedCategory = categories.find((c) => c.id === activeFilter);

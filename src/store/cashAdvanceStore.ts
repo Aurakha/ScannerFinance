@@ -11,29 +11,10 @@ const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
   if (!activeCA) return;
-  const targetBudget = activeCA.initial_amount || 7000000;
+  const targetBudget = Number(activeCA.initial_amount) || 7000000;
   const currentBudget = useTransactionStore.getState().budgetLimit;
   if (currentBudget !== targetBudget) {
     useTransactionStore.getState().setBudgetLimit(targetBudget);
-  }
-
-  // Sinkronkan data active CA ke profil akun aktif
-  const currentUser = useAuthStore.getState().user;
-  if (
-    currentUser &&
-    (currentUser.project_name !== activeCA.project_name ||
-      currentUser.cash_advance_amount !== activeCA.initial_amount ||
-      currentUser.city !== activeCA.city ||
-      currentUser.verifier_name !== activeCA.verifier_name ||
-      currentUser.approver_name !== activeCA.approver_name)
-  ) {
-    useAuthStore.getState().updateProfile({
-      project_name: activeCA.project_name,
-      city: activeCA.city,
-      verifier_name: activeCA.verifier_name,
-      approver_name: activeCA.approver_name,
-      cash_advance_amount: activeCA.initial_amount,
-    });
   }
 };
 
