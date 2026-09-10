@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -70,7 +70,12 @@ export default function InputScreen() {
     });
   }, [user?.id]);
 
-  const activeCA = getActiveCashAdvance();
+  const activeCA = useMemo(() => {
+    if (!activeCashAdvanceId) {
+      return cashAdvances.length > 0 ? cashAdvances[0] : null;
+    }
+    return cashAdvances.find((ca) => ca.id === activeCashAdvanceId) || cashAdvances[0] || null;
+  }, [cashAdvances, activeCashAdvanceId]);
 
   // Sinkronisasi batas anggaran (budget limit) dengan plafon Cash Advance aktif
   useEffect(() => {

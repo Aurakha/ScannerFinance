@@ -7,6 +7,7 @@ import { useAuthStore } from './authStore';
 
 const STORAGE_KEY_PREFIX = '@scanfinance_cash_advances_';
 const ACTIVE_ID_KEY_PREFIX = '@scanfinance_active_ca_id_';
+const GLOBAL_ACTIVE_ID_KEY = '@scanfinance_active_ca_id_global';
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
@@ -99,9 +100,10 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
     const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
     try {
       set({ isLoading: true });
-      const [raw, savedActiveId] = await Promise.all([
+      const [raw, savedActiveId, savedGlobalId] = await Promise.all([
         AsyncStorage.getItem(storageKey),
         AsyncStorage.getItem(activeIdKey),
+        AsyncStorage.getItem(GLOBAL_ACTIVE_ID_KEY),
       ]);
 
       if (raw) {
@@ -111,12 +113,23 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
             set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
             await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
             await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
+            await AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, 'ca-default-1');
             return;
           }
 
+          // Prioritaskan ID aktif yang sedang ada di state memory
+          const currentMemActive = get().activeCashAdvanceId;
+          const hasMemActive = currentMemActive && parsed.some((c: CashAdvance) => c.id === currentMemActive);
           const hasSavedActive = savedActiveId && parsed.some((c: CashAdvance) => c.id === savedActiveId);
-          const hasCurrentActive = get().activeCashAdvanceId && parsed.some((c: CashAdvance) => c.id === get().activeCashAdvanceId);
-          const resolvedActiveId = hasSavedActive ? savedActiveId : (hasCurrentActive ? get().activeCashAdvanceId : parsed[0].id);
+          const hasGlobalActive = savedGlobalId && parsed.some((c: CashAdvance) => c.id === savedGlobalId);
+
+          const resolvedActiveId = hasMemActive
+            ? currentMemActive
+            : hasSavedActive
+            ? savedActiveId
+            : hasGlobalActive
+            ? savedGlobalId
+            : parsed[0].id;
 
           set({
             cashAdvances: parsed,
@@ -129,6 +142,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
       await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
       await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
+      await AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, 'ca-default-1');
     } catch (err) {
       console.warn('Load cash advances notice:', err);
     } finally {
@@ -160,6 +174,7 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
         await Promise.all([
           AsyncStorage.setItem(storageKey, JSON.stringify(updated)),
           AsyncStorage.setItem(activeIdKey, newCA.id),
+          AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, newCA.id),
         ]);
       } catch (err) {
         console.warn('Save cash advance error:', err);
@@ -223,14 +238,14 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
     syncBudgetWithActiveCA(active);
 
     if (!isSSR) {
-      const targetUserId = active?.user_id || useAuthStore.getState().user?.id || 'user-default-1';
-      const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
+      const currentUserId = useAuthStore.getState().user?.id || 'user-default-1';
+      const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${currentUserId}`;
       if (id) {
-        AsyncStorage.setItem(activeIdKey, id).catch((err) => {
-          console.warn('Save active CA ID error:', err);
-        });
+        AsyncStorage.setItem(activeIdKey, id).catch(() => {});
+        AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, id).catch(() => {});
       } else {
         AsyncStorage.removeItem(activeIdKey).catch(() => {});
+        AsyncStorage.removeItem(GLOBAL_ACTIVE_ID_KEY).catch(() => {});
       }
     }
   },

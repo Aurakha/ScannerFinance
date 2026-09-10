@@ -42,7 +42,12 @@ export default function DashboardScreen() {
     loadCashAdvances(user?.id);
   }, [user?.id]);
 
-  const activeCA = getActiveCashAdvance();
+  const activeCA = useMemo(() => {
+    if (!activeCashAdvanceId) {
+      return cashAdvances.length > 0 ? cashAdvances[0] : null;
+    }
+    return cashAdvances.find((ca) => ca.id === activeCashAdvanceId) || cashAdvances[0] || null;
+  }, [cashAdvances, activeCashAdvanceId]);
 
   // Sinkronisasi batas anggaran (budget limit) dengan plafon Cash Advance aktif
   useEffect(() => {
