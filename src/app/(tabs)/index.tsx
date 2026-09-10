@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +51,22 @@ export default function DashboardScreen() {
       setBudgetLimit(targetAmount);
     }
   }, [activeCA?.id, activeCA?.initial_amount]);
+
+  // State Modal Picker Cash Advance (Opsi 1)
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+
+  const filteredCashAdvances = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return cashAdvances;
+    return cashAdvances.filter(
+      (ca) =>
+        ca.project_name.toLowerCase().includes(q) ||
+        (ca.city && ca.city.toLowerCase().includes(q)) ||
+        (ca.verifier_name && ca.verifier_name.toLowerCase().includes(q)) ||
+        (ca.approver_name && ca.approver_name.toLowerCase().includes(q))
+    );
+  }, [cashAdvances, pickerSearch]);
 
   const handleReturnToAdmin = () => {
     exitImpersonation();
@@ -102,7 +120,7 @@ export default function DashboardScreen() {
           }
         />
 
-        {/* Multi-Cash Advance Switcher & Status Card */}
+        {/* Multi-Cash Advance Switcher & Status Card (Opsi 1: Selector Cerdas) */}
         <View
           style={[
             styles.heroCard,
@@ -113,7 +131,7 @@ export default function DashboardScreen() {
             },
           ]}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 180 }}>
               <Ionicons name="wallet-outline" size={18} color={Palette.primary} />
               <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
@@ -130,47 +148,42 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Horizontal Cash Advance Switcher Pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {cashAdvances.map((ca) => {
-                const isSelected = ca.id === activeCashAdvanceId;
-                return (
-                  <TouchableOpacity
-                    key={ca.id}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                      backgroundColor: isSelected ? Palette.primary : theme.cardHover,
-                      borderColor: isSelected ? Palette.primary : theme.border,
-                      borderWidth: 1,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 12,
-                    }}
-                    onPress={() => setActiveCashAdvanceId(ca.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={isSelected ? 'checkmark-circle' : 'briefcase-outline'}
-                      size={14}
-                      color={isSelected ? '#FFFFFF' : theme.textSecondary}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: '700',
-                        color: isSelected ? '#FFFFFF' : theme.text,
-                      }}
-                    >
-                      {ca.project_name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+          {/* Opsi 1: Project Selector Bar (Bisa klik untuk memilih & mencari seluruh proyek) */}
+          <TouchableOpacity
+            style={[
+              styles.projectSelectorBar,
+              {
+                backgroundColor: theme.background,
+                borderColor: Palette.primary,
+              },
+            ]}
+            onPress={() => {
+              setPickerSearch('');
+              setIsPickerModalOpen(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+              <View style={styles.projectIconBadge}>
+                <Ionicons name="briefcase" size={18} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[styles.selectorLabel, { color: theme.textSecondary }]}>
+                  {language === 'id' ? 'Proyek Aktif (Klik untuk Ganti)' : 'Active Project (Click to Change)'}
+                </Text>
+                <Text style={[styles.selectorProjectName, { color: theme.text }]} numberOfLines={1}>
+                  {activeCA?.project_name || (language === 'id' ? 'Pilih Proyek' : 'Select Project')}
+                </Text>
+              </View>
             </View>
-          </ScrollView>
+
+            <View style={styles.changeProjectBtn}>
+              <Text style={styles.changeProjectBtnText}>
+                {language === 'id' ? 'Ganti Proyek' : 'Change'} ({cashAdvances.length})
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={Palette.primary} />
+            </View>
+          </TouchableOpacity>
 
           {/* Selected Cash Advance Details */}
           {activeCA ? (
@@ -403,6 +416,146 @@ export default function DashboardScreen() {
           ))
         )}
       </ScrollView>
+
+      {/* MODAL PICKER CASH ADVANCE (OPSI 1: DROPDOWN MODAL CERDAS) */}
+      <Modal
+        visible={isPickerModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsPickerModalOpen(false)}
+      >
+        <View style={styles.pickerBackdrop}>
+          <View style={[styles.pickerModalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={styles.pickerHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={styles.pickerHeaderIcon}>
+                  <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickerTitle, { color: theme.text }]}>
+                    {language === 'id' ? 'Pilih Cash Advance Proyek' : 'Select Cash Advance'}
+                  </Text>
+                  <Text style={[styles.pickerSub, { color: theme.textSecondary }]}>
+                    {language === 'id'
+                      ? `${cashAdvances.length} proyek terdaftar untuk akun ini`
+                      : `${cashAdvances.length} projects available`}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.closeModalBtn, { backgroundColor: theme.cardHover }]}
+                onPress={() => setIsPickerModalOpen(false)}
+              >
+                <Ionicons name="close" size={20} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View style={[styles.searchBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <Ionicons name="search-outline" size={16} color={theme.textMuted} />
+              <TextInput
+                style={[styles.searchTextInput, { color: theme.text }]}
+                placeholder={language === 'id' ? 'Cari nama proyek, kota, pemeriksa...' : 'Search project, city, verifier...'}
+                placeholderTextColor={theme.textMuted}
+                value={pickerSearch}
+                onChangeText={setPickerSearch}
+              />
+              {pickerSearch.trim().length > 0 ? (
+                <TouchableOpacity onPress={() => setPickerSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* List of Cash Advances */}
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8, paddingVertical: 4 }}>
+                {filteredCashAdvances.map((ca) => {
+                  const isSelected = ca.id === activeCashAdvanceId;
+                  return (
+                    <TouchableOpacity
+                      key={ca.id}
+                      style={[
+                        styles.pickerItemCard,
+                        {
+                          backgroundColor: isSelected ? 'rgba(88, 101, 242, 0.08)' : theme.background,
+                          borderColor: isSelected ? Palette.primary : theme.border,
+                          borderWidth: isSelected ? 1.5 : 1,
+                        },
+                      ]}
+                      onPress={() => {
+                        setActiveCashAdvanceId(ca.id);
+                        setIsPickerModalOpen(false);
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <Text style={[styles.itemProjectName, { color: theme.text }]}>
+                              {ca.project_name}
+                            </Text>
+                            {isSelected && (
+                              <View style={styles.activeBadgePill}>
+                                <Ionicons name="checkmark-circle" size={11} color="#FFFFFF" />
+                                <Text style={styles.activeBadgePillText}>
+                                  {language === 'id' ? 'Aktif' : 'Active'}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={[styles.itemCityText, { color: theme.textSecondary }]}>
+                            📍 {ca.city || '-'} • Pemeriksa: {ca.verifier_name || '-'}
+                          </Text>
+                          {ca.collaborators.length > 0 && (
+                            <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>
+                              👥 {ca.collaborators.length} kolaborator: {ca.collaborators.slice(0, 2).join(', ')}{ca.collaborators.length > 2 ? '...' : ''}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
+                          <Text style={[styles.itemPlafonAmount, { color: Palette.primary }]}>
+                            {formatRupiah(ca.initial_amount)}
+                          </Text>
+                          <Text style={{ fontSize: 10, color: theme.textMuted, marginTop: 2 }}>
+                            {language === 'id' ? 'Plafon Awal' : 'Initial Budget'}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {filteredCashAdvances.length === 0 && (
+                  <View style={{ padding: 28, alignItems: 'center' }}>
+                    <Ionicons name="search" size={28} color={theme.textMuted} style={{ marginBottom: 6 }} />
+                    <Text style={{ color: theme.textMuted, fontSize: 13 }}>
+                      {language === 'id' ? 'Proyek tidak ditemukan' : 'No project found'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            {/* Modal Actions Footer */}
+            <View style={[styles.pickerFooter, { borderTopColor: theme.border }]}>
+              <TouchableOpacity
+                style={styles.manageInInputBtn}
+                onPress={() => {
+                  setIsPickerModalOpen(false);
+                  router.push('/(tabs)/analytics');
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.manageInInputBtnText}>
+                  {language === 'id' ? '+ Tambah Proyek di Menu Input' : '+ New Project in Input'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -588,5 +741,156 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
+  },
+  projectSelectorBar: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  projectIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectorLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  selectorProjectName: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  changeProjectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  changeProjectBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Palette.primary,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  pickerModalCard: {
+    width: '100%',
+    maxWidth: 480,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  pickerHeaderIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  pickerSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  closeModalBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 13,
+    padding: 0,
+  },
+  pickerItemCard: {
+    borderRadius: 14,
+    padding: 12,
+  },
+  itemProjectName: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  activeBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Palette.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  activeBadgePillText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  itemCityText: {
+    fontSize: 11,
+    marginTop: 3,
+  },
+  itemPlafonAmount: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pickerFooter: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  manageInInputBtn: {
+    backgroundColor: Palette.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  manageInInputBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
