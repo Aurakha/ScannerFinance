@@ -549,7 +549,7 @@ export default function DashboardScreen() {
               >
                 <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.manageInInputBtnText}>
-                  {language === 'id' ? '+ Tambah Proyek di Menu Input' : '+ New Project in Input'}
+                  {language === 'id' ? 'Tambah Proyek di Menu Input' : 'New Project in Input'}
                 </Text>
               </TouchableOpacity>
             </View>
