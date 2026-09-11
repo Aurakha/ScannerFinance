@@ -32,7 +32,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     DEFAULT_CATEGORIES[0];
 
   const isIncome = category?.type === 'income';
-  const categoryColor = category?.color || Palette.primary;
+  const categoryColor = category?.color || theme.primary;
   const itemCount = transaction.items?.length || 0;
 
   return (
@@ -65,7 +65,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
           <Text
             style={[
               styles.amountText,
-              { color: isIncome ? Palette.primary : theme.text },
+              { color: isIncome ? theme.primary : theme.text },
             ]}
           >
             {isIncome ? '+' : ''}{formatRupiah(transaction.total_amount)}

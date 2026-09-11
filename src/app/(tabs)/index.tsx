@@ -119,7 +119,7 @@ export default function DashboardScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? Palette.amber : Palette.primary}
+                color={mode === 'dark' ? Palette.amber : theme.primary}
               />
             </TouchableOpacity>
           }
@@ -131,14 +131,14 @@ export default function DashboardScreen() {
             styles.heroCard,
             {
               backgroundColor: theme.card,
-              borderColor: 'rgba(88, 101, 242, 0.3)',
+              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.3)' : theme.border,
               marginBottom: 16,
             },
           ]}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 180 }}>
-              <Ionicons name="wallet-outline" size={18} color={Palette.primary} />
+              <Ionicons name="wallet-outline" size={18} color={theme.primary} />
               <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
                 {language === 'id' ? 'Tanggungan Cash Advance Proyek' : 'Project Cash Advance'}
               </Text>
@@ -147,7 +147,7 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(tabs)/analytics')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' }}
             >
-              <Text style={{ fontSize: 11, fontWeight: '600', color: Palette.primary }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: theme.primary }}>
                 {language === 'id' ? 'Kelola di Menu Input ➔' : 'Manage in Input ➔'}
               </Text>
             </TouchableOpacity>
@@ -159,7 +159,7 @@ export default function DashboardScreen() {
               styles.projectSelectorBar,
               {
                 backgroundColor: theme.background,
-                borderColor: Palette.primary,
+                borderColor: theme.primary,
               },
             ]}
             onPress={() => {
@@ -169,7 +169,7 @@ export default function DashboardScreen() {
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <View style={styles.projectIconBadge}>
+              <View style={[styles.projectIconBadge, { backgroundColor: theme.primary }]}>
                 <Ionicons name="briefcase" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -182,11 +182,11 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            <View style={styles.changeProjectBtn}>
-              <Text style={styles.changeProjectBtnText}>
+            <View style={[styles.changeProjectBtn, { backgroundColor: theme.primaryMuted }]}>
+              <Text style={[styles.changeProjectBtnText, { color: theme.primary }]}>
                 {language === 'id' ? 'Ganti Proyek' : 'Change'} ({cashAdvances.length})
               </Text>
-              <Ionicons name="chevron-down" size={14} color={Palette.primary} />
+              <Ionicons name="chevron-down" size={14} color={theme.primary} />
             </View>
           </TouchableOpacity>
 
@@ -237,13 +237,13 @@ export default function DashboardScreen() {
                     <View
                       key={`${collab}-${idx}`}
                       style={{
-                        backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                        backgroundColor: theme.primaryMuted,
                         paddingHorizontal: 8,
                         paddingVertical: 2,
                         borderRadius: 6,
                       }}
                     >
-                      <Text style={{ fontSize: 10, fontWeight: '600', color: Palette.primary }}>
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: theme.primary }}>
                         {collab}
                       </Text>
                     </View>
@@ -260,7 +260,7 @@ export default function DashboardScreen() {
             styles.heroCard,
             {
               backgroundColor: theme.card,
-              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.25)' : 'rgba(88, 101, 242, 0.4)',
+              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.25)' : theme.border,
             },
           ]}
         >
@@ -291,7 +291,7 @@ export default function DashboardScreen() {
               <Text
                 style={[
                   styles.budgetRemainingText,
-                  { color: stats.balance < 0 ? Palette.coral : Palette.primaryLight },
+                  { color: stats.balance < 0 ? Palette.coral : theme.primaryLight },
                 ]}
               >
                 {t('dashboard.budgetRemaining', {
@@ -307,7 +307,7 @@ export default function DashboardScreen() {
                   {
                     width: `${Math.min(100, stats.budgetUsedPercentage)}%`,
                     backgroundColor:
-                      stats.budgetUsedPercentage > 85 ? Palette.coral : Palette.primary,
+                      stats.budgetUsedPercentage > 85 ? Palette.coral : theme.primary,
                   },
                 ]}
               />
@@ -322,7 +322,7 @@ export default function DashboardScreen() {
               title={t('dashboard.dailyAverage')}
               amount={stats.dailyAverage}
               icon="calendar-outline"
-              color={Palette.primary}
+              color={theme.primary}
               badgeText={t('dashboard.dailyBadge')}
               badgeType="info"
             />
@@ -347,15 +347,15 @@ export default function DashboardScreen() {
             styles.quickScanCard,
             {
               backgroundColor:
-                mode === 'dark' ? 'rgba(88, 101, 242, 0.12)' : 'rgba(88, 101, 242, 0.08)',
-              borderColor: 'rgba(88, 101, 242, 0.3)',
+                mode === 'dark' ? 'rgba(88, 101, 242, 0.12)' : theme.primaryMuted,
+              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.3)' : theme.border,
             },
           ]}
           onPress={() => router.push('/(tabs)/scanner')}
           activeOpacity={0.85}
         >
           <View style={styles.quickScanLeft}>
-            <View style={styles.quickScanIcon}>
+            <View style={[styles.quickScanIcon, { backgroundColor: theme.primary }]}>
               <Ionicons name="camera" size={24} color="#FFFFFF" />
             </View>
             <View>
@@ -377,7 +377,7 @@ export default function DashboardScreen() {
             {t('dashboard.expenseDistribution')}
           </Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/analytics')}>
-            <Text style={styles.seeAllText}>{t('dashboard.analyticsDetail')}</Text>
+            <Text style={[styles.seeAllText, { color: theme.primary }]}>{t('dashboard.analyticsDetail')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -387,16 +387,24 @@ export default function DashboardScreen() {
         />
 
         {/* Recent Transactions List */}
-        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+        <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             {t('dashboard.recentTransactions')}
           </Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
-            <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
+            <Text style={[styles.seeAllText, { color: theme.primary }]}>{t('common.seeAll')}</Text>
           </TouchableOpacity>
         </View>
 
-        {recentTransactions.length === 0 ? (
+        {recentTransactions.length > 0 ? (
+          recentTransactions.map((tx) => (
+            <TransactionCard
+              key={tx.id}
+              transaction={tx}
+              onPress={() => router.push(`/transaction/${tx.id}` as any)}
+            />
+          ))
+        ) : (
           <View
             style={[
               styles.emptyCard,
@@ -407,58 +415,40 @@ export default function DashboardScreen() {
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               {t('dashboard.noTransactions')}
             </Text>
-            <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
+            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
               {t('dashboard.noTransactionsDesc')}
             </Text>
           </View>
-        ) : (
-          recentTransactions.map((tx) => (
-            <TransactionCard
-              key={tx.id}
-              transaction={tx}
-              onPress={() => router.push(`/transaction/${tx.id}`)}
-            />
-          ))
         )}
+
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* MODAL PICKER CASH ADVANCE (OPSI 1: DROPDOWN MODAL CERDAS) */}
-      <Modal
-        visible={isPickerModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsPickerModalOpen(false)}
-      >
+      {/* MODAL PICKER CASH ADVANCE / PROYEK CERDAS (OPSI 1) */}
+      <Modal visible={isPickerModalOpen} transparent animationType="fade">
         <View style={styles.pickerBackdrop}>
           <View style={[styles.pickerModalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            {/* Modal Header */}
+            {/* Header Modal */}
             <View style={styles.pickerHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={styles.pickerHeaderIcon}>
-                  <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickerTitle, { color: theme.text }]}>
-                    {language === 'id' ? 'Pilih Cash Advance Proyek' : 'Select Cash Advance'}
-                  </Text>
-                  <Text style={[styles.pickerSub, { color: theme.textSecondary }]}>
-                    {language === 'id'
-                      ? `${cashAdvances.length} proyek terdaftar untuk akun ini`
-                      : `${cashAdvances.length} projects available`}
-                  </Text>
-                </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="wallet-outline" size={20} color={theme.primary} />
+                <Text style={[styles.pickerTitle, { color: theme.text }]}>
+                  {language === 'id' ? 'Pilih Proyek Cash Advance' : 'Select Project'}
+                </Text>
               </View>
-              <TouchableOpacity
-                style={[styles.closeModalBtn, { backgroundColor: theme.cardHover }]}
-                onPress={() => setIsPickerModalOpen(false)}
-              >
-                <Ionicons name="close" size={20} color={theme.text} />
+              <TouchableOpacity onPress={() => setIsPickerModalOpen(false)}>
+                <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
-            <View style={[styles.searchBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <Ionicons name="search-outline" size={16} color={theme.textMuted} />
+            {/* Search Input Box */}
+            <View
+              style={[
+                styles.searchBox,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+            >
+              <Ionicons name="search" size={16} color={theme.textMuted} />
               <TextInput
                 style={[styles.searchTextInput, { color: theme.text }]}
                 placeholder={language === 'id' ? 'Cari nama proyek, kota, pemeriksa...' : 'Search project, city, verifier...'}
@@ -466,14 +456,13 @@ export default function DashboardScreen() {
                 value={pickerSearch}
                 onChangeText={setPickerSearch}
               />
-              {pickerSearch.trim().length > 0 ? (
+              {pickerSearch ? (
                 <TouchableOpacity onPress={() => setPickerSearch('')}>
                   <Ionicons name="close-circle" size={16} color={theme.textMuted} />
                 </TouchableOpacity>
               ) : null}
             </View>
 
-            {/* List of Cash Advances */}
             <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               <View style={{ gap: 8, paddingVertical: 4 }}>
                 {filteredCashAdvances.map((ca) => {
@@ -484,8 +473,8 @@ export default function DashboardScreen() {
                       style={[
                         styles.pickerItemCard,
                         {
-                          backgroundColor: isSelected ? 'rgba(88, 101, 242, 0.08)' : theme.background,
-                          borderColor: isSelected ? Palette.primary : theme.border,
+                          backgroundColor: isSelected ? theme.primaryMuted : theme.background,
+                          borderColor: isSelected ? theme.primary : theme.border,
                           borderWidth: isSelected ? 1.5 : 1,
                         },
                       ]}
@@ -502,7 +491,7 @@ export default function DashboardScreen() {
                               {ca.project_name}
                             </Text>
                             {isSelected && (
-                              <View style={styles.activeBadgePill}>
+                              <View style={[styles.activeBadgePill, { backgroundColor: theme.primary }]}>
                                 <Ionicons name="checkmark-circle" size={11} color="#FFFFFF" />
                                 <Text style={styles.activeBadgePillText}>
                                   {language === 'id' ? 'Aktif' : 'Active'}
@@ -520,7 +509,7 @@ export default function DashboardScreen() {
                           )}
                         </View>
                         <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
-                          <Text style={[styles.itemPlafonAmount, { color: Palette.primary }]}>
+                          <Text style={[styles.itemPlafonAmount, { color: theme.primary }]}>
                             {formatRupiah(ca.initial_amount)}
                           </Text>
                           <Text style={{ fontSize: 10, color: theme.textMuted, marginTop: 2 }}>
@@ -533,10 +522,9 @@ export default function DashboardScreen() {
                 })}
 
                 {filteredCashAdvances.length === 0 && (
-                  <View style={{ padding: 28, alignItems: 'center' }}>
-                    <Ionicons name="search" size={28} color={theme.textMuted} style={{ marginBottom: 6 }} />
+                  <View style={{ paddingVertical: 24, alignItems: 'center' }}>
                     <Text style={{ color: theme.textMuted, fontSize: 13 }}>
-                      {language === 'id' ? 'Proyek tidak ditemukan' : 'No project found'}
+                      {language === 'id' ? 'Tidak ada proyek yang cocok' : 'No matching projects'}
                     </Text>
                   </View>
                 )}
@@ -546,7 +534,7 @@ export default function DashboardScreen() {
             {/* Modal Actions Footer */}
             <View style={[styles.pickerFooter, { borderTopColor: theme.border }]}>
               <TouchableOpacity
-                style={styles.manageInInputBtn}
+                style={[styles.manageInInputBtn, { backgroundColor: theme.primary }]}
                 onPress={() => {
                   setIsPickerModalOpen(false);
                   router.push('/(tabs)/analytics');

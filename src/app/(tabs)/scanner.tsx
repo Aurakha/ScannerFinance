@@ -216,7 +216,7 @@ export default function ScannerScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? '#FEE75C' : Palette.primary}
+                color={mode === 'dark' ? '#FEE75C' : theme.primary}
               />
             </TouchableOpacity>
           }
@@ -228,11 +228,11 @@ export default function ScannerScreen() {
             styles.dropzoneCard,
             {
               backgroundColor: theme.card,
-              borderColor: 'rgba(88, 101, 242, 0.4)',
+              borderColor: mode === 'dark' ? 'rgba(88, 101, 242, 0.4)' : theme.border,
             },
           ]}
         >
-          <View style={styles.uploadGlowCircle}>
+          <View style={[styles.uploadGlowCircle, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
             <Ionicons name="scan-circle" size={44} color="#FFFFFF" />
           </View>
 
@@ -246,14 +246,22 @@ export default function ScannerScreen() {
           </Text>
 
           <View style={styles.buttonActionGroup}>
-            <TouchableOpacity style={styles.cameraPrimaryBtn} onPress={handleTakePhoto} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={[styles.cameraPrimaryBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+              onPress={handleTakePhoto}
+              activeOpacity={0.85}
+            >
               <Ionicons name="camera" size={18} color="#FFFFFF" />
               <Text style={styles.actionBtnText}>{t('scanner.openCamera')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.gallerySecondaryBtn} onPress={handlePickImage} activeOpacity={0.85}>
-              <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
-              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
+            <TouchableOpacity
+              style={[styles.gallerySecondaryBtn, { borderColor: theme.border }]}
+              onPress={handlePickImage}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="image-outline" size={18} color={theme.primary} />
+              <Text style={[styles.actionBtnText, { color: theme.primary }]}>
                 {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
               </Text>
             </TouchableOpacity>
@@ -284,7 +292,7 @@ export default function ScannerScreen() {
         >
           <View style={styles.guideHeader}>
             <View style={styles.guideIconBox}>
-              <Ionicons name="book-outline" size={20} color={Palette.primary} />
+              <Ionicons name="book-outline" size={20} color={theme.primary} />
             </View>
             <View>
               <Text style={[styles.guideTitle, { color: theme.text }]}>
@@ -301,12 +309,12 @@ export default function ScannerScreen() {
           <View style={styles.stepsContainer}>
             {/* Step 1 */}
             <View style={styles.stepRow}>
-              <View style={styles.stepNumberBadge}>
+              <View style={[styles.stepNumberBadge, { backgroundColor: theme.primary }]}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
               <View style={styles.stepContent}>
                 <View style={styles.stepTitleRow}>
-                  <Ionicons name="cloud-upload-outline" size={16} color={Palette.primary} />
+                  <Ionicons name="cloud-upload-outline" size={16} color={theme.primary} />
                   <Text style={[styles.stepTitle, { color: theme.text }]}>
                     {language === 'id' ? 'Unggah Foto Struk / Nota' : 'Upload Receipt Photo'}
                   </Text>

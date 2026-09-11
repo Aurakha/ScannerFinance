@@ -23,7 +23,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   title,
   amount,
   icon,
-  color = Palette.primary,
+  color,
   subtitle,
   badgeText,
   badgeType = 'success',
@@ -34,6 +34,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   const { theme } = useThemeStore();
   const { language } = useLanguageStore();
 
+  const cardColor = color || theme.primary;
+
   const getBadgeColor = () => {
     switch (badgeType) {
       case 'danger':
@@ -41,9 +43,9 @@ export const StatCard: React.FC<StatCardProps> = ({
       case 'warning':
         return Palette.amber;
       case 'info':
-        return Palette.indigo;
+        return theme.primary;
       default:
-        return Palette.primary;
+        return theme.primary;
     }
   };
 
@@ -73,8 +75,8 @@ export const StatCard: React.FC<StatCardProps> = ({
       ]}
     >
       <View style={styles.headerRow}>
-        <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}>
-          <Ionicons name={icon} size={18} color={color} />
+        <View style={[styles.iconBox, { backgroundColor: `${cardColor}18` }]}>
+          <Ionicons name={icon} size={18} color={cardColor} />
         </View>
 
         {badgeText && (

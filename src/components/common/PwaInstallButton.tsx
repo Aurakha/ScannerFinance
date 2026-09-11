@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Platform, View, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '@/constants/theme';
+import { useThemeStore } from '@/store/themeStore';
 
 export const PwaInstallButton: React.FC = () => {
+  const { theme } = useThemeStore();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
@@ -76,7 +78,7 @@ export const PwaInstallButton: React.FC = () => {
   return (
     <>
       <TouchableOpacity
-        style={styles.installBtn}
+        style={[styles.installBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
         onPress={handleInstallClick}
         activeOpacity={0.8}
       >
