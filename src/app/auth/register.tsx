@@ -154,7 +154,7 @@ export default function RegisterScreen() {
                     style={[styles.input, { color: theme.text }]}
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="@gmail.com"
+                    placeholder="Masukkan email Anda"
                     placeholderTextColor={theme.textMuted}
                     autoCapitalize="none"
                     keyboardType="email-address"

@@ -144,7 +144,7 @@ export default function LoginScreen() {
                     setEmail(val);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder="@gmail.com"
+                  placeholder="Masukkan email Anda"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -291,7 +291,7 @@ export default function LoginScreen() {
                     setForgotEmail(val);
                     if (forgotStatus) setForgotStatus(null);
                   }}
-                  placeholder="@gmail.com"
+                  placeholder="Masukkan email Anda"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
