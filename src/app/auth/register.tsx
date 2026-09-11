@@ -134,7 +134,7 @@ export default function RegisterScreen() {
                       setFullName(val);
                       if (errorMessage) setErrorMessage('');
                     }}
-                    placeholder="Contoh: User 1"
+                    placeholder="Masukkan nama Anda"
                     placeholderTextColor={theme.textMuted}
                   />
                 </View>
