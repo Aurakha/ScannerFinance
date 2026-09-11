@@ -125,6 +125,48 @@ export default function DashboardScreen() {
           }
         />
 
+        {/* Guest Mode Sandbox Banner */}
+        {isDemoMode && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(88, 101, 242, 0.1)',
+              borderWidth: 1,
+              borderColor: 'rgba(88, 101, 242, 0.25)',
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              marginBottom: 14,
+              gap: 8,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <Ionicons name="sparkles" size={16} color={Palette.primary} />
+              <Text style={{ fontSize: 12, color: theme.textSecondary, flex: 1, lineHeight: 17 }}>
+                {language === 'id'
+                  ? 'Mode Tamu (Sandbox) — Data hanya diuji secara lokal di perangkat ini.'
+                  : 'Guest Sandbox Mode — Data is stored locally on this device.'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: Palette.primary,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+              onPress={() => router.push('/auth/login' as any)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>
+                {language === 'id' ? 'Masuk' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Multi-Cash Advance Switcher & Status Card (Opsi 1: Selector Cerdas) */}
         <View
           style={[

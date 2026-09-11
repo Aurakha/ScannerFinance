@@ -7,37 +7,167 @@ import { categorizeColumn } from '@/utils/exportReport';
 
 const LOCAL_TRANSACTIONS_KEY = '@scanfinance_local_transactions';
 const LOCAL_CATEGORIES_KEY = '@scanfinance_local_categories';
+const GUEST_TRANSACTIONS_KEY = '@scanfinance_guest_sandbox_transactions';
 
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 let inMemoryTransactions: Transaction[] | null = null;
 let inMemoryCategories: Category[] | null = null;
 
-// Tidak ada dummy seed data — fresh dari 0
-const SEED_TRANSACTIONS: Transaction[] = [];
+export const isGuestUser = (userId?: string | null): boolean => {
+  if (!userId) return true;
+  const clean = userId.trim().toLowerCase();
+  return (
+    clean === 'user-default-1' ||
+    clean === 'guest' ||
+    clean === 'user-guest' ||
+    clean === 'guest@scanfinance.com'
+  );
+};
+
+// Data simulasi awal untuk mode tamu agar grafik dan statistik langsung terlihat hidup
+const SEED_GUEST_TRANSACTIONS: Transaction[] = [
+  {
+    id: 'tx-guest-demo-1',
+    user_id: 'user-default-1',
+    category_id: 'cat-operational',
+    merchant_name: 'SPBU Pertamina 34-15102',
+    transaction_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+    total_amount: 350000,
+    subtotal: 350000,
+    tax_amount: 0,
+    discount_amount: 0,
+    shipping_fee: 0,
+    admin_fee: 0,
+    payment_method: 'cash',
+    notes: 'BBM mobil dinas operasional proyek (Simulasi Demo)',
+    // receipt_image_url omitted
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+    category: {
+      id: 'cat-operational',
+      name: 'Operational',
+      icon: 'briefcase-outline',
+      color: '#EAB308',
+      type: 'expense',
+      is_default: true,
+    },
+    items: [
+      {
+        id: 'item-demo-1',
+        transaction_id: 'tx-guest-demo-1',
+        item_name: 'BBM Pertamax Operasional',
+        quantity: 1,
+        unit_price: 350000,
+        total_price: 350000,
+      },
+    ],
+  },
+  {
+    id: 'tx-guest-demo-2',
+    user_id: 'user-default-1',
+    category_id: 'cat-pantry',
+    merchant_name: 'Indomaret Point',
+    transaction_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    total_amount: 85000,
+    subtotal: 85000,
+    tax_amount: 0,
+    discount_amount: 0,
+    shipping_fee: 0,
+    admin_fee: 0,
+    payment_method: 'cash',
+    notes: 'Konsumsi dan air galon operasional (Simulasi Demo)',
+    // receipt_image_url omitted
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    category: {
+      id: 'cat-pantry',
+      name: 'Pantry',
+      icon: 'restaurant-outline',
+      color: '#10B981',
+      type: 'expense',
+      is_default: true,
+    },
+    items: [
+      {
+        id: 'item-demo-2',
+        transaction_id: 'tx-guest-demo-2',
+        item_name: 'Kopi & Teh Kemasan',
+        quantity: 1,
+        unit_price: 45000,
+        total_price: 45000,
+      },
+      {
+        id: 'item-demo-3',
+        transaction_id: 'tx-guest-demo-2',
+        item_name: 'Air Mineral Galon',
+        quantity: 2,
+        unit_price: 20000,
+        total_price: 40000,
+      },
+    ],
+  },
+  {
+    id: 'tx-guest-demo-3',
+    user_id: 'user-default-1',
+    category_id: 'cat-fasilitas',
+    merchant_name: 'Fotocopy & ATK Mitra',
+    transaction_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
+    total_amount: 120000,
+    subtotal: 120000,
+    tax_amount: 0,
+    discount_amount: 0,
+    shipping_fee: 0,
+    admin_fee: 0,
+    payment_method: 'cash',
+    notes: 'Kertas dokumen dan map laporan (Simulasi Demo)',
+    // receipt_image_url omitted
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
+    category: {
+      id: 'cat-fasilitas',
+      name: 'Fasilitas',
+      icon: 'business-outline',
+      color: '#EC4899',
+      type: 'expense',
+      is_default: true,
+    },
+    items: [
+      {
+        id: 'item-demo-4',
+        transaction_id: 'tx-guest-demo-3',
+        item_name: 'Kertas HVS A4 & Map Bantex',
+        quantity: 1,
+        unit_price: 120000,
+        total_price: 120000,
+      },
+    ],
+  },
+];
 
 /**
  * Otomatis mengunggah data transaksi lokal yang belum masuk ke Supabase
+ * HANYA berjalan jika pengguna sudah login (Bukan Guest)
  */
 export async function syncLocalTransactionsToSupabase(): Promise<void> {
   if (isSSR) return;
   try {
-    const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
-    if (!raw) return;
-    const localTx: Transaction[] = JSON.parse(raw);
-    const nonSeed = localTx.filter((t) => !t.id.startsWith('tx-seed-'));
-    if (nonSeed.length === 0) return;
-
-    // Ambil sesi user saat ini jika ada
     const { data: sessionRes } = await supabase.auth.getSession();
     const currentUserId = sessionRes?.session?.user?.id || null;
 
-    // Ambil data transaksi yang sudah ada di Supabase
-    let query = supabase.from('transactions').select('id, merchant_name, transaction_date');
-    if (currentUserId) {
-      query = query.eq('user_id', currentUserId);
+    // JANGAN PERNAH SINKRONISASI JIKA GUEST (BELUM LOGIN)
+    if (!currentUserId || isGuestUser(currentUserId)) {
+      return;
     }
-    const { data: cloudData } = await query;
+
+    const raw = await AsyncStorage.getItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`);
+    if (!raw) return;
+    const localTx: Transaction[] = JSON.parse(raw);
+    const nonSeed = localTx.filter((t) => !t.id.startsWith('tx-guest-demo-'));
+    if (nonSeed.length === 0) return;
+
+    // Ambil data transaksi yang sudah ada di Supabase
+    const { data: cloudData } = await supabase
+      .from('transactions')
+      .select('id, merchant_name, transaction_date')
+      .eq('user_id', currentUserId);
 
     const cloudKeys = new Set(
       (cloudData || []).map((c) => `${c.merchant_name}_${c.transaction_date}`)
@@ -98,31 +228,46 @@ export async function syncLocalTransactionsToSupabase(): Promise<void> {
 
 export async function getTransactions(targetUserId?: string): Promise<Transaction[]> {
   if (isSSR) {
-    return inMemoryTransactions || [];
+    return inMemoryTransactions || SEED_GUEST_TRANSACTIONS;
   }
 
-  // 1. Ambil seluruh transaksi live dari Supabase Cloud berdasarkan user_id
   let currentUserId: string | null = targetUserId || null;
-  try {
-    if (!currentUserId) {
+  if (!currentUserId) {
+    try {
       const { data: sessionRes } = await supabase.auth.getSession();
       currentUserId = sessionRes?.session?.user?.id || null;
-    }
+    } catch {}
+  }
 
-    let query = supabase
+  // 1. ISOLASI GUEST MODE: HANYA BACA DARI LOCAL SANDBOX, JANGAN QUERY SUPABASE
+  if (!currentUserId || isGuestUser(currentUserId)) {
+    try {
+      const raw = await AsyncStorage.getItem(GUEST_TRANSACTIONS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed as Transaction[];
+        }
+      }
+      // Inisialisasi awal transaksi demo jika belum ada
+      await AsyncStorage.setItem(GUEST_TRANSACTIONS_KEY, JSON.stringify(SEED_GUEST_TRANSACTIONS));
+      return SEED_GUEST_TRANSACTIONS;
+    } catch {
+      return SEED_GUEST_TRANSACTIONS;
+    }
+  }
+
+  // 2. USER TERAUTENTIKASI: AMBIL TRANSAKSI DARI CLOUD SESUAI USER_ID AKUN
+  try {
+    const { data, error } = await supabase
       .from('transactions')
       .select(`
         *,
         category:categories(*),
         items:transaction_items(*)
       `)
+      .eq('user_id', currentUserId)
       .order('transaction_date', { ascending: false });
-
-    if (currentUserId) {
-      query = query.eq('user_id', currentUserId);
-    }
-
-    const { data, error } = await query;
 
     if (!error) {
       const formatted = (data || []).map((d: any) => {
@@ -140,29 +285,21 @@ export async function getTransactions(targetUserId?: string): Promise<Transactio
           items: d.items || [],
         };
       });
-      // Sinkronkan cache lokal dengan data cloud terkini (termasuk jika kosong 0 baris)
-      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(formatted));
+      await AsyncStorage.setItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`, JSON.stringify(formatted));
       return formatted as Transaction[];
     }
   } catch (err) {
     console.warn('Supabase fetch transactions notice:', err);
   }
 
-  // 2. Fallback jika offline ke Local Storage
+  // 3. Fallback jika offline untuk user login
   try {
-    const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
+    const raw = await AsyncStorage.getItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`);
     if (raw) {
-      const allTx: Transaction[] = JSON.parse(raw);
-      if (currentUserId) {
-        const userTx = allTx.filter((t) => t.user_id === currentUserId);
-        return userTx;
-      }
-      return allTx;
+      return JSON.parse(raw);
     }
-    return [];
-  } catch {
-    return [];
-  }
+  } catch {}
+  return [];
 }
 
 export async function saveTransaction(
@@ -175,15 +312,26 @@ export async function saveTransaction(
   };
 
   if (isSSR) {
-    inMemoryTransactions = [newTx, ...(inMemoryTransactions || SEED_TRANSACTIONS)];
+    inMemoryTransactions = [newTx, ...(inMemoryTransactions || SEED_GUEST_TRANSACTIONS)];
     return newTx;
   }
 
-  // 1. Simpan langsung ke Supabase PostgreSQL
-  try {
-    const { data: sessionRes } = await supabase.auth.getSession();
-    const currentUserId = sessionRes?.session?.user?.id || null;
+  const { data: sessionRes } = await supabase.auth.getSession();
+  const currentUserId = sessionRes?.session?.user?.id || null;
 
+  // JIKA GUEST (TIDAK ADA AKUN LOGIN): SIMPAN MURNI DI SANDBOX LOKAL (JANGAN SENTUH SUPABASE)
+  if (!currentUserId || isGuestUser(currentUserId)) {
+    try {
+      const raw = await AsyncStorage.getItem(GUEST_TRANSACTIONS_KEY);
+      const current: Transaction[] = raw ? JSON.parse(raw) : SEED_GUEST_TRANSACTIONS;
+      const updated = [newTx, ...current.filter((t) => t.id !== newTx.id)];
+      await AsyncStorage.setItem(GUEST_TRANSACTIONS_KEY, JSON.stringify(updated));
+    } catch {}
+    return newTx;
+  }
+
+  // USER TERDAFTAR: SIMPAN KE SUPABASE POSTGRESQL
+  try {
     let sbCategoryId: string | null = null;
     if (newTx.category_id && newTx.category_id.includes('-') && newTx.category_id.length === 36) {
       sbCategoryId = newTx.category_id;
@@ -222,7 +370,6 @@ export async function saveTransaction(
     if (!txError && insertedTx) {
       newTx.id = insertedTx.id;
 
-      // Simpan rincian items ke tabel transaction_items
       if (newTx.items && newTx.items.length > 0) {
         const itemsToInsert = newTx.items.map((it) => ({
           transaction_id: insertedTx.id,
@@ -238,11 +385,12 @@ export async function saveTransaction(
     console.warn('Supabase sync error:', err);
   }
 
-  // 2. Update local storage sebagai offline cache
-  const current = await getTransactions();
-  const updated = [newTx, ...current.filter((t) => t.id !== newTx.id)];
+  // Update offline storage cache user
   try {
-    await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(updated));
+    const raw = await AsyncStorage.getItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`);
+    const current: Transaction[] = raw ? JSON.parse(raw) : [];
+    const updated = [newTx, ...current.filter((t) => t.id !== newTx.id)];
+    await AsyncStorage.setItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`, JSON.stringify(updated));
   } catch {}
 
   return newTx;
@@ -250,14 +398,29 @@ export async function saveTransaction(
 
 export async function deleteTransaction(id: string): Promise<boolean> {
   if (isSSR) {
-    inMemoryTransactions = (inMemoryTransactions || SEED_TRANSACTIONS).filter((t) => t.id !== id);
+    inMemoryTransactions = (inMemoryTransactions || SEED_GUEST_TRANSACTIONS).filter((t) => t.id !== id);
     return true;
   }
 
+  const { data: sessionRes } = await supabase.auth.getSession();
+  const currentUserId = sessionRes?.session?.user?.id || null;
+
+  // JIKA GUEST: HAPUS DARI SANDBOX LOKAL
+  if (!currentUserId || isGuestUser(currentUserId)) {
+    try {
+      const raw = await AsyncStorage.getItem(GUEST_TRANSACTIONS_KEY);
+      if (raw) {
+        const list: Transaction[] = JSON.parse(raw);
+        const updated = list.filter((t) => t.id !== id);
+        await AsyncStorage.setItem(GUEST_TRANSACTIONS_KEY, JSON.stringify(updated));
+      }
+    } catch {}
+    return true;
+  }
+
+  // USER RESMI: HAPUS DARI SUPABASE
   try {
-    // 1. Hapus item anak di transaction_items terlebih dahulu agar tidak melanggar foreign key
     await supabase.from('transaction_items').delete().eq('transaction_id', id);
-    // 2. Hapus baris transaksi induk
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) {
       console.warn('Supabase delete error:', error);
@@ -266,13 +429,12 @@ export async function deleteTransaction(id: string): Promise<boolean> {
     console.warn('Supabase delete notice:', err);
   }
 
-  // 3. Langsung perbarui cache lokal
   try {
-    const raw = await AsyncStorage.getItem(LOCAL_TRANSACTIONS_KEY);
+    const raw = await AsyncStorage.getItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`);
     if (raw) {
       const allTx: Transaction[] = JSON.parse(raw);
       const updated = allTx.filter((t) => t.id !== id);
-      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(updated));
+      await AsyncStorage.setItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`, JSON.stringify(updated));
     }
   } catch {}
 
@@ -293,6 +455,34 @@ export async function updateTransaction(
     return null;
   }
 
+  const { data: sessionRes } = await supabase.auth.getSession();
+  const currentUserId = sessionRes?.session?.user?.id || null;
+
+  // JIKA GUEST: UPDATE DI SANDBOX LOKAL
+  if (!currentUserId || isGuestUser(currentUserId)) {
+    try {
+      const raw = await AsyncStorage.getItem(GUEST_TRANSACTIONS_KEY);
+      const current: Transaction[] = raw ? JSON.parse(raw) : SEED_GUEST_TRANSACTIONS;
+      const index = current.findIndex((t) => t.id === id);
+      if (index !== -1) {
+        let resolvedCategory = updatedFields.category || current[index].category;
+        if (!resolvedCategory && updatedFields.category_id) {
+          resolvedCategory = DEFAULT_CATEGORIES.find((c) => c.id === updatedFields.category_id);
+        }
+        const updatedTx: Transaction = {
+          ...current[index],
+          ...updatedFields,
+          category: resolvedCategory,
+        };
+        current[index] = updatedTx;
+        await AsyncStorage.setItem(GUEST_TRANSACTIONS_KEY, JSON.stringify(current));
+        return updatedTx;
+      }
+    } catch {}
+    return null;
+  }
+
+  // USER RESMI: UPDATE DI SUPABASE
   try {
     let sbCategoryId: string | null = null;
     if (
@@ -328,7 +518,6 @@ export async function updateTransaction(
 
     await supabase.from('transactions').update(payload).eq('id', id);
 
-    // Update rincian items jika disertakan
     if (updatedFields.items) {
       await supabase.from('transaction_items').delete().eq('transaction_id', id);
       if (updatedFields.items.length > 0) {
@@ -347,24 +536,25 @@ export async function updateTransaction(
   }
 
   // Update offline storage cache
-  const current = await getTransactions();
-  const index = current.findIndex((t) => t.id === id);
-  if (index !== -1) {
-    let resolvedCategory = updatedFields.category || current[index].category;
-    if (!resolvedCategory && updatedFields.category_id) {
-      resolvedCategory = DEFAULT_CATEGORIES.find((c) => c.id === updatedFields.category_id);
+  try {
+    const raw = await AsyncStorage.getItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`);
+    const current: Transaction[] = raw ? JSON.parse(raw) : [];
+    const index = current.findIndex((t) => t.id === id);
+    if (index !== -1) {
+      let resolvedCategory = updatedFields.category || current[index].category;
+      if (!resolvedCategory && updatedFields.category_id) {
+        resolvedCategory = DEFAULT_CATEGORIES.find((c) => c.id === updatedFields.category_id);
+      }
+      const updatedTx: Transaction = {
+        ...current[index],
+        ...updatedFields,
+        category: resolvedCategory,
+      };
+      current[index] = updatedTx;
+      await AsyncStorage.setItem(`${LOCAL_TRANSACTIONS_KEY}_${currentUserId}`, JSON.stringify(current));
+      return updatedTx;
     }
-    const updatedTx: Transaction = {
-      ...current[index],
-      ...updatedFields,
-      category: resolvedCategory,
-    };
-    current[index] = updatedTx;
-    try {
-      await AsyncStorage.setItem(LOCAL_TRANSACTIONS_KEY, JSON.stringify(current));
-    } catch {}
-    return updatedTx;
-  }
+  } catch {}
   return null;
 }
 

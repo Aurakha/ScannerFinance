@@ -20,47 +20,37 @@ const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
   }
 };
 
-const DEFAULT_CASH_ADVANCES: CashAdvance[] = [
+// Data Proyek Khusus Mode Tamu (Tanpa email kolaborator tim sungguhan)
+export const GUEST_DEMO_CASH_ADVANCES: CashAdvance[] = [
   {
-    id: 'ca-default-1',
+    id: 'ca-guest-demo-1',
     user_id: 'user-default-1',
-    project_name: 'Tangerang Project',
-    initial_amount: 7000000,
-    city: 'Tangerang',
-    verifier_name: 'Yunitha',
-    approver_name: 'Dwi Hartanto',
-    collaborators: ['aurakharere@gmail.com', 'haharakha@gmail.com'],
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+    project_name: 'Demo Proyek Operasional',
+    initial_amount: 5000000,
+    city: 'Jakarta',
+    verifier_name: 'Pemeriksa (Demo)',
+    approver_name: 'Manager (Demo)',
+    collaborators: [],
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     status: 'active',
-    notes: 'Operasional lapangan proyek Tangerang',
+    notes: 'Proyek simulasi uji coba untuk Guest Mode',
   },
   {
-    id: 'ca-default-2',
+    id: 'ca-guest-demo-2',
     user_id: 'user-default-1',
-    project_name: 'Overhaul Plant Balikpapan',
-    initial_amount: 12500000,
-    city: 'Balikpapan',
-    verifier_name: 'Yunitha',
-    approver_name: 'Bambang Soeprapto',
-    collaborators: ['gabrielrudra9@gmail.com', 'scanfinancebucket@gmail.com'],
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-    status: 'active',
-    notes: 'Perbaikan & maintenance unit site Balikpapan',
-  },
-  {
-    id: 'ca-default-3',
-    user_id: 'user-default-1',
-    project_name: 'Survei Lapangan Cilegon',
+    project_name: 'Simulasi Perjalanan Dinas',
     initial_amount: 3500000,
-    city: 'Cilegon',
-    verifier_name: 'Hendra Wijaya',
-    approver_name: 'Dwi Hartanto',
-    collaborators: ['haharakha@gmail.com'],
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    city: 'Bandung',
+    verifier_name: 'Finance (Demo)',
+    approver_name: 'Manager (Demo)',
+    collaborators: [],
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
     status: 'active',
-    notes: 'Survei awal lokasi fasilitas baru Cilegon',
+    notes: 'Uji coba klaim dan rekapitulasi pengeluaran',
   },
 ];
+
+const DEFAULT_CASH_ADVANCES: CashAdvance[] = GUEST_DEMO_CASH_ADVANCES;
 
 const isLegacyDefaultData = (value: unknown): value is CashAdvance[] => {
   if (!Array.isArray(value)) return false;
@@ -94,8 +84,23 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
   activeCashAdvanceId: 'ca-default-1',
   isLoading: false,
 
-  loadCashAdvances: async (userId?: string) => {
+    loadCashAdvances: async (userId?: string) => {
     if (isSSR) return;
+    const currentUser = useAuthStore.getState().user;
+    const isDemo = useAuthStore.getState().isDemoMode || !currentUser?.id || currentUser?.id === 'user-default-1' || currentUser?.email?.includes('guest');
+
+    // Jika dalam mode Guest / Demo, sajikan proyek demo lokal tanpa menyentuh data tim riil
+    if (isDemo) {
+      set({
+        cashAdvances: GUEST_DEMO_CASH_ADVANCES,
+        activeCashAdvanceId: get().activeCashAdvanceId && GUEST_DEMO_CASH_ADVANCES.some(c => c.id === get().activeCashAdvanceId)
+          ? get().activeCashAdvanceId
+          : GUEST_DEMO_CASH_ADVANCES[0].id,
+        isLoading: false,
+      });
+      return;
+    }
+
     const targetUserId = userId || useAuthStore.getState().user?.id || 'user-default-1';
     const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
     const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
