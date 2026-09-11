@@ -7,6 +7,7 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { Palette } from '@/constants/theme';
+import { AppUpdateBanner } from '@/components/common/AppUpdateBanner';
 
 class GlobalErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -124,6 +125,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      <AppUpdateBanner />
     </GlobalErrorBoundary>
   );
 }

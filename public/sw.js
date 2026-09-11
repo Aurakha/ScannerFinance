@@ -1,5 +1,5 @@
-// ScanFinance Service Worker for PWA Installation & Offline Support
-const CACHE_NAME = 'scanfinance-cache-v1';
+// ScanFinance Service Worker for PWA Installation, Offline & Instant Auto-Updates
+const CACHE_NAME = 'scanfinance-cache-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -19,15 +19,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Never intercept API or Supabase / Google Drive requests
   const url = event.request.url;
+
+  // Never intercept API, Supabase, Google Drive, or non-GET requests
   if (
     url.includes('/api/') ||
     url.includes('supabase.co') ||
     url.includes('googleapis.com') ||
     event.request.method !== 'GET'
   ) {
+    return;
+  }
+
+  // HTML navigation requests: Network first with cache fallback so new version is immediately picked up
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 

@@ -299,6 +299,127 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+                  {/* App Version & Update Center Card */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(88, 101, 242, 0.15)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="phone-portrait-outline" size={20} color={Palette.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                {language === 'id' ? 'Pembaruan Aplikasi Mobile' : 'Mobile App Updates'}
+              </Text>
+              <Text style={{ fontSize: 11, color: theme.textSecondary }}>
+                ScanFinance v1.1.0 • PWA & Mobile Build
+              </Text>
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 12, color: theme.textMuted, lineHeight: 18, marginBottom: 14 }}>
+            {language === 'id'
+              ? 'Jika Anda baru saja memperbarui kode di server atau merasa tampilan di HP belum berubah, Anda dapat mengecek pembaruan atau membersihkan file cache langsung dari tombol di bawah.'
+              : 'Check for the latest updates from the server or clear cached files on your phone.'}
+          </Text>
+
+          <View style={{ gap: 8 }}>
+            {/* Tombol Periksa Pembaruan */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: Palette.primary,
+                paddingVertical: 10,
+                borderRadius: 10,
+                gap: 8,
+              }}
+              onPress={async () => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  if ('serviceWorker' in navigator) {
+                    try {
+                      const reg = await navigator.serviceWorker.getRegistration();
+                      if (reg) {
+                        await reg.update();
+                        if (reg.waiting) {
+                          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                          window.alert('Versi baru ditemukan! Aplikasi akan dimuat ulang ke versi terbaru.');
+                          window.location.reload();
+                          return;
+                        }
+                      }
+                      window.alert('Aplikasi ScanFinance Anda sudah menggunakan versi terbaru (v1.1.0).');
+                    } catch (e) {
+                      window.alert('Gagal memeriksa pembaruan: ' + e);
+                    }
+                  } else {
+                    window.location.reload();
+                  }
+                } else {
+                  Alert.alert('ScanFinance', 'Aplikasi Anda sudah menggunakan versi terbaru (v1.1.0).');
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                {language === 'id' ? 'Periksa Pembaruan Sekarang' : 'Check for Updates'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Tombol Bersihkan Cache & Muat Ulang */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.cardHover,
+                borderWidth: 1,
+                borderColor: theme.border,
+                paddingVertical: 9,
+                borderRadius: 10,
+                gap: 8,
+              }}
+              onPress={async () => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  try {
+                    if ('caches' in window) {
+                      const keys = await caches.keys();
+                      await Promise.all(keys.map((k) => caches.delete(k)));
+                    }
+                    if ('serviceWorker' in navigator) {
+                      const regs = await navigator.serviceWorker.getRegistrations();
+                      for (const r of regs) {
+                        await r.unregister();
+                      }
+                    }
+                    window.alert('Cache berhasil dibersihkan! Aplikasi akan memuat ulang versi terbaru.');
+                    window.location.reload();
+                  } catch (e) {
+                    window.location.reload();
+                  }
+                } else {
+                  Alert.alert('ScanFinance', 'Memuat ulang data aplikasi...');
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={15} color={theme.textSecondary} />
+              <Text style={{ color: theme.textSecondary, fontWeight: '600', fontSize: 12 }}>
+                {language === 'id' ? 'Paksa Bersihkan Cache & Muat Ulang' : 'Clear Cache & Reload'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
           {/* Save Button */}
           <TouchableOpacity
             style={styles.saveProfileBtn}
