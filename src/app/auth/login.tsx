@@ -93,7 +93,7 @@ export default function LoginScreen() {
             <Ionicons
               name={mode === 'dark' ? 'sunny' : 'moon'}
               size={18}
-              color={mode === 'dark' ? Palette.amber : theme.primary}
+              color={mode === 'dark' ? Palette.amber : Palette.primary}
             />
           </TouchableOpacity>
         </View>
@@ -144,7 +144,7 @@ export default function LoginScreen() {
                     setEmail(val);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder="admin@aurakha.com"
+                  placeholder="@gmail.com"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                   setForgotStatus(null);
                   setShowForgotModal(true);
                 }}>
-                  <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>Lupa Kata Sandi?</Text>
+                  <Text style={styles.forgotPasswordText}>Lupa Kata Sandi?</Text>
                 </TouchableOpacity>
               </View>
               <View
@@ -194,7 +194,7 @@ export default function LoginScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+              style={styles.primaryButton}
               onPress={handleLogin}
               disabled={isLoading}
             >
@@ -213,7 +213,7 @@ export default function LoginScreen() {
               ]}
               onPress={handleDemoMode}
             >
-              <Ionicons name="sparkles-outline" size={16} color={theme.primary} />
+              <Ionicons name="sparkles-outline" size={16} color={Palette.primary} />
               <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
                 Masuk Cepat Mode Tamu / Demo
               </Text>
@@ -226,7 +226,7 @@ export default function LoginScreen() {
               Belum punya akun?{' '}
             </Text>
             <TouchableOpacity onPress={() => router.push('/auth/register')}>
-              <Text style={[styles.registerLink, { color: theme.primary }]}>Daftar Sekarang</Text>
+              <Text style={styles.registerLink}>Daftar Sekarang</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -238,7 +238,7 @@ export default function LoginScreen() {
           <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
-                <Ionicons name="key-outline" size={20} color={theme.primary} />
+                <Ionicons name="key-outline" size={20} color={Palette.primary} />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Reset Kata Sandi</Text>
               </View>
               <TouchableOpacity onPress={() => setShowForgotModal(false)}>
@@ -300,7 +300,7 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+              style={styles.primaryButton}
               onPress={handleSendResetPassword}
               disabled={isSendingReset}
             >

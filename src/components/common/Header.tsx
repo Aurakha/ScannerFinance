@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
         {showLanguageToggle && <LanguageToggle />}
         {rightAction}
 
-        <View style={[styles.avatar, { backgroundColor: theme.primary, borderColor: theme.borderHighlight }]}>
+        <View style={styles.avatar}>
           <Text style={styles.avatarText}>
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'G'}
           </Text>

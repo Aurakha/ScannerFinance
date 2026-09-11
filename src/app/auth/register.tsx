@@ -90,7 +90,7 @@ export default function RegisterScreen() {
                 <Ionicons
                   name={mode === 'dark' ? 'sunny' : 'moon'}
                   size={18}
-                  color={mode === 'dark' ? Palette.amber : theme.primary}
+                  color={mode === 'dark' ? Palette.amber : Palette.primary}
                 />
               </TouchableOpacity>
             </View>
@@ -115,16 +115,26 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              {/* Full Name Field */}
+              {/* Full Name */}
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Nama Lengkap</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  Nama Lengkap
+                </Text>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { backgroundColor: theme.background, borderColor: theme.border },
+                  ]}
+                >
                   <Ionicons name="person-outline" size={18} color={theme.textMuted} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={fullName}
-                    onChangeText={setFullName}
-                    placeholder="Contoh: Budi Santoso"
+                    onChangeText={(val) => {
+                      setFullName(val);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    placeholder="Contoh: User 1"
                     placeholderTextColor={theme.textMuted}
                   />
                 </View>
@@ -133,13 +143,18 @@ export default function RegisterScreen() {
               {/* Email Field */}
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Email</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { backgroundColor: theme.background, borderColor: theme.border },
+                  ]}
+                >
                   <Ionicons name="mail-outline" size={18} color={theme.textMuted} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="admin@aurakha.com"
+                    placeholder="@gmail.com"
                     placeholderTextColor={theme.textMuted}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -149,14 +164,21 @@ export default function RegisterScreen() {
 
               {/* Password Field */}
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kata Sandi</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  Kata Sandi (Min. 6 Karakter)
+                </Text>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { backgroundColor: theme.background, borderColor: theme.border },
+                  ]}
+                >
                   <Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={password}
                     onChangeText={setPassword}
-                    placeholder="Minimal 6 karakter"
+                    placeholder="••••••••"
                     placeholderTextColor={theme.textMuted}
                     secureTextEntry={!showPassword}
                   />
@@ -170,10 +192,17 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              {/* Confirm Password Field */}
+              {/* Confirm Password */}
               <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Konfirmasi Kata Sandi</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  Ulangi Kata Sandi
+                </Text>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { backgroundColor: theme.background, borderColor: theme.border },
+                  ]}
+                >
                   <Ionicons name="shield-checkmark-outline" size={18} color={theme.textMuted} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
@@ -188,7 +217,7 @@ export default function RegisterScreen() {
 
               {/* Submit Button */}
               <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+                style={styles.primaryButton}
                 onPress={handleRegister}
                 disabled={isLoading}
               >
@@ -206,7 +235,7 @@ export default function RegisterScreen() {
                 Sudah memiliki akun?{' '}
               </Text>
               <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                <Text style={[styles.loginLink, { color: theme.primary }]}>Masuk di sini</Text>
+                <Text style={styles.loginLink}>Masuk di sini</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -232,7 +261,7 @@ export default function RegisterScreen() {
             {/* Email Confirmation Notice Box */}
             <View style={styles.emailNoticeBox}>
               <View style={styles.emailNoticeHeader}>
-                <Ionicons name="mail-unread-outline" size={20} color={theme.primary} />
+                <Ionicons name="mail-unread-outline" size={20} color={Palette.primary} />
                 <Text style={styles.emailNoticeTitle}>Cek & Konfirmasi Email Anda</Text>
               </View>
               <Text style={styles.emailNoticeText}>
@@ -246,7 +275,7 @@ export default function RegisterScreen() {
 
             {/* Action Buttons */}
             <TouchableOpacity
-              style={[styles.primaryButton, styles.modalPrimaryBtn, { backgroundColor: theme.primary }]}
+              style={[styles.primaryButton, styles.modalPrimaryBtn]}
               onPress={() => {
                 setShowSuccessModal(false);
                 router.replace('/auth/login');

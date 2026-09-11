@@ -282,7 +282,7 @@ export default function InputScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? Palette.amber : theme.primary}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
               />
             </TouchableOpacity>
           }
@@ -294,7 +294,7 @@ export default function InputScreen() {
             style={[
               styles.subTabBtn,
               activeSubTab === 'cash_advance' && {
-                backgroundColor: theme.primary,
+                backgroundColor: Palette.primary,
               },
             ]}
             onPress={() => setActiveSubTab('cash_advance')}
@@ -319,7 +319,7 @@ export default function InputScreen() {
             style={[
               styles.subTabBtn,
               activeSubTab === 'statistics' && {
-                backgroundColor: theme.primary,
+                backgroundColor: Palette.primary,
               },
             ]}
             onPress={() => setActiveSubTab('statistics')}
@@ -353,7 +353,7 @@ export default function InputScreen() {
             >
               <View style={styles.caBannerLeft}>
                 <View style={styles.caIconWrap}>
-                  <Ionicons name="briefcase" size={24} color={theme.primary} />
+                  <Ionicons name="briefcase" size={24} color={Palette.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.caBannerTitle, { color: theme.text }]}>
@@ -368,7 +368,7 @@ export default function InputScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.createCABtn, { backgroundColor: theme.primary }]}
+                style={styles.createCABtn}
                 onPress={handleOpenCreateModal}
                 activeOpacity={0.85}
               >
@@ -390,7 +390,7 @@ export default function InputScreen() {
                       styles.caItemCard,
                       {
                         backgroundColor: theme.card,
-                        borderColor: isActive ? theme.primary : theme.border,
+                        borderColor: isActive ? Palette.primary : theme.border,
                         borderWidth: isActive ? 1.5 : 1,
                       },
                     ]}
@@ -411,7 +411,7 @@ export default function InputScreen() {
                             </View>
                           ) : (
                             <TouchableOpacity
-                              style={[styles.setAsActiveBtn, { backgroundColor: theme.primary }]}
+                              style={styles.setAsActiveBtn}
                               onPress={() => setActiveCashAdvanceId(ca.id)}
                               activeOpacity={0.75}
                             >
@@ -433,7 +433,7 @@ export default function InputScreen() {
                           style={[styles.iconActionBtn, { backgroundColor: theme.cardHover }]}
                           onPress={() => handleOpenEditModal(ca)}
                         >
-                          <Ionicons name="pencil-outline" size={16} color={theme.primary} />
+                          <Ionicons name="pencil-outline" size={16} color={Palette.primary} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.iconActionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
@@ -449,7 +449,7 @@ export default function InputScreen() {
                       <Text style={[styles.caAmountLabel, { color: theme.textSecondary }]}>
                         {language === 'id' ? 'Plafon Cash Advance Awal' : 'Initial Cash Advance Amount'}
                       </Text>
-                      <Text style={[styles.caAmountValue, { color: theme.primary }]}>
+                      <Text style={[styles.caAmountValue, { color: Palette.primary }]}>
                         {formatRupiah(ca.initial_amount)}
                       </Text>
                     </View>
@@ -486,11 +486,11 @@ export default function InputScreen() {
                               key={`${c}-${idx}`}
                               style={[
                                 styles.collabChip,
-                                { backgroundColor: theme.primaryMuted, borderColor: theme.border },
+                                { backgroundColor: 'rgba(88, 101, 242, 0.1)', borderColor: 'rgba(88, 101, 242, 0.25)' },
                               ]}
                             >
-                              <Ionicons name="person-circle" size={14} color={theme.primary} />
-                              <Text style={[styles.collabChipText, { color: theme.primary }]}>
+                              <Ionicons name="person-circle" size={14} color={Palette.primary} />
+                              <Text style={[styles.collabChipText, { color: Palette.primary }]}>
                                 {c}
                               </Text>
                             </View>
@@ -576,7 +576,7 @@ export default function InputScreen() {
                           ? Palette.coral
                           : stats.budgetUsedPercentage >= 80
                           ? Palette.amber
-                          : theme.primary,
+                          : Palette.primary,
                     },
                   ]}
                 />
@@ -589,7 +589,7 @@ export default function InputScreen() {
                     limit: formatRupiah(activeCA?.initial_amount || stats.budgetLimit),
                   })}
                 </Text>
-                <Text style={[styles.progressPercentage, { color: theme.primary }]}>
+                <Text style={[styles.progressPercentage, { color: Palette.primary }]}>
                   {formatPercent(stats.budgetUsedPercentage)}
                 </Text>
               </View>
@@ -613,7 +613,7 @@ export default function InputScreen() {
                 </View>
 
                 <View style={[styles.badgeDaily, { backgroundColor: theme.cardHover }]}>
-                  <Text style={[styles.badgeDailyText, { color: theme.primary }]}>
+                  <Text style={[styles.badgeDailyText, { color: Palette.primary }]}>
                     {language === 'id' ? '7 Hari Terakhir' : 'Last 7 Days'}
                   </Text>
                 </View>
@@ -704,7 +704,7 @@ export default function InputScreen() {
             {/* Header Modal */}
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="wallet-outline" size={20} color={theme.primary} />
+                <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>
                   {editingId
                     ? (language === 'id' ? 'Ubah Cash Advance' : 'Edit Cash Advance')
@@ -813,7 +813,7 @@ export default function InputScreen() {
                     onSubmitEditing={() => handleAddCollaborator()}
                   />
                   <TouchableOpacity
-                    style={[styles.addCollabBtn, { backgroundColor: theme.primary }]}
+                    style={styles.addCollabBtn}
                     onPress={() => handleAddCollaborator()}
                     activeOpacity={0.8}
                   >
@@ -830,7 +830,7 @@ export default function InputScreen() {
                     <View
                       style={{
                         backgroundColor: theme.card,
-                        borderColor: theme.primary,
+                        borderColor: Palette.primary,
                         borderWidth: 1.5,
                         borderRadius: 12,
                         marginTop: 6,
@@ -862,12 +862,12 @@ export default function InputScreen() {
                                 width: 28,
                                 height: 28,
                                 borderRadius: 14,
-                                backgroundColor: theme.primaryMuted,
+                                backgroundColor: 'rgba(88, 101, 242, 0.12)',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                               }}
                             >
-                              <Ionicons name="person" size={14} color={theme.primary} />
+                              <Ionicons name="person" size={14} color={Palette.primary} />
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
@@ -881,13 +881,13 @@ export default function InputScreen() {
                           </View>
                           <View
                             style={{
-                              backgroundColor: theme.primaryMuted,
+                              backgroundColor: 'rgba(88, 101, 242, 0.12)',
                               paddingHorizontal: 10,
                               paddingVertical: 4,
                               borderRadius: 6,
                             }}
                           >
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: theme.primary }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: Palette.primary }}>
                               {language === 'id' ? '+ Tambah' : '+ Add'}
                             </Text>
                           </View>
@@ -943,7 +943,7 @@ export default function InputScreen() {
                             }}
                             onPress={() => handleAddCollaborator(item.email || item.full_name)}
                           >
-                            <Ionicons name="person-outline" size={13} color={theme.primary} />
+                            <Ionicons name="person-outline" size={13} color={Palette.primary} />
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                               <Text style={{ fontSize: 12, fontWeight: '700', color: theme.text }}>
                                 {displayName}
@@ -954,7 +954,7 @@ export default function InputScreen() {
                                 </Text>
                               ) : null}
                             </View>
-                            <Ionicons name="add" size={13} color={theme.primary} />
+                            <Ionicons name="add" size={13} color={Palette.primary} />
                           </TouchableOpacity>
                         );
                       })}
@@ -969,10 +969,10 @@ export default function InputScreen() {
                       key={`${c}-${idx}`}
                       style={[
                         styles.chipWithDelete,
-                        { backgroundColor: theme.primaryMuted, borderColor: theme.primary },
+                        { backgroundColor: 'rgba(88, 101, 242, 0.12)', borderColor: Palette.primary },
                       ]}
                     >
-                      <Text style={[styles.chipText, { color: theme.primary }]}>{c}</Text>
+                      <Text style={[styles.chipText, { color: Palette.primary }]}>{c}</Text>
                       <TouchableOpacity onPress={() => handleRemoveCollaborator(c)}>
                         <Ionicons name="close-circle" size={16} color={Palette.coral} />
                       </TouchableOpacity>
@@ -1006,7 +1006,7 @@ export default function InputScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: theme.primary }]}
+                style={styles.submitBtn}
                 onPress={handleSaveCashAdvance}
               >
                 <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />

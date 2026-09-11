@@ -105,7 +105,7 @@ export default function ProfileScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? Palette.amber : theme.primary}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
               />
             </TouchableOpacity>
           }
@@ -114,7 +114,7 @@ export default function ProfileScreen() {
         {/* User Account Card */}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.userHeaderRow}>
-            <View style={[styles.avatarCircle, { backgroundColor: theme.primary }]}>
+            <View style={styles.avatarCircle}>
               <Text style={styles.avatarInitial}>
                 {fullName ? fullName.charAt(0).toUpperCase() : 'G'}
               </Text>
@@ -153,11 +153,11 @@ export default function ProfileScreen() {
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: theme.primaryMuted, marginTop: 4 },
+                      { backgroundColor: 'rgba(88, 101, 242, 0.15)', marginTop: 4 },
                     ]}
                   >
-                    <Ionicons name="shield-checkmark" size={12} color={theme.primary} />
-                    <Text style={[styles.statusText, { color: theme.primary }]}>
+                    <Ionicons name="shield-checkmark" size={12} color={Palette.primary} />
+                    <Text style={[styles.statusText, { color: Palette.primary }]}>
                       Role: Admin
                     </Text>
                   </View>
@@ -166,10 +166,10 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <View style={[styles.authBtnRow, { borderTopColor: theme.border }]}>
+          <View style={styles.authBtnRow}>
             {!session ? (
               <TouchableOpacity
-                style={[styles.loginBtn, { backgroundColor: theme.primary }]}
+                style={styles.loginBtn}
                 onPress={() => router.push('/auth/login')}
               >
                 <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
@@ -190,15 +190,15 @@ export default function ProfileScreen() {
                 style={[
                   styles.adminPanelBtn,
                   {
-                    backgroundColor: theme.primaryMuted,
-                    borderColor: theme.primary,
+                    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+                    borderColor: Palette.primary,
                     borderWidth: 1.5,
                   },
                 ]}
                 onPress={() => router.push('/admin' as any)}
               >
-                <Ionicons name="shield-checkmark" size={18} color={theme.primary} />
-                <Text style={[styles.adminPanelBtnText, { color: theme.primary, fontWeight: '700' }]}>
+                <Ionicons name="shield-checkmark" size={18} color={Palette.primary} />
+                <Text style={[styles.adminPanelBtnText, { color: Palette.primary, fontWeight: '700' }]}>
                   {language === 'id' ? 'Buka Panel Super Admin 🛡️' : 'Open Super Admin Panel 🛡️'}
                 </Text>
               </TouchableOpacity>
@@ -259,8 +259,8 @@ export default function ProfileScreen() {
             {/* Banner Penjelasan Pemindahan Cash Advance ke Menu Input */}
             <View
               style={{
-                backgroundColor: theme.primaryMuted,
-                borderColor: theme.border,
+                backgroundColor: 'rgba(88, 101, 242, 0.08)',
+                borderColor: 'rgba(88, 101, 242, 0.25)',
                 borderWidth: 1,
                 borderRadius: 14,
                 padding: 16,
@@ -268,7 +268,7 @@ export default function ProfileScreen() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Ionicons name="wallet-outline" size={20} color={theme.primary} />
+                <Ionicons name="wallet-outline" size={20} color={Palette.primary} />
                 <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>
                   {language === 'id' ? 'Kelola Proyek & Multi-Cash Advance' : 'Manage Projects & Multi-Cash Advance'}
                 </Text>
@@ -280,7 +280,7 @@ export default function ProfileScreen() {
               </Text>
               <TouchableOpacity
                 style={{
-                  backgroundColor: theme.primary,
+                  backgroundColor: Palette.primary,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',

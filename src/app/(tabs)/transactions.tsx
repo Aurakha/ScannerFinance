@@ -233,7 +233,7 @@ export default function TransactionsScreen() {
               <Ionicons
                 name={mode === 'dark' ? 'sunny' : 'moon'}
                 size={18}
-                color={mode === 'dark' ? Palette.amber : theme.primary}
+                color={mode === 'dark' ? Palette.amber : Palette.primary}
               />
             </TouchableOpacity>
           }
@@ -270,14 +270,14 @@ export default function TransactionsScreen() {
                   <Text
                     style={[
                       styles.monthTabText,
-                      { color: isSelected ? theme.primary : theme.textSecondary },
+                      { color: isSelected ? Palette.primary : theme.textSecondary },
                       isSelected && styles.monthTabTextActive,
                     ]}
                   >
                     {monthName}{isDiffYear ? ` '${y.slice(-2)}` : ''}
                   </Text>
                   {isSelected && (
-                    <View style={[styles.activeTabIndicator, { backgroundColor: theme.primary }]} />
+                    <View style={[styles.activeTabIndicator, { backgroundColor: Palette.primary }]} />
                   )}
                 </TouchableOpacity>
               );
@@ -292,7 +292,7 @@ export default function TransactionsScreen() {
               styles.calendarSearchBtn,
               {
                 backgroundColor:
-                  mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : theme.primaryMuted,
+                  mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : 'rgba(88, 101, 242, 0.08)',
               },
             ]}
             onPress={() => {
@@ -301,7 +301,7 @@ export default function TransactionsScreen() {
             }}
             activeOpacity={0.7}
           >
-            <Ionicons name="calendar-outline" size={18} color={theme.primary} />
+            <Ionicons name="calendar-outline" size={18} color={Palette.primary} />
           </TouchableOpacity>
         </View>
 
@@ -332,7 +332,7 @@ export default function TransactionsScreen() {
           <View style={styles.bannerBtnGroup}>
             {/* Tombol Pratinjau Excel */}
             <TouchableOpacity
-              style={[styles.openSpreadsheetBtn, { backgroundColor: theme.primary }]}
+              style={[styles.openSpreadsheetBtn, { backgroundColor: Palette.primary }]}
               onPress={() => setShowExportOptionsModal(true)}
               activeOpacity={0.8}
             >
@@ -381,8 +381,8 @@ export default function TransactionsScreen() {
               styles.categoryFilterBtn,
               activeFilter !== 'all' && styles.categoryFilterBtnActive,
               {
-                backgroundColor: activeFilter !== 'all' ? `${selectedCategory?.color || theme.primary}18` : theme.card,
-                borderColor: activeFilter !== 'all' ? (selectedCategory?.color || theme.primary) : theme.border,
+                backgroundColor: activeFilter !== 'all' ? `${selectedCategory?.color || Palette.primary}18` : theme.card,
+                borderColor: activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.border,
               },
             ]}
             onPress={() => setShowCategoryModal(true)}
@@ -390,7 +390,7 @@ export default function TransactionsScreen() {
             <Ionicons
               name={activeFilter !== 'all' ? 'funnel' : 'funnel-outline'}
               size={14}
-              color={activeFilter !== 'all' ? (selectedCategory?.color || theme.primary) : theme.textSecondary}
+              color={activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.textSecondary}
             />
             {activeFilter !== 'all' && selectedCategory && (
               <View style={[styles.dot, { backgroundColor: selectedCategory.color }]} />
@@ -399,7 +399,7 @@ export default function TransactionsScreen() {
               style={[
                 styles.categoryFilterBtnText,
                 {
-                  color: activeFilter !== 'all' ? (selectedCategory?.color || theme.primary) : theme.text,
+                  color: activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.text,
                   fontWeight: activeFilter !== 'all' ? '700' : '600',
                 },
               ]}
@@ -411,7 +411,7 @@ export default function TransactionsScreen() {
             <Ionicons
               name="chevron-down"
               size={14}
-              color={activeFilter !== 'all' ? (selectedCategory?.color || theme.primary) : theme.textMuted}
+              color={activeFilter !== 'all' ? (selectedCategory?.color || Palette.primary) : theme.textMuted}
             />
           </TouchableOpacity>
 
@@ -430,7 +430,7 @@ export default function TransactionsScreen() {
             <Ionicons
               name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'}
               size={14}
-              color={theme.primary}
+              color={Palette.primary}
             />
             <Text
               style={[
@@ -531,7 +531,7 @@ export default function TransactionsScreen() {
             >
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="funnel" size={18} color={theme.primary} />
+                  <Ionicons name="funnel" size={18} color={Palette.primary} />
                   <Text style={[styles.modalTitle, { color: theme.text }]}>{t('transactions.selectCategory')}</Text>
                 </View>
                 <TouchableOpacity
@@ -548,7 +548,7 @@ export default function TransactionsScreen() {
                   style={[
                     styles.categoryOptionItem,
                     activeFilter === 'all' && {
-                      backgroundColor: theme.primaryMuted,
+                      backgroundColor: `${Palette.primary}18`,
                     },
                   ]}
                   onPress={() => {
@@ -560,7 +560,7 @@ export default function TransactionsScreen() {
                     <View
                       style={[
                         styles.categoryIconBox,
-                        { backgroundColor: activeFilter === 'all' ? theme.primary : theme.cardHover },
+                        { backgroundColor: activeFilter === 'all' ? Palette.primary : theme.cardHover },
                       ]}
                     >
                       <Ionicons
@@ -573,7 +573,7 @@ export default function TransactionsScreen() {
                       style={[
                         styles.categoryOptionName,
                         {
-                          color: activeFilter === 'all' ? theme.primary : theme.text,
+                          color: activeFilter === 'all' ? Palette.primary : theme.text,
                           fontWeight: activeFilter === 'all' ? '700' : '500',
                         },
                       ]}
@@ -582,7 +582,7 @@ export default function TransactionsScreen() {
                     </Text>
                   </View>
                   {activeFilter === 'all' && (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
                   )}
                 </TouchableOpacity>
 
@@ -660,7 +660,7 @@ export default function TransactionsScreen() {
             >
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="swap-vertical" size={18} color={theme.primary} />
+                  <Ionicons name="swap-vertical" size={18} color={Palette.primary} />
                   <Text style={[styles.modalTitle, { color: theme.text }]}>{t('transactions.sortTitle')}</Text>
                 </View>
                 <TouchableOpacity
@@ -677,7 +677,7 @@ export default function TransactionsScreen() {
                   style={[
                     styles.categoryOptionItem,
                     sortOrder === 'newest' && {
-                      backgroundColor: theme.primaryMuted,
+                      backgroundColor: `${Palette.primary}18`,
                     },
                   ]}
                   onPress={() => {
@@ -689,7 +689,7 @@ export default function TransactionsScreen() {
                     <View
                       style={[
                         styles.categoryIconBox,
-                        { backgroundColor: sortOrder === 'newest' ? theme.primary : theme.cardHover },
+                        { backgroundColor: sortOrder === 'newest' ? Palette.primary : theme.cardHover },
                       ]}
                     >
                       <Ionicons
@@ -703,7 +703,7 @@ export default function TransactionsScreen() {
                         style={[
                           styles.categoryOptionName,
                           {
-                            color: sortOrder === 'newest' ? theme.primary : theme.text,
+                            color: sortOrder === 'newest' ? Palette.primary : theme.text,
                             fontWeight: sortOrder === 'newest' ? '700' : '600',
                           },
                         ]}
@@ -716,7 +716,7 @@ export default function TransactionsScreen() {
                     </View>
                   </View>
                   {sortOrder === 'newest' && (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
                   )}
                 </TouchableOpacity>
 
@@ -725,7 +725,7 @@ export default function TransactionsScreen() {
                   style={[
                     styles.categoryOptionItem,
                     sortOrder === 'oldest' && {
-                      backgroundColor: theme.primaryMuted,
+                      backgroundColor: `${Palette.primary}18`,
                     },
                   ]}
                   onPress={() => {
@@ -737,7 +737,7 @@ export default function TransactionsScreen() {
                     <View
                       style={[
                         styles.categoryIconBox,
-                        { backgroundColor: sortOrder === 'oldest' ? theme.primary : theme.cardHover },
+                        { backgroundColor: sortOrder === 'oldest' ? Palette.primary : theme.cardHover },
                       ]}
                     >
                       <Ionicons
@@ -751,7 +751,7 @@ export default function TransactionsScreen() {
                         style={[
                           styles.categoryOptionName,
                           {
-                            color: sortOrder === 'oldest' ? theme.primary : theme.text,
+                            color: sortOrder === 'oldest' ? Palette.primary : theme.text,
                             fontWeight: sortOrder === 'oldest' ? '700' : '600',
                           },
                         ]}
@@ -764,7 +764,7 @@ export default function TransactionsScreen() {
                     </View>
                   </View>
                   {sortOrder === 'oldest' && (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                    <Ionicons name="checkmark-circle" size={20} color={Palette.primary} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -836,7 +836,7 @@ export default function TransactionsScreen() {
               <View style={styles.calendarModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={styles.calendarIconCircle}>
-                    <Ionicons name="calendar" size={18} color={theme.primary} />
+                    <Ionicons name="calendar" size={18} color={Palette.primary} />
                   </View>
                   <Text style={[styles.calendarModalTitle, { color: theme.text }]}>
                     {t('months.selectMonthYear')}
@@ -892,8 +892,8 @@ export default function TransactionsScreen() {
                       style={[
                         styles.monthGridItem,
                         {
-                          backgroundColor: isSelected ? theme.primary : theme.background,
-                          borderColor: isSelected ? theme.primary : theme.border,
+                          backgroundColor: isSelected ? Palette.primary : theme.background,
+                          borderColor: isSelected ? Palette.primary : theme.border,
                         },
                       ]}
                       onPress={() => {
@@ -912,7 +912,7 @@ export default function TransactionsScreen() {
                         {monthName}
                       </Text>
                       {isCurrentMonth && !isSelected && (
-                        <View style={[styles.currentMonthDot, { backgroundColor: theme.primary }]} />
+                        <View style={styles.currentMonthDot} />
                       )}
                     </TouchableOpacity>
                   );
@@ -925,7 +925,7 @@ export default function TransactionsScreen() {
                   styles.jumpToCurrentMonthBtn,
                   {
                     backgroundColor:
-                      mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : theme.primaryMuted,
+                      mode === 'dark' ? 'rgba(88, 101, 242, 0.15)' : 'rgba(88, 101, 242, 0.08)',
                   },
                 ]}
                 onPress={() => {
@@ -935,7 +935,7 @@ export default function TransactionsScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.jumpToCurrentMonthText, { color: theme.primary }]}>
+                <Text style={[styles.jumpToCurrentMonthText, { color: Palette.primary }]}>
                   {t('months.jumpToCurrentMonth', { month: formatMonthLabel(getCurrentMonthKey(), language) })}
                 </Text>
               </TouchableOpacity>

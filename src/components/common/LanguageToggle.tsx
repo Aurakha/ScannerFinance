@@ -37,7 +37,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({ style, showText 
       <Ionicons
         name="globe-outline"
         size={16}
-        color={theme.primary}
+        color={Palette.primaryLight}
       />
       {showText && (
         <Text style={[styles.langText, { color: theme.text }]}>

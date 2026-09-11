@@ -26,7 +26,7 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'ios' ? 26 : 10,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: theme.primary,
+        tabBarActiveTintColor: Palette.primary,
         tabBarInactiveTintColor: theme.textMuted,
       }}
     >
@@ -69,13 +69,13 @@ export default function TabLayout() {
         options={{
           title: t('tabs.scanner'),
           tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabelText, { color: theme.primary, marginTop: 4 }]}>
+            <Text style={[styles.tabLabelText, { color: Palette.primaryLight, marginTop: 4 }]}>
               {t('tabs.scanner')}
             </Text>
           ),
           tabBarIcon: ({ focused }) => (
             <View style={styles.floatingContainer}>
-              <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar, backgroundColor: theme.primary, shadowColor: theme.primary }]}>
+              <View style={[styles.scanButtonCenter, { borderColor: theme.tabBar }]}>
                 <Ionicons name="cloud-upload" size={26} color="#FFFFFF" />
               </View>
             </View>
