@@ -1,4 +1,5 @@
 import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { PwaInstallButton } from '@/components/common/PwaInstallButton';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -7,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -82,6 +84,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.topBar}>
+          {Platform.OS === 'web' && <PwaInstallButton />}
           <LanguageToggle />
           <TouchableOpacity
             style={[styles.themeToggle, { backgroundColor: theme.cardHover }]}
@@ -98,9 +101,11 @@ export default function LoginScreen() {
         <View style={styles.content}>
           {/* Logo & Header */}
           <View style={styles.headerBox}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="scan" size={32} color="#FFFFFF" />
-            </View>
+            <Image
+              source={require('../../../assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={[styles.appTitle, { color: theme.text }]}>ScanFinance</Text>
             <Text style={[styles.appSubtitle, { color: theme.textSecondary }]}>
               Kelola pembukuan, struk belanja, dan klaim reimbursement berbasis AI
@@ -346,18 +351,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: Palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     marginBottom: 12,
-    shadowColor: Palette.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
   },
   appTitle: {
     fontSize: 24,

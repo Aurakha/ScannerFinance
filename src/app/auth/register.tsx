@@ -1,4 +1,5 @@
 import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { PwaInstallButton } from '@/components/common/PwaInstallButton';
 import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -80,6 +81,7 @@ export default function RegisterScreen() {
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {Platform.OS === 'web' && <PwaInstallButton />}
               <LanguageToggle />
               <TouchableOpacity
                 style={[styles.themeToggle, { backgroundColor: theme.cardHover }]}
