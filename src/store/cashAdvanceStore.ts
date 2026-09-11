@@ -8,6 +8,7 @@ import { useAuthStore } from './authStore';
 const STORAGE_KEY_PREFIX = '@scanfinance_cash_advances_';
 const ACTIVE_ID_KEY_PREFIX = '@scanfinance_active_ca_id_';
 const GLOBAL_ACTIVE_ID_KEY = '@scanfinance_active_ca_id_global';
+const SHARED_ALL_CA_KEY = '@scanfinance_all_cash_advances_shared';
 const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
 const syncBudgetWithActiveCA = (activeCA: CashAdvance | null) => {
@@ -100,49 +101,87 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
     const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
     try {
       set({ isLoading: true });
-      const [raw, savedActiveId, savedGlobalId] = await Promise.all([
+      const [raw, savedActiveId, savedGlobalId, sharedRaw] = await Promise.all([
         AsyncStorage.getItem(storageKey),
         AsyncStorage.getItem(activeIdKey),
         AsyncStorage.getItem(GLOBAL_ACTIVE_ID_KEY),
+        AsyncStorage.getItem(SHARED_ALL_CA_KEY),
       ]);
 
+      const currentUser = useAuthStore.getState().user;
+      const userEmail = (currentUser?.email || '').toLowerCase().trim();
+      const userName = (currentUser?.full_name || '').toLowerCase().trim();
+
+      let sharedList: CashAdvance[] = [];
+      if (sharedRaw) {
+        try {
+          const parsedShared = JSON.parse(sharedRaw);
+          if (Array.isArray(parsedShared) && parsedShared.length > 0) {
+            sharedList = parsedShared;
+          }
+        } catch {}
+      }
+      if (sharedList.length === 0) {
+        sharedList = DEFAULT_CASH_ADVANCES;
+        await AsyncStorage.setItem(SHARED_ALL_CA_KEY, JSON.stringify(DEFAULT_CASH_ADVANCES));
+      }
+
+      let baseList: CashAdvance[] = [];
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (isLegacyDefaultData(parsed)) {
-            set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
-            await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
-            await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
-            await AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, 'ca-default-1');
-            return;
-          }
-
-          // Prioritaskan ID aktif yang sedang ada di state memory
-          const currentMemActive = get().activeCashAdvanceId;
-          const hasMemActive = currentMemActive && parsed.some((c: CashAdvance) => c.id === currentMemActive);
-          const hasSavedActive = savedActiveId && parsed.some((c: CashAdvance) => c.id === savedActiveId);
-          const hasGlobalActive = savedGlobalId && parsed.some((c: CashAdvance) => c.id === savedGlobalId);
-
-          const resolvedActiveId = hasMemActive
-            ? currentMemActive
-            : hasSavedActive
-            ? savedActiveId
-            : hasGlobalActive
-            ? savedGlobalId
-            : parsed[0].id;
-
-          set({
-            cashAdvances: parsed,
-            activeCashAdvanceId: resolvedActiveId,
-          });
-          return;
+          baseList = isLegacyDefaultData(parsed) ? DEFAULT_CASH_ADVANCES : parsed;
         }
       }
-      // Simpan default jika belum ada
-      set({ cashAdvances: DEFAULT_CASH_ADVANCES, activeCashAdvanceId: 'ca-default-1' });
-      await AsyncStorage.setItem(storageKey, JSON.stringify(DEFAULT_CASH_ADVANCES));
-      await AsyncStorage.setItem(activeIdKey, 'ca-default-1');
-      await AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, 'ca-default-1');
+      if (baseList.length === 0) {
+        baseList = DEFAULT_CASH_ADVANCES;
+      }
+
+      // Gabungkan proyek di mana akun ini adalah pembuat atau kolaborator
+      const combinedMap = new Map<string, CashAdvance>();
+      baseList.forEach((ca) => combinedMap.set(ca.id, ca));
+
+      sharedList.forEach((ca) => {
+        const isOwner = ca.user_id === targetUserId;
+        const isCollab = (ca.collaborators || []).some((collab) => {
+          const c = collab.toLowerCase().trim();
+          return (
+            (userEmail && (c === userEmail || c.includes(userEmail) || userEmail.includes(c))) ||
+            (userName && (c === userName || c.includes(userName)))
+          );
+        });
+        if (isOwner || isCollab) {
+          combinedMap.set(ca.id, ca);
+        }
+      });
+
+      const combinedList = Array.from(combinedMap.values());
+
+      // Prioritaskan ID aktif yang sedang ada di state memory
+      const currentMemActive = get().activeCashAdvanceId;
+      const hasMemActive = currentMemActive && combinedList.some((c) => c.id === currentMemActive);
+      const hasSavedActive = savedActiveId && combinedList.some((c) => c.id === savedActiveId);
+      const hasGlobalActive = savedGlobalId && combinedList.some((c) => c.id === savedGlobalId);
+
+      const resolvedActiveId = hasMemActive
+        ? currentMemActive
+        : hasSavedActive
+        ? savedActiveId
+        : hasGlobalActive
+        ? savedGlobalId
+        : combinedList[0]?.id || 'ca-default-1';
+
+      set({
+        cashAdvances: combinedList,
+        activeCashAdvanceId: resolvedActiveId,
+      });
+
+      await Promise.all([
+        AsyncStorage.setItem(storageKey, JSON.stringify(combinedList)),
+        AsyncStorage.setItem(activeIdKey, resolvedActiveId),
+        AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, resolvedActiveId),
+      ]);
+      return;
     } catch (err) {
       console.warn('Load cash advances notice:', err);
     } finally {
@@ -171,10 +210,21 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
 
     if (!isSSR) {
       try {
+        // Simpan ke storage user dan storage bersama
+        const sharedRaw = await AsyncStorage.getItem(SHARED_ALL_CA_KEY);
+        let sharedList: CashAdvance[] = [];
+        if (sharedRaw) {
+          try {
+            sharedList = JSON.parse(sharedRaw) || [];
+          } catch {}
+        }
+        const updatedShared = [newCA, ...sharedList.filter((c) => c.id !== newCA.id)];
+
         await Promise.all([
           AsyncStorage.setItem(storageKey, JSON.stringify(updated)),
           AsyncStorage.setItem(activeIdKey, newCA.id),
           AsyncStorage.setItem(GLOBAL_ACTIVE_ID_KEY, newCA.id),
+          AsyncStorage.setItem(SHARED_ALL_CA_KEY, JSON.stringify(updatedShared)),
         ]);
       } catch (err) {
         console.warn('Save cash advance error:', err);
@@ -194,7 +244,19 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       const targetUserId = activeCA?.user_id || useAuthStore.getState().user?.id || 'user-default-1';
       const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
       try {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+        const sharedRaw = await AsyncStorage.getItem(SHARED_ALL_CA_KEY);
+        let sharedList: CashAdvance[] = [];
+        if (sharedRaw) {
+          try {
+            sharedList = JSON.parse(sharedRaw) || [];
+          } catch {}
+        }
+        const updatedShared = sharedList.map((ca) => (ca.id === id ? { ...ca, ...data } : ca));
+
+        await Promise.all([
+          AsyncStorage.setItem(storageKey, JSON.stringify(updated)),
+          AsyncStorage.setItem(SHARED_ALL_CA_KEY, JSON.stringify(updatedShared)),
+        ]);
       } catch (err) {
         console.warn('Update cash advance error:', err);
       }
@@ -220,7 +282,19 @@ export const useCashAdvanceStore = create<CashAdvanceState>((set, get) => ({
       const storageKey = `${STORAGE_KEY_PREFIX}${targetUserId}`;
       const activeIdKey = `${ACTIVE_ID_KEY_PREFIX}${targetUserId}`;
       try {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
+        const sharedRaw = await AsyncStorage.getItem(SHARED_ALL_CA_KEY);
+        let sharedList: CashAdvance[] = [];
+        if (sharedRaw) {
+          try {
+            sharedList = JSON.parse(sharedRaw) || [];
+          } catch {}
+        }
+        const updatedShared = sharedList.filter((ca) => ca.id !== id);
+
+        await Promise.all([
+          AsyncStorage.setItem(storageKey, JSON.stringify(updated)),
+          AsyncStorage.setItem(SHARED_ALL_CA_KEY, JSON.stringify(updatedShared)),
+        ]);
         if (newActiveId) {
           await AsyncStorage.setItem(activeIdKey, newActiveId);
         } else {
