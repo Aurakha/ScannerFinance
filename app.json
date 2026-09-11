@@ -8,7 +8,7 @@
     "scheme": "scanfinance",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/expo.icon"
     },
     "android": {
       "package": "com.aurakha.scanfinance",
