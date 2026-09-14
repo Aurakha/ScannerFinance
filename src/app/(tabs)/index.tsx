@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Modal,
   TextInput,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +105,15 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* App Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../../assets/images/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
 
         {/* Header */}
         <Header
@@ -939,5 +949,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  logoImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
   },
 });
