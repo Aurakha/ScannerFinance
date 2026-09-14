@@ -11,7 +11,7 @@ ScanFinance adalah aplikasi manajemen keuangan pribadi dan rekapitulasi klaim op
 - **📝 Verifikasi Sebelum Simpan**: Form interaktif untuk mengedit, menambah, atau menghapus rincian item belanja sebelum disimpan ke database.
 - **📊 Dashboard Finansial & Donut Chart**: Visualisasi distribusi pengeluaran per kategori, batas anggaran bulanan, dan rata-rata pengeluaran harian.
 - **📁 Ekspor Format Spreadsheet Perusahaan**: Unduh rekapitulasi klaim biaya/reimbursement format CSV (1 baris per item barang belanjaan) yang siap dibuka di Microsoft Excel atau Google Sheets.
-- **🎨 Discord Dark Theme**: Tampilan antarmuka modern bernuansa *Discord Dark* & *Blurple*.
+- **🎨 Discord Dark + Gradient Splash**: Tampilan antarmuka modern bernuansa *Discord Dark* dengan logo monogram S/F dan gradient blurple-purple sebagai identitas visual ScanFinance.
 - **☁️ Google Drive & Supabase**: Sinkronisasi database PostgreSQL berkeamanan Row Level Security (RLS) serta arsip foto struk ke Google Drive.
 
 ---
