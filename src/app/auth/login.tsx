@@ -4,20 +4,20 @@ import { Palette } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -147,7 +147,10 @@ export default function LoginScreen() {
                   placeholder="Masukkan email Anda"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
+                  autoComplete="email"
                   keyboardType="email-address"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
                 />
               </View>
             </View>
@@ -180,7 +183,10 @@ export default function LoginScreen() {
                   }}
                   placeholder="••••••••"
                   placeholderTextColor={theme.textMuted}
+                  autoComplete="current-password"
                   secureTextEntry={!showPassword}
+                  textContentType="password"
+                  importantForAutofill="yes"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons
@@ -294,7 +300,10 @@ export default function LoginScreen() {
                   placeholder="Masukkan email Anda"
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
+                  autoComplete="email"
                   keyboardType="email-address"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
                 />
               </View>
             </View>
