@@ -52,7 +52,7 @@ export const ScanProgressModal: React.FC<ScanProgressModalProps> = ({ visible })
       // Step intervals
       const interval = setInterval(() => {
         setCurrentStepIndex((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev));
-      }, 900);
+      }, 500);
 
       return () => clearInterval(interval);
     }

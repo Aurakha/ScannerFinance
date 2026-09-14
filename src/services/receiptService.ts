@@ -41,7 +41,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
         const img = new (window as any).Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-          const maxDim = 1280; // Resolusi ideal OCR: teks nota tajam terbaca, ukuran file turun ke ~200KB
+          const maxDim = 1024; // Resolusi ideal OCR: teks nota tajam terbaca, ukuran file turun ke ~80-120KB
           let { width, height } = img;
           if (width > maxDim || height > maxDim) {
             if (width > height) {
@@ -62,7 +62,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.70);
           resolve(compressedDataUrl.split(',')[1] || '');
         };
         img.onerror = () => {
@@ -83,8 +83,8 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
   try {
     const manipResult = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1280 } }],
-      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      [{ resize: { width: 1024 } }],
+      { compress: 0.70, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
     if (manipResult.base64) {
       return manipResult.base64;
@@ -101,7 +101,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
 }
 
 /**
- * Memproses gambar struk via Google Gemini 3.6 Flash dengan pembacaan otomatis Ongkir, Biaya Layanan/Admin, Diskon, & Total
+ * Memproses gambar struk via Google Gemini Vision dengan pembacaan otomatis Ongkir, Biaya Layanan/Admin, Diskon, & Total
  */
 export interface ReceiptInputItem {
   uri: string;
@@ -171,12 +171,13 @@ export async function processReceiptImages(
     throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
-  // Gunakan model Gemini yang tersedia, dengan fallback saat model utama sibuk.
+  // Gunakan model Gemini yang tersedia dan super cepat untuk vision & OCR (Flash-Lite tercepat: ~1.2 detik)
   const CANDIDATE_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash',
   ];
 
   const systemPrompt = `
@@ -242,6 +243,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
     ],
     generationConfig: {
       temperature: 0.1,
+      maxOutputTokens: 2048,
       responseMimeType: 'application/json',
     },
   };
@@ -254,7 +256,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 12000) : null;
 
       const response = await fetch(endpoint, {
         method: 'POST',

@@ -29,7 +29,7 @@ export async function parseReceiptWithGemini(
   mimeType: string,
   apiKey: string
 ): Promise<ExtractedReceiptResult> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
 
   const systemPrompt = `
 Anda adalah asisten AI OCR dan akuntan finansial profesional tingkat lanjut khusus mengekstrak data dari foto struk belanja, nota, dan aplikasi pesanan online di Indonesia (Indomaret, Alfamart, ShopeeFood, GrabFood, GoFood, restoran, SPBU, dsb.).
