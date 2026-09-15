@@ -61,14 +61,76 @@ export default function ScannerScreen() {
     }
   };
 
-  const handlePickImage = async () => {
+  const handleWebFileInput = async (e: any) => {
+    const files: FileList | null = e?.target?.files;
+    if (!files || files.length === 0) return;
+
     try {
-      if (Platform.OS !== 'web') {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Izin Galeri Ditolak', 'Mohon izinkan akses galeri foto pada pengaturan perangkat Anda.');
-          return;
-        }
+      setIsProcessing(true);
+      const fileArray = Array.from(files).slice(0, 5);
+      const inputItems: Array<{ uri: string; base64?: string }> = [];
+
+      for (const file of fileArray) {
+        const uri = URL.createObjectURL(file);
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const res = reader.result as string;
+            const commaIdx = res ? res.indexOf(',') : -1;
+            const b64 = commaIdx !== -1 ? res.substring(commaIdx + 1) : res;
+            resolve(b64 || '');
+          };
+          reader.onerror = () => reject(new Error('Gagal membaca data gambar dari penyimpanan.'));
+          reader.readAsDataURL(file);
+        });
+
+        inputItems.push({ uri, base64 });
+      }
+
+      if (e?.target) {
+        e.target.value = '';
+      }
+
+      if (inputItems.length > 0) {
+        processImages(inputItems);
+      } else {
+        setIsProcessing(false);
+      }
+    } catch (err: any) {
+      setIsProcessing(false);
+      console.error('Web file reading error:', err);
+      Alert.alert('Gagal Membaca File', err?.message || 'Tidak dapat membaca file foto dari galeri.');
+    }
+  };
+
+  const handlePickImage = async () => {
+    if (Platform.OS === 'web') {
+      try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = true;
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.onchange = async (e: any) => {
+          await handleWebFileInput(e);
+          try {
+            document.body.removeChild(input);
+          } catch {}
+        };
+        input.click();
+      } catch (e: any) {
+        console.warn('Web programmatic input error:', e);
+      }
+      return;
+    }
+
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Izin Galeri Ditolak', 'Mohon izinkan akses galeri foto pada pengaturan perangkat Anda.');
+        return;
       }
 
       let result: ImagePicker.ImagePickerResult;
@@ -274,7 +336,30 @@ export default function ScannerScreen() {
               <Text style={styles.actionBtnText}>{t('scanner.openCamera')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.gallerySecondaryBtn} onPress={handlePickImage} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.gallerySecondaryBtn}
+              onPress={handlePickImage}
+              activeOpacity={0.85}
+            >
+              {Platform.OS === 'web' &&
+                React.createElement('input', {
+                  type: 'file',
+                  accept: 'image/*',
+                  multiple: true,
+                  style: {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 10,
+                  },
+                  onChange: handleWebFileInput,
+                })}
               <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
               <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
                 {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
@@ -504,6 +589,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     gap: 6,
+    position: 'relative',
+    overflow: 'hidden',
   },
   actionBtnText: {
     color: '#FFFFFF',

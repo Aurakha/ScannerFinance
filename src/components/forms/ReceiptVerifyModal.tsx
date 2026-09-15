@@ -160,13 +160,23 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
   const handlePickAttachment = async () => {
     if (Platform.OS === 'web') {
       try {
-        const res = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.85,
-        });
-        if (!res.canceled && res.assets?.[0]?.uri) {
-          updateCurrentDraft({ receipt_image_uri: res.assets[0].uri });
-        }
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,application/pdf';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.onchange = async (e: any) => {
+          const files = e?.target?.files;
+          if (files && files[0]) {
+            const uri = URL.createObjectURL(files[0]);
+            updateCurrentDraft({ receipt_image_uri: uri });
+          }
+          try {
+            document.body.removeChild(input);
+          } catch {}
+        };
+        input.click();
       } catch (e: any) {
         Alert.alert('Gagal Memilih Foto', e.message || 'Tidak dapat membuka file.');
       }
