@@ -9,7 +9,7 @@ interface ScanProgressModalProps {
 
 const STEPS = [
   'Mengompresi & mengunggah gambar...',
-  'Google Gemini Vision membaca teks struk...',
+  'Sistem membaca teks struk...',
   'Mengekstrak rincian barang, pajak & diskon...',
   'Menyiapkan form konfirmasi transaksi...',
 ];
