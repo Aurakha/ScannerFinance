@@ -207,12 +207,11 @@ export async function processReceiptImages(
     throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
-  // Gunakan model Gemini yang tersedia dan super cepat untuk vision & OCR (Flash-Lite tercepat: ~1.2 detik)
+  // Model Gemini resmi untuk OCR & Vision (Flash 2.0 & 1.5)
   const CANDIDATE_MODELS = [
-    'gemini-flash-lite-latest',
-    'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
   ];
 
   const systemPrompt = `

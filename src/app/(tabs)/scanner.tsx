@@ -181,10 +181,42 @@ export default function ScannerScreen() {
       setShowVerifyModal(true);
     } catch (err: any) {
       setIsProcessing(false);
-      Alert.alert(
-        'Pemberitahuan Ekstraksi AI',
-        err.message || 'Terjadi kesalahan saat mengekstrak gambar.'
-      );
+
+      // JANGAN PERNAH BIARKAN PENGGUNA MENGALAMI "TIDAK ADA HASIL"!
+      // Buka modal verifikasi dengan foto struk yang sudah berhasil diunggah!
+      const fallbackResult: ReceiptScanResult = {
+        merchant_name: '',
+        transaction_date: new Date().toISOString(),
+        suggested_category: 'Operational',
+        payment_method: 'cash',
+        subtotal: 0,
+        shipping_fee: 0,
+        admin_fee: 0,
+        tax_amount: 0,
+        discount_amount: 0,
+        total_amount: 0,
+        confidence_score: 0.5,
+        notes: '',
+        items: [],
+        receipt_image_uri: inputItems[0]?.uri || capturedImageUri || undefined,
+      };
+
+      setReceiptQueue([fallbackResult]);
+      setQueueIndex(0);
+      setScanResult(fallbackResult);
+      setShowVerifyModal(true);
+
+      const errorMsg = err.message || 'Terjadi kendala saat menganalisis foto.';
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(
+          `Pemberitahuan Ekstraksi AI:\n\n${errorMsg}\n\nFoto struk Anda telah berhasil diunggah. Formulir verifikasi telah dibuka agar Anda dapat memeriksa atau melengkapi nominal transaksi.`
+        );
+      } else {
+        Alert.alert(
+          'Pemberitahuan Ekstraksi AI',
+          `${errorMsg}\n\nFoto struk telah terlampir, silakan periksa atau lengkapi data transaksi.`
+        );
+      }
     }
   };
 
@@ -233,25 +265,38 @@ export default function ScannerScreen() {
       setCapturedImageUri(null);
 
       const count = batchData.length;
-      Alert.alert(
-        'Berhasil Disimpan! 🎉',
-        count > 1
-          ? `Seluruh ${count} transaksi struk belanja telah berhasil disimpan rapi ke sistem.`
-          : 'Transaksi dan bukti struk belanja telah berhasil disimpan.',
-        [
-          {
-            text: 'Lihat Riwayat & Spreadsheet',
-            onPress: () => router.push('/(tabs)/transactions'),
-          },
-          {
-            text: 'OK',
-            onPress: () => router.push('/(tabs)'),
-          },
-        ]
-      );
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(
+          count > 1
+            ? `Berhasil Disimpan! 🎉\n\nSeluruh ${count} transaksi struk belanja telah berhasil disimpan rapi ke sistem.`
+            : 'Berhasil Disimpan! 🎉\n\nTransaksi dan bukti struk belanja telah berhasil disimpan.'
+        );
+        router.push('/(tabs)/transactions');
+      } else {
+        Alert.alert(
+          'Berhasil Disimpan! 🎉',
+          count > 1
+            ? `Seluruh ${count} transaksi struk belanja telah berhasil disimpan rapi ke sistem.`
+            : 'Transaksi dan bukti struk belanja telah berhasil disimpan.',
+          [
+            {
+              text: 'Lihat Riwayat & Spreadsheet',
+              onPress: () => router.push('/(tabs)/transactions'),
+            },
+            {
+              text: 'OK',
+              onPress: () => router.push('/(tabs)'),
+            },
+          ]
+        );
+      }
     } catch (err: any) {
       setIsProcessing(false);
-      Alert.alert('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan transaksi.');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert('Gagal Menyimpan: ' + (err.message || 'Terjadi kesalahan saat menyimpan transaksi.'));
+      } else {
+        Alert.alert('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan transaksi.');
+      }
     }
   };
 

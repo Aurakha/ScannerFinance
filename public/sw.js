@@ -1,5 +1,5 @@
 // ScanFinance Service Worker for PWA Installation, Offline & Instant Auto-Updates
-const CACHE_NAME = 'scanfinance-cache-v3';
+const CACHE_NAME = 'scanfinance-cache-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
