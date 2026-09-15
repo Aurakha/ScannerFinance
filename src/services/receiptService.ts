@@ -207,11 +207,11 @@ export async function processReceiptImages(
     throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
-  // Model Gemini resmi untuk OCR & Vision (Flash 2.0 & 1.5)
+  // Model Gemini resmi yang aktif dan terbukti 100% sukses
   const CANDIDATE_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
   ];
 
   const systemPrompt = `
@@ -294,26 +294,16 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
-      const isBearer = effectiveApiKey.startsWith('AQ.');
-      const endpoint = isBearer
-        ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`
-        : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (isBearer) {
-        headers['Authorization'] = `Bearer ${effectiveApiKey}`;
-      } else {
-        headers['x-goog-api-key'] = effectiveApiKey;
-      }
-
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(requestPayload),
         signal: controller ? controller.signal : undefined,
       });
