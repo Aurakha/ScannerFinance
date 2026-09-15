@@ -294,16 +294,26 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
+      const isBearer = effectiveApiKey.startsWith('AQ.');
+      const endpoint = isBearer
+        ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`
+        : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (isBearer) {
+        headers['Authorization'] = `Bearer ${effectiveApiKey}`;
+      } else {
+        headers['x-goog-api-key'] = effectiveApiKey;
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestPayload),
         signal: controller ? controller.signal : undefined,
       });
