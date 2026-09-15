@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import * as Linking from 'expo-linking';
 import { supabase } from '@/services/supabase';
 import { UserProfile } from '@/types';
+
+export const PRODUCTION_SITE_URL = 'https://scanner-finance.vercel.app';
 
 interface AuthState {
   user: UserProfile | null;
@@ -459,15 +460,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
 
-      // Tentukan redirect URL: prioritas env variable -> window.location.origin (web) -> Expo deep linking (mobile)
-      let redirectUrl: string;
+      // Tentukan redirect URL ke halaman reset password web production
+      // Urutan prioritas:
+      // 1. EXPO_PUBLIC_SITE_URL (jika diset via environment variable)
+      // 2. window.location.origin (jika dibuka dari browser web dan BUKAN localhost)
+      // 3. PRODUCTION_SITE_URL (selalu fallback ke https://scanner-finance.vercel.app agar email reset tidak mengarah ke localhost/mati)
+      let baseUrl = PRODUCTION_SITE_URL;
+
       if (process.env.EXPO_PUBLIC_SITE_URL) {
-        redirectUrl = `${process.env.EXPO_PUBLIC_SITE_URL.replace(/\/$/, '')}/auth/reset-password`;
-      } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        redirectUrl = `${window.location.origin}/auth/reset-password`;
-      } else {
-        redirectUrl = Linking.createURL('auth/reset-password');
+        baseUrl = process.env.EXPO_PUBLIC_SITE_URL.trim();
+      } else if (
+        Platform.OS === 'web' &&
+        typeof window !== 'undefined' &&
+        window.location.origin &&
+        !window.location.hostname.includes('localhost') &&
+        !window.location.hostname.includes('127.0.0.1')
+      ) {
+        baseUrl = window.location.origin;
       }
+
+      const redirectUrl = `${baseUrl.replace(/\/$/, '')}/auth/reset-password`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

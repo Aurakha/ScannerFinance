@@ -23,7 +23,15 @@ import {
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ code?: string; access_token?: string; refresh_token?: string }>();
+  const searchParams = useLocalSearchParams<{
+    code?: string;
+    access_token?: string;
+    refresh_token?: string;
+    token_hash?: string;
+    type?: string;
+    error?: string;
+    error_description?: string;
+  }>();
   const { updatePassword, isLoading } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
 
@@ -54,9 +62,21 @@ export default function ResetPasswordScreen() {
           return;
         }
 
-        // 2. Jika di Web, coba ambil token dari hash URL (#access_token=...&refresh_token=...)
+        // 2. Periksa apakah terdapat pesan error di hash URL Web (#error=...&error_description=...)
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const hashPart = window.location.hash.startsWith('#')
+            ? window.location.hash.substring(1)
+            : window.location.hash;
+          const hashParams = new URLSearchParams(hashPart);
+          const errorDesc = hashParams.get('error_description') || hashParams.get('error');
+          if (errorDesc) {
+            if (isMounted) {
+              setIsVerifying(false);
+              setVerifyError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+            }
+            return;
+          }
+
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
 
@@ -75,7 +95,33 @@ export default function ResetPasswordScreen() {
           }
         }
 
-        // 3. Jika menggunakan PKCE code flow (?code=...)
+        // 3. Periksa jika ada error di query params (?error=...&error_description=...)
+        const queryError = searchParams.error_description || searchParams.error;
+        if (queryError) {
+          if (isMounted) {
+            setIsVerifying(false);
+            setVerifyError(decodeURIComponent(String(queryError).replace(/\+/g, ' ')));
+          }
+          return;
+        }
+
+        // 4. Jika query URL memiliki parameter token_hash (verifyOtp flow)
+        const tokenHash = searchParams.token_hash;
+        if (tokenHash && typeof tokenHash === 'string') {
+          const { error: otpError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          });
+          if (!otpError) {
+            if (isMounted) {
+              setIsReady(true);
+              setIsVerifying(false);
+            }
+            return;
+          }
+        }
+
+        // 5. Jika menggunakan PKCE code flow (?code=...)
         const code = searchParams.code;
         if (code && typeof code === 'string') {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -88,7 +134,7 @@ export default function ResetPasswordScreen() {
           }
         }
 
-        // 4. Jika di Native mobile, parse deep link URL
+        // 6. Jika di Native mobile, parse deep link URL
         const initialUrl = await Linking.getInitialURL();
         if (initialUrl) {
           const parsed = Linking.parse(initialUrl);
@@ -256,6 +302,29 @@ export default function ResetPasswordScreen() {
                     <Text style={styles.primaryButtonText}>Masuk ke Akun</Text>
                     <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
                   </TouchableOpacity>
+                  {Platform.OS === 'web' && (
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        {
+                          backgroundColor: theme.cardHover,
+                          borderColor: theme.border,
+                          borderWidth: 1,
+                          marginTop: 10,
+                        },
+                      ]}
+                      onPress={() => {
+                        if (typeof window !== 'undefined') {
+                          window.location.href = 'scanfinance:///auth/login';
+                        }
+                      }}
+                    >
+                      <Text style={[styles.primaryButtonText, { color: theme.text }]}>
+                        Buka di Aplikasi ScanFinance
+                      </Text>
+                      <Ionicons name="phone-portrait-outline" size={18} color={theme.text} />
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : isVerifying ? (
                 <View style={styles.loadingBox}>
