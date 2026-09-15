@@ -39,7 +39,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
     try {
       const compressed = await new Promise<string>((resolve) => {
         const img = new (window as any).Image();
-        if (!uri.startsWith('blob:') && !uri.startsWith('data:')) {
+        if (uri && !uri.startsWith('blob:') && !uri.startsWith('data:')) {
           img.crossOrigin = 'anonymous';
         }
         img.onload = () => {
@@ -60,15 +60,17 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (!ctx) {
-            resolve('');
+            resolve(directBase64 || '');
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-          resolve(compressedDataUrl.split(',')[1] || '');
+          resolve(compressedDataUrl.split(',')[1] || directBase64 || '');
         };
-        img.onerror = () => resolve('');
-        img.src = directBase64 ? `data:image/jpeg;base64,${directBase64}` : uri;
+        img.onerror = () => {
+          resolve(directBase64 || '');
+        };
+        img.src = uri || (directBase64 ? `data:image/jpeg;base64,${directBase64}` : '');
       });
 
       if (compressed && compressed.length > 50) {
@@ -76,6 +78,11 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
       }
     } catch (webErr) {
       console.warn('Web canvas compression error:', webErr);
+    }
+
+    // Fallback directBase64 jika ada
+    if (directBase64 && directBase64.length > 50) {
+      return directBase64.replace(/^data:image\/\w+;base64,/, '');
     }
 
     // Fallback untuk blob jika canvas gagal

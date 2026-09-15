@@ -72,19 +72,23 @@ export default function ScannerScreen() {
 
       for (const file of fileArray) {
         const uri = URL.createObjectURL(file);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const res = reader.result as string;
-            const commaIdx = res ? res.indexOf(',') : -1;
-            const b64 = commaIdx !== -1 ? res.substring(commaIdx + 1) : res;
-            resolve(b64 || '');
-          };
-          reader.onerror = () => reject(new Error('Gagal membaca data gambar dari penyimpanan.'));
-          reader.readAsDataURL(file);
-        });
+        let base64 = '';
+        try {
+          base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const res = reader.result as string;
+              const commaIdx = res ? res.indexOf(',') : -1;
+              resolve(commaIdx !== -1 ? res.substring(commaIdx + 1) : res || '');
+            };
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        } catch {
+          base64 = '';
+        }
 
-        inputItems.push({ uri, base64 });
+        inputItems.push({ uri, base64: base64 || undefined });
       }
 
       if (e?.target) {
@@ -92,7 +96,7 @@ export default function ScannerScreen() {
       }
 
       if (inputItems.length > 0) {
-        processImages(inputItems);
+        await processImages(inputItems);
       } else {
         setIsProcessing(false);
       }
@@ -104,62 +108,30 @@ export default function ScannerScreen() {
   };
 
   const handlePickImage = async () => {
-    if (Platform.OS === 'web') {
-      try {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.multiple = true;
-        input.style.display = 'none';
-        document.body.appendChild(input);
-
-        input.onchange = async (e: any) => {
-          await handleWebFileInput(e);
-          try {
-            document.body.removeChild(input);
-          } catch {}
-        };
-        input.click();
-      } catch (e: any) {
-        console.warn('Web programmatic input error:', e);
-      }
-      return;
-    }
-
     try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Izin Galeri Ditolak', 'Mohon izinkan akses galeri foto pada pengaturan perangkat Anda.');
-        return;
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Izin Galeri Ditolak', 'Mohon izinkan akses galeri foto pada pengaturan perangkat Anda.');
+          return;
+        }
       }
 
-      let result: ImagePicker.ImagePickerResult;
-      try {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsMultipleSelection: true,
-          selectionLimit: 5,
-          allowsEditing: false,
-          quality: 0.7,
-          base64: true,
-        });
-      } catch (multiErr) {
-        console.warn('Multiple selection not supported, falling back to single:', multiErr);
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsMultipleSelection: false,
-          allowsEditing: false,
-          quality: 0.7,
-          base64: true,
-        });
-      }
+      // Gunakan single image selection terbukti paling stabil di seluruh OS mobile
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: false,
+        allowsEditing: false,
+        quality: 0.7,
+        base64: true,
+      });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const inputItems = result.assets.map((a) => ({
           uri: a.uri,
           base64: a.base64 || undefined,
         }));
-        processImages(inputItems);
+        await processImages(inputItems);
       }
     } catch (err: any) {
       console.warn('Pick image error:', err);
@@ -336,12 +308,29 @@ export default function ScannerScreen() {
               <Text style={styles.actionBtnText}>{t('scanner.openCamera')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.gallerySecondaryBtn}
-              onPress={handlePickImage}
-              activeOpacity={0.85}
-            >
-              {Platform.OS === 'web' &&
+            {Platform.OS === 'web' ? (
+              React.createElement(
+                'label',
+                {
+                  style: {
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(88, 101, 242, 0.12)',
+                    border: '1px solid rgba(88, 101, 242, 0.4)',
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    paddingLeft: 14,
+                    paddingRight: 14,
+                    borderRadius: 12,
+                    gap: 6,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  },
+                },
                 React.createElement('input', {
                   type: 'file',
                   accept: 'image/*',
@@ -350,8 +339,6 @@ export default function ScannerScreen() {
                     position: 'absolute',
                     top: 0,
                     left: 0,
-                    right: 0,
-                    bottom: 0,
                     width: '100%',
                     height: '100%',
                     opacity: 0,
@@ -359,12 +346,24 @@ export default function ScannerScreen() {
                     zIndex: 10,
                   },
                   onChange: handleWebFileInput,
-                })}
-              <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
-              <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
-                {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
-              </Text>
-            </TouchableOpacity>
+                }),
+                <Ionicons key="gallery-icon" name="image-outline" size={18} color={Palette.primaryLight} />,
+                <Text key="gallery-text" style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
+                  {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
+                </Text>
+              )
+            ) : (
+              <TouchableOpacity
+                style={styles.gallerySecondaryBtn}
+                onPress={handlePickImage}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="image-outline" size={18} color={Palette.primaryLight} />
+                <Text style={[styles.actionBtnText, { color: Palette.primaryLight }]}>
+                  {t('scanner.chooseGallery')} (1-5 {language === 'id' ? 'Foto' : 'Photos'})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <TouchableOpacity style={styles.demoTestBtn} onPress={handleSelectManualInput} activeOpacity={0.8}>
