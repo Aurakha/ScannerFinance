@@ -46,7 +46,7 @@ export const supabase = createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON
     storage: ssrSafeStorage,
     autoRefreshToken: !isSSR,
     persistSession: !isSSR,
-    detectSessionInUrl: false,
+    detectSessionInUrl: typeof window !== 'undefined',
   },
 });
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/services/supabase';
 import { UserProfile } from '@/types';
 
@@ -18,6 +19,7 @@ interface AuthState {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
+  updatePassword: (password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   // Admin Features
@@ -456,10 +458,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   resetPasswordForEmail: async (email) => {
     try {
       set({ isLoading: true });
+
+      // Tentukan redirect URL: prioritas env variable -> window.location.origin (web) -> Expo deep linking (mobile)
+      let redirectUrl: string;
+      if (process.env.EXPO_PUBLIC_SITE_URL) {
+        redirectUrl = `${process.env.EXPO_PUBLIC_SITE_URL.replace(/\/$/, '')}/auth/reset-password`;
+      } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        redirectUrl = `${window.location.origin}/auth/reset-password`;
+      } else {
+        redirectUrl = Linking.createURL('auth/reset-password');
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: Platform.OS === 'web' && typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/reset-password`
-          : undefined,
+        redirectTo: redirectUrl,
       });
       if (error) {
         return { error: error.message };
@@ -467,6 +478,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return {};
     } catch (err: any) {
       return { error: err.message || 'Gagal mengirim link reset password.' };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  updatePassword: async (password: string) => {
+    try {
+      set({ isLoading: true });
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        return { error: error.message };
+      }
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Gagal memperbarui kata sandi.' };
     } finally {
       set({ isLoading: false });
     }
