@@ -792,10 +792,10 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                         onPress={() => setActiveIndex((prev) => prev + 1)}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.stepNavNextBtnText}>
-                          Lanjut ke Struk {activeIndex + 2}
+                        <Text style={styles.stepNavNextBtnText} numberOfLines={1}>
+                          Lanjut Struk {activeIndex + 2}
                         </Text>
-                        <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+                        <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
@@ -803,9 +803,9 @@ export const ReceiptVerifyModal: React.FC<ReceiptVerifyModalProps> = ({
                         onPress={handleSaveBatchFinal}
                         activeOpacity={0.8}
                       >
-                        <Ionicons name="cloud-upload" size={16} color="#FFFFFF" />
-                        <Text style={styles.saveAllBtnText}>
-                          Simpan Semua ({drafts.length} Struk)
+                        <Ionicons name="cloud-upload" size={15} color="#FFFFFF" />
+                        <Text style={styles.saveAllBtnText} numberOfLines={1}>
+                          Simpan Semua ({drafts.length})
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1655,37 +1655,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    gap: 10,
+    gap: 8,
+    width: '100%',
   },
   footerNavRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 6,
+    flexShrink: 1,
   },
   cancelBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    flexShrink: 0,
   },
   cancelBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: Palette.darkTextSecondary,
   },
   stepNavPrevBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    flexShrink: 0,
   },
   stepNavPrevBtnText: {
     fontSize: 12,
@@ -1695,11 +1702,13 @@ const styles = StyleSheet.create({
   stepNavNextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: Palette.primary,
+    flexShrink: 1,
   },
   stepNavNextBtnText: {
     fontSize: 12,
@@ -1709,14 +1718,16 @@ const styles = StyleSheet.create({
   saveAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: Palette.greenOnline,
+    flexShrink: 1,
   },
   saveAllBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -1724,7 +1735,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     backgroundColor: Palette.primary,
