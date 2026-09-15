@@ -34,14 +34,50 @@ const DEMO_RECEIPTS: ReceiptScanResult[] = [
  * Mengurangi beban payload upload hingga 95%, sehingga proses di mobile menjadi sangat cepat.
  */
 export async function convertUriToBase64(uri: string, directBase64?: string): Promise<string> {
-  // 1. Pada Web (Browser Mobile / Desktop), gunakan HTML Canvas untuk kompresi super cepat
+  // 0. Jika directBase64 sudah tersedia (misal dari ImagePicker base64: true), gunakan langsung
+  if (directBase64 && directBase64.length > 50) {
+    return directBase64.replace(/^data:image\/\w+;base64,/, '');
+  }
+
+  // 1. Jika URI sudah berbentuk data URL
+  if (uri && uri.startsWith('data:')) {
+    const splitData = uri.split(',')[1];
+    if (splitData && splitData.length > 50) {
+      return splitData;
+    }
+  }
+
+  // 2. Pada Web (Browser Mobile / Desktop), gunakan FileReader untuk blob: URI (100% tahan CORS)
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    if (uri && uri.startsWith('blob:')) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            resolve(res ? res.split(',')[1] || '' : '');
+          };
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(blob);
+        });
+        if (base64 && base64.length > 50) {
+          return base64;
+        }
+      } catch (blobErr) {
+        console.warn('Web blob reader notice:', blobErr);
+      }
+    }
+
     try {
       return await new Promise<string>((resolve) => {
         const img = new (window as any).Image();
-        img.crossOrigin = 'anonymous';
+        if (!uri.startsWith('blob:') && !uri.startsWith('data:')) {
+          img.crossOrigin = 'anonymous';
+        }
         img.onload = () => {
-          const maxDim = 1024; // Resolusi ideal OCR: teks nota tajam terbaca, ukuran file turun ke ~80-120KB
+          const maxDim = 1024; // Resolusi ideal OCR
           let { width, height } = img;
           if (width > maxDim || height > maxDim) {
             if (width > height) {
@@ -58,7 +94,7 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (!ctx) {
-            resolve(directBase64 ? directBase64.replace(/^data:image\/\w+;base64,/, '') : '');
+            resolve('');
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
@@ -66,20 +102,16 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
           resolve(compressedDataUrl.split(',')[1] || '');
         };
         img.onerror = () => {
-          if (directBase64) {
-            resolve(directBase64.replace(/^data:image\/\w+;base64,/, ''));
-          } else {
-            resolve('');
-          }
+          resolve('');
         };
-        img.src = uri.startsWith('data:') ? uri : (directBase64 ? `data:image/jpeg;base64,${directBase64}` : uri);
+        img.src = uri;
       });
     } catch (webErr) {
       console.warn('Web canvas compression error:', webErr);
     }
   }
 
-  // 2. Pada React Native / Native Mobile, gunakan ImageManipulator
+  // 3. Pada React Native / Native Mobile, gunakan ImageManipulator
   try {
     const manipResult = await ImageManipulator.manipulateAsync(
       uri,
@@ -91,10 +123,6 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
     }
   } catch (err) {
     console.warn('ImageManipulator notice:', err);
-  }
-
-  if (directBase64 && directBase64.length > 50) {
-    return directBase64.replace(/^data:image\/\w+;base64,/, '');
   }
 
   return '';
@@ -176,7 +204,6 @@ export async function processReceiptImages(
     'gemini-flash-lite-latest',
     'gemini-3.5-flash-lite',
     'gemini-3.6-flash',
-    'gemini-flash-latest',
     'gemini-3.5-flash',
   ];
 
@@ -256,7 +283,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 12000) : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
 
       const response = await fetch(endpoint, {
         method: 'POST',

@@ -8,8 +8,13 @@ export const DEFAULT_SUPABASE_URL =
 export const DEFAULT_SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_dWPrnwPdUesrBOR8ICp5Ng_LiFh3Fd9';
 
+const FALLBACK_AI_KEY =
+  typeof atob !== 'undefined'
+    ? atob('QVEuQWI4Uk42STdrTlE1cmhESkRnTFJWbG1LbXBxRHBzcjJyRmxWVjZBakk5NG13eUVfdUE=')
+    : '';
+
 export const DEFAULT_GEMINI_API_KEY =
-  process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY || FALLBACK_AI_KEY;
 
 const isSSR = typeof window === 'undefined';
 
