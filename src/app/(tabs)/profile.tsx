@@ -18,19 +18,15 @@ import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { formatRupiah } from '@/utils/formatters';
-import { DEFAULT_GEMINI_API_KEY } from '@/services/supabase';
-
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, session, updateProfile, signOut, geminiApiKey, setGeminiApiKey } = useAuthStore();
+  const { user, session, updateProfile, signOut } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t, language } = useLanguageStore();
 
   const [fullName, setFullName] = useState(user?.full_name || 'Guest');
   const [companyName, setCompanyName] = useState(user?.company_name || '');
   const [department, setDepartment] = useState(user?.department || '');
-  const [customApiKey, setCustomApiKey] = useState(geminiApiKey || '');
-  const [isTestingAi, setIsTestingAi] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,83 +37,6 @@ export default function ProfileScreen() {
       setDepartment(user.department || '');
     }
   }, [user]);
-
-  React.useEffect(() => {
-    if (geminiApiKey) {
-      setCustomApiKey(geminiApiKey);
-    }
-  }, [geminiApiKey]);
-
-  const handleTestAi = async () => {
-    setIsTestingAi(true);
-    try {
-      const activeKey =
-        (customApiKey && customApiKey.trim()) ||
-        geminiApiKey ||
-        process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-        DEFAULT_GEMINI_API_KEY;
-
-      if (!activeKey) {
-        throw new Error('Kunci API belum diatur.');
-      }
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${activeKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Respond with JSON: {"status": "ok"}' }] }],
-            generationConfig: { responseMimeType: 'application/json' },
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errText.slice(0, 100)}`);
-      }
-
-      const data = await res.json();
-      if (data?.candidates?.[0]?.content?.parts) {
-        const successMsg = 'Koneksi AI Berhasil! Model Google Gemini AI Vision aktif & siap memindai struk belanja.';
-        if (Platform.OS === 'web') {
-          window.alert(successMsg);
-        } else {
-          Alert.alert('Tes AI Berhasil', successMsg);
-        }
-      } else {
-        throw new Error('Tidak ada respon teks dari AI.');
-      }
-    } catch (e: any) {
-      const failMsg = `Gagal terhubung ke AI: ${e.message}`;
-      if (Platform.OS === 'web') {
-        window.alert(failMsg);
-      } else {
-        Alert.alert('Gagal Tes AI', failMsg);
-      }
-    } finally {
-      setIsTestingAi(false);
-    }
-  };
-
-  const handleSaveApiKey = async () => {
-    try {
-      await setGeminiApiKey(customApiKey.trim());
-      const msg = 'Kunci Gemini API Key berhasil disimpan ke penyimpanan lokal!';
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Sukses', msg);
-      }
-    } catch (e: any) {
-      if (Platform.OS === 'web') {
-        window.alert('Gagal menyimpan: ' + e.message);
-      } else {
-        Alert.alert('Gagal', e.message);
-      }
-    }
-  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -390,131 +309,6 @@ export default function ProfileScreen() {
               {isSaving ? t('common.saving') : t('profile.saveProfileBtn')}
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Gemini AI OCR Configuration Card */}
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: 'rgba(35, 165, 90, 0.15)',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Ionicons name="sparkles" size={20} color={Palette.greenOnline} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                {language === 'id' ? 'Kecerdasan Buatan (Google Gemini AI)' : 'Artificial Intelligence (Gemini AI)'}
-              </Text>
-              <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                Vision OCR & Otomasi Ekstraksi Struk
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: 'rgba(35, 165, 90, 0.15)',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 8,
-                gap: 5,
-              }}
-            >
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: Palette.greenOnline,
-                }}
-              />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: Palette.greenOnline }}>
-                {language === 'id' ? 'Aktif' : 'Active'}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={{ fontSize: 12, color: theme.textMuted, lineHeight: 18, marginBottom: 12 }}>
-            {language === 'id'
-              ? 'Sistem menggunakan AI Vision berkecepatan tinggi untuk membaca nama toko, tanggal, item barang, ongkos kirim, biaya admin, & total belanja.'
-              : 'The system uses high-speed AI Vision to read store names, dates, items, shipping, admin fees, & total amounts.'}
-          </Text>
-
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginBottom: 4 }]}>
-              {language === 'id' ? 'Kunci Gemini API (Opsional / Pribadi)' : 'Gemini API Key (Optional / Custom)'}
-            </Text>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  backgroundColor: theme.background,
-                  color: theme.text,
-                  borderColor: theme.border,
-                  fontSize: 12,
-                },
-              ]}
-              value={customApiKey}
-              onChangeText={setCustomApiKey}
-              placeholder="Kosongkan untuk menggunakan Kunci Default Sistem"
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: Palette.primary,
-                paddingVertical: 10,
-                borderRadius: 10,
-                gap: 6,
-              }}
-              onPress={handleTestAi}
-              disabled={isTestingAi}
-              activeOpacity={0.8}
-            >
-              <Ionicons name={isTestingAi ? 'hourglass-outline' : 'flash-outline'} size={15} color="#FFFFFF" />
-              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 12 }}>
-                {isTestingAi
-                  ? (language === 'id' ? 'Menguji AI...' : 'Testing AI...')
-                  : (language === 'id' ? 'Uji Koneksi AI Sekarang ⚡' : 'Test AI Connection ⚡')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.cardHover,
-                borderWidth: 1,
-                borderColor: theme.border,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 10,
-                gap: 6,
-              }}
-              onPress={handleSaveApiKey}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="save-outline" size={15} color={theme.text} />
-              <Text style={{ color: theme.text, fontWeight: '600', fontSize: 12 }}>
-                {language === 'id' ? 'Simpan' : 'Save'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* App Version & Update Center Card */}

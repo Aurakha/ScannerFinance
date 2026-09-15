@@ -34,44 +34,10 @@ const DEMO_RECEIPTS: ReceiptScanResult[] = [
  * Mengurangi beban payload upload hingga 95%, sehingga proses di mobile menjadi sangat cepat.
  */
 export async function convertUriToBase64(uri: string, directBase64?: string): Promise<string> {
-  // 0. Jika directBase64 sudah tersedia (misal dari ImagePicker base64: true), gunakan langsung
-  if (directBase64 && directBase64.length > 50) {
-    return directBase64.replace(/^data:image\/\w+;base64,/, '');
-  }
-
-  // 1. Jika URI sudah berbentuk data URL
-  if (uri && uri.startsWith('data:')) {
-    const splitData = uri.split(',')[1];
-    if (splitData && splitData.length > 50) {
-      return splitData;
-    }
-  }
-
-  // 2. Pada Web (Browser Mobile / Desktop), gunakan FileReader untuk blob: URI (100% tahan CORS)
+  // 1. Pada Web (Browser Mobile / Desktop), coba HTML Canvas untuk resize & kompresi ke ~100KB
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    if (uri && uri.startsWith('blob:')) {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const res = reader.result as string;
-            resolve(res ? res.split(',')[1] || '' : '');
-          };
-          reader.onerror = () => resolve('');
-          reader.readAsDataURL(blob);
-        });
-        if (base64 && base64.length > 50) {
-          return base64;
-        }
-      } catch (blobErr) {
-        console.warn('Web blob reader notice:', blobErr);
-      }
-    }
-
     try {
-      return await new Promise<string>((resolve) => {
+      const compressed = await new Promise<string>((resolve) => {
         const img = new (window as any).Image();
         if (!uri.startsWith('blob:') && !uri.startsWith('data:')) {
           img.crossOrigin = 'anonymous';
@@ -98,20 +64,44 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
             return;
           }
           ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.70);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
           resolve(compressedDataUrl.split(',')[1] || '');
         };
-        img.onerror = () => {
-          resolve('');
-        };
-        img.src = uri;
+        img.onerror = () => resolve('');
+        img.src = directBase64 ? `data:image/jpeg;base64,${directBase64}` : uri;
       });
+
+      if (compressed && compressed.length > 50) {
+        return compressed;
+      }
     } catch (webErr) {
       console.warn('Web canvas compression error:', webErr);
     }
+
+    // Fallback untuk blob jika canvas gagal
+    if (uri && (uri.startsWith('blob:') || uri.startsWith('data:'))) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            resolve(res ? res.split(',')[1] || '' : '');
+          };
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(blob);
+        });
+        if (base64 && base64.length > 50) {
+          return base64;
+        }
+      } catch (blobErr) {
+        console.warn('Web blob reader notice:', blobErr);
+      }
+    }
   }
 
-  // 3. Pada React Native / Native Mobile, gunakan ImageManipulator
+  // 2. Pada React Native / Native Mobile, gunakan ImageManipulator
   try {
     const manipResult = await ImageManipulator.manipulateAsync(
       uri,
@@ -123,6 +113,17 @@ export async function convertUriToBase64(uri: string, directBase64?: string): Pr
     }
   } catch (err) {
     console.warn('ImageManipulator notice:', err);
+  }
+
+  if (directBase64 && directBase64.length > 50) {
+    return directBase64.replace(/^data:image\/\w+;base64,/, '');
+  }
+
+  if (uri && uri.startsWith('data:')) {
+    const splitData = uri.split(',')[1];
+    if (splitData && splitData.length > 50) {
+      return splitData;
+    }
   }
 
   return '';
@@ -152,10 +153,10 @@ export async function processReceiptImages(
   // Maksimal 5 foto sekaligus
   const targetImages = images.slice(0, 5);
 
-  // Konversi semua gambar ke base64
+  // Konversi semua gambar ke base64 (dengan resize & kompresi cerdas)
   const base64List = await Promise.all(
     targetImages.map(async (img) => {
-      return img.base64 || (await convertUriToBase64(img.uri));
+      return await convertUriToBase64(img.uri, img.base64);
     })
   );
 
@@ -252,9 +253,16 @@ Format Output JSON Wajib:
 Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transaksi, kembalikan {"is_receipt": false, "rejection_reason": "Gambar bukan struk belanja atau bukti transaksi."}.
 `;
 
+  const getMimeType = (b64: string): string => {
+    if (b64.startsWith('iVBORw0KGgo')) return 'image/png';
+    if (b64.startsWith('UklGR')) return 'image/webp';
+    if (b64.startsWith('JVBER')) return 'application/pdf';
+    return 'image/jpeg';
+  };
+
   const imageParts = validBase64.map((b64) => ({
     inline_data: {
-      mime_type: 'image/jpeg',
+      mime_type: getMimeType(b64),
       data: b64,
     },
   }));

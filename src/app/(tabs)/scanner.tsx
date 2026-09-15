@@ -7,6 +7,7 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -62,13 +63,34 @@ export default function ScannerScreen() {
 
   const handlePickImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        selectionLimit: 5,
-        quality: 0.7,
-        base64: true,
-      });
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Izin Galeri Ditolak', 'Mohon izinkan akses galeri foto pada pengaturan perangkat Anda.');
+          return;
+        }
+      }
+
+      let result: ImagePicker.ImagePickerResult;
+      try {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: true,
+          selectionLimit: 5,
+          allowsEditing: false,
+          quality: 0.7,
+          base64: true,
+        });
+      } catch (multiErr) {
+        console.warn('Multiple selection not supported, falling back to single:', multiErr);
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: false,
+          allowsEditing: false,
+          quality: 0.7,
+          base64: true,
+        });
+      }
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const inputItems = result.assets.map((a) => ({
