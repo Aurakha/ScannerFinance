@@ -41,12 +41,17 @@ const ssrSafeStorage = {
   },
 };
 
+class DummyWebSocket {}
+
 export const supabase = createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY, {
   auth: {
     storage: ssrSafeStorage,
     autoRefreshToken: !isSSR,
     persistSession: !isSSR,
     detectSessionInUrl: typeof window !== 'undefined',
+  },
+  realtime: {
+    transport: typeof WebSocket !== 'undefined' ? WebSocket : (DummyWebSocket as any),
   },
 });
 

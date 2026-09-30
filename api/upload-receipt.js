@@ -26,40 +26,14 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'base64Image is required' });
   }
 
-  const clientId =
-    process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID ||
-    process.env.GOOGLE_DRIVE_CLIENT_ID;
-  const clientSecret =
-    process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_SECRET ||
-    process.env.GOOGLE_DRIVE_CLIENT_SECRET;
-  const refreshToken =
-    process.env.EXPO_PUBLIC_GOOGLE_DRIVE_REFRESH_TOKEN ||
-    process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    return res.status(500).json({ error: 'Google Drive credentials not configured in environment variables' });
-  }
+  const { getGoogleAccessToken } = require('./google-auth');
 
   try {
-    // 1. Dapatkan access token baru via Refresh Token
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token',
-      }).toString(),
-    });
-
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      console.error('Failed to get Google access token:', tokenData);
-      return res.status(500).json({ error: 'Gagal mendapatkan Google access token', details: tokenData });
+    // 1. Dapatkan access token (Service Account permanen atau OAuth fallback)
+    const token = await getGoogleAccessToken();
+    if (!token) {
+      return res.status(500).json({ error: 'Gagal mendapatkan Google access token' });
     }
-
-    const token = tokenData.access_token;
     let cleanFileName = fileName;
     if (!cleanFileName) {
       const today = new Date();

@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,7 +35,9 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_GEMINI_API_KEY: ${{ secrets.EXPO_PUBLIC_GEMINI_API_KEY }}
-          EXPO_PUBLIC_GOOGLE_DRIVE_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_GOOGLE_DRIVE_ACCESS_TOKEN }}
+          EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_SECRET }}
+          EXPO_PUBLIC_GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.EXPO_PUBLIC_GOOGLE_DRIVE_REFRESH_TOKEN }}
           EXPO_PUBLIC_SITE_URL: 'https://scanner-finance.vercel.app'
         run: npx expo export --platform web
 

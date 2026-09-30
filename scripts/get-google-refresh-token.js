@@ -11,12 +11,36 @@
 
 const http = require('http');
 const url = require('url');
+const fs = require('fs');
+const path = require('path');
 
-// =============================================
-// ISI DULU DARI GOOGLE CLOUD CONSOLE:
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'ISI_CLIENT_ID_DISINI';
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'ISI_CLIENT_SECRET_DISINI';
-// =============================================
+// Auto-load dari file .env proyek
+try {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach((l) => {
+      const line = l.trim();
+      if (!line || line.startsWith('#')) return;
+      const idx = line.indexOf('=');
+      if (idx !== -1) {
+        const k = line.substring(0, idx).trim();
+        const v = line.substring(idx + 1).trim();
+        if (k && !process.env[k]) process.env[k] = v;
+      }
+    });
+  }
+} catch (e) {}
+
+// Ambil dari .env atau environment variable
+const CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID ||
+  process.env.GOOGLE_CLIENT_ID ||
+  'ISI_CLIENT_ID_DISINI';
+const CLIENT_SECRET =
+  process.env.EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_SECRET ||
+  process.env.GOOGLE_CLIENT_SECRET ||
+  'ISI_CLIENT_SECRET_DISINI';
 
 const REDIRECT_URI = 'http://localhost:3000/oauth-callback';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
