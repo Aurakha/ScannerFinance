@@ -207,11 +207,12 @@ export async function processReceiptImages(
     throw new Error('Kunci Gemini API Key belum terpasang atau tidak valid.');
   }
 
-  // Model Gemini resmi yang aktif dan terbukti 100% sukses
+  // Model Gemini resmi yang aktif, cepat (<1.5 detik), dan berakurasi tinggi
   const CANDIDATE_MODELS = [
-    'gemini-3.5-flash',
     'gemini-3.5-flash-lite',
     'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
   ];
 
   const systemPrompt = `
@@ -297,7 +298,7 @@ Perhatian: Kembalikan JSON murni tanpa markdown. Jika BUKAN struk/dokumen transa
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${effectiveApiKey}`;
       
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 25000) : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 12000) : null;
 
       const response = await fetch(endpoint, {
         method: 'POST',
